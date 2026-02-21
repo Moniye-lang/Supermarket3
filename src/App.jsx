@@ -1,21 +1,21 @@
 import { Routes, Route } from "react-router-dom";
 import MainLayout from "./layouts/MainLayout";
-import Home from "./pages/Home";
-import About from "./pages/About";
-import Products from "./pages/Products";
-import SignIn from "./pages/SignIn";
-import SignUp from "./pages/SignUp";
-import Order from "./pages/Order";
-import ContactUs from "./pages/ContactUs";
-import Cart from "./pages/Cart";
-import ProductDets from "./pages/ProductDets";
-import AdminProducts from "./pages/AdminProducts";
-import Checkout from "./pages/Checkout";
-import PickUp from "./pages/PickUp";
-import Worker from "./pages/Worker";
-import WorkerLogin from "./pages/WorkerLogin";
-import WorkerSignUp from "./pages/WorkerSignup";
-import Logout from "./pages/Logout";
+import Home from "./Pages/Home";
+import About from "./Pages/About";
+import Products from "./Pages/Products";
+import SignIn from "./Pages/SignIn";
+import SignUp from "./Pages/SignUp";
+import Order from "./Pages/Order";
+import ContactUs from "./Pages/ContactUs";
+import Cart from "./Pages/Cart";
+import ProductDets from "./Pages/ProductDets";
+import AdminProducts from "./Pages/AdminProducts";
+import Checkout from "./Pages/Checkout";
+import PickUp from "./Pages/PickUp";
+import Worker from "./Pages/Worker";
+import WorkerLogin from "./Pages/WorkerLogin";
+import WorkerSignUp from "./Pages/WorkerSignup";
+import Logout from "./Pages/Logout";
 
 const token = localStorage.getItem("token");
 
