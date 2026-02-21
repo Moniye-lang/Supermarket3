@@ -1,0 +1,14 @@
+.slideup{
+    animation: slidetop  .9s ease-in  forwards;
+    opacity: 0;
+}
+@keyframes slidetop {
+    from{
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to{
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
