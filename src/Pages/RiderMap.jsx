@@ -6,7 +6,7 @@ import L from "leaflet";
 import { io } from "socket.io-client";
 
 // Connect socket
-const socket = io("http://localhost:5000", { transports: ["websocket"] });
+const socket = io(import.meta.env.VITE_API_URL || "http://localhost:5000", { transports: ["websocket"] });
 
 // custom rider icon
 const riderIcon = new L.Icon({
@@ -17,7 +17,7 @@ const riderIcon = new L.Icon({
 
 export default function RiderMap() {
   const { state } = useLocation();
-  const fallbackDest = { lat: 6.5244,lng: 3.3792 }
+  const fallbackDest = { lat: 6.5244, lng: 3.3792 }
   const destination = state?.destination;
   const orderId = localStorage.getItem("orderId");
 
@@ -37,7 +37,7 @@ export default function RiderMap() {
 
     const startSimulation = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/rider/simulate", {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/rider/simulate`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ destination }),

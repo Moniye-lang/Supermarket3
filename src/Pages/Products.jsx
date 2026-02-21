@@ -32,7 +32,7 @@ export default function Products() {
   const { data: allProducts, isLoading, isError } = useQuery({
     queryKey: ['products'],
     queryFn: async () => {
-      const res = await fetch("http://localhost:5000/api/products");
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/products`);
       if (!res.ok) throw new Error("Failed to fetch products");
       const data = await res.json();
       return data.products || [];
@@ -285,8 +285,8 @@ export default function Products() {
                           key={page}
                           onClick={() => handlePageChange(page)}
                           className={`w-10 h-10 rounded-full font-medium transition-all ${currentPage === page
-                              ? "bg-brand-primary text-white shadow-lg shadow-brand-primary/25"
-                              : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
+                            ? "bg-brand-primary text-white shadow-lg shadow-brand-primary/25"
+                            : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
                             }`}
                         >
                           {page}

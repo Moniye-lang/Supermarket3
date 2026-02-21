@@ -11,10 +11,10 @@ export default function Order() {
 
   const orderId = state?.orderId;
   const token = localStorage.getItem("token");
-   useEffect(() => {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }, []);
-  
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
 
   // Redirect if no token
   useEffect(() => {
@@ -27,7 +27,7 @@ export default function Order() {
 
     async function fetchOrder() {
       try {
-        const res = await fetch(`http://localhost:5000/api/orders/latest/delivery`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/orders/latest/delivery`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -62,7 +62,7 @@ export default function Order() {
   async function handleComplete() {
     if (!order) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/orders/${order._id}/complete`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/orders/${order._id}/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
@@ -109,11 +109,10 @@ export default function Order() {
         <p className="text-gray-600 text-center mb-6">
           Status:{" "}
           <span
-            className={`font-semibold ${
-              order.fulfilled || order.status === "delivered"
+            className={`font-semibold ${order.fulfilled || order.status === "delivered"
                 ? "text-green-700"
                 : "text-yellow-600"
-            }`}
+              }`}
           >
             {order.fulfilled || order.status === "delivered"
               ? "Delivered"

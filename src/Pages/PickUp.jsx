@@ -11,17 +11,17 @@ export default function Pickup() {
 
   const token = localStorage.getItem("token");
   const { countdown, isOpen } = useStoreCountdown("08:00", "20:00");
-   useEffect(() => {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }, []);
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
 
 
   useEffect(() => {
-  socket.on("order:status", ({ status }) => {
-    if (status === "delivered") setOrder(null);
-  });
-  return () => socket.off("order:status");
-}, []);
+    socket.on("order:status", ({ status }) => {
+      if (status === "delivered") setOrder(null);
+    });
+    return () => socket.off("order:status");
+  }, []);
 
 
   useEffect(() => {
@@ -29,11 +29,11 @@ export default function Pickup() {
       navigate("/SignIn");
       return;
     }
-    
+
 
     async function fetchPickupOrder() {
       try {
-        const res = await fetch("http://localhost:5000/api/orders/latest/pickup", {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/orders/latest/pickup`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -47,33 +47,33 @@ export default function Pickup() {
       } finally {
         setLoading(false);
       }
-      await fetch(`http://localhost:5000/api/orders/${order._id}/complete`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-});
-setOrder(null);
+      await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/orders/${order._id}/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      setOrder(null);
 
     }
-    
+
     fetchPickupOrder();
   }, [token, navigate]);
-  
+
   async function handleComplete(orderId) {
-  try {
-    const res = await fetch(`http://localhost:5000/api/orders/${orderId}/complete`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    });
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/orders/${orderId}/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
 
-    const data = await res.json();
-    if (!res.ok) return alert(data.error || "Failed to complete order");
+      const data = await res.json();
+      if (!res.ok) return alert(data.error || "Failed to complete order");
 
-    alert("✅ Delivery marked as successful!");
-    setOrder(null); // Clear from screen
-  } catch (err) {
-    console.error(err);
+      alert("✅ Delivery marked as successful!");
+      setOrder(null); // Clear from screen
+    } catch (err) {
+      console.error(err);
+    }
   }
-}
 
 
   if (loading)
@@ -108,11 +108,10 @@ setOrder(null);
 
         <div className="flex flex-col items-center text-center mb-6">
           <p
-            className={`text-sm px-3 py-1 rounded-full font-semibold ${
-              isOpen
-                ? "bg-green-100 text-green-600"
-                : "bg-red-100 text-red-600"
-            }`}
+            className={`text-sm px-3 py-1 rounded-full font-semibold ${isOpen
+              ? "bg-green-100 text-green-600"
+              : "bg-red-100 text-red-600"
+              }`}
           >
             Store is {isOpen ? "OPEN" : "CLOSED"}
           </p>
@@ -122,7 +121,7 @@ setOrder(null);
         </div>
 
         <div className="bg-gray-50 rounded-2xl shadow-inner p-4 mb-6">
-        
+
           <p className="text-gray-600 mb-1">
             Name: <span className="font-semibold text-gray-800">{order.pickupName}</span>
           </p>
@@ -131,9 +130,8 @@ setOrder(null);
             <span className="font-semibold text-red-600 text-lg">{order.pickupCode}</span>
           </p>
           <p
-            className={`mt-3 font-bold ${
-              order.fulfilled ? "text-green-600" : "text-red-500"
-            }`}
+            className={`mt-3 font-bold ${order.fulfilled ? "text-green-600" : "text-red-500"
+              }`}
           >
             {order.fulfilled ? "Collected" : "Not Collected"}
           </p>
@@ -161,11 +159,11 @@ setOrder(null);
           </p>
         </div>
         <button
-  onClick={() => handleComplete(order._id)}
-  className="bg-green-600 text-white px-4 py-2 rounded-md"
->
-  Confirm Delivery
-</button>
+          onClick={() => handleComplete(order._id)}
+          className="bg-green-600 text-white px-4 py-2 rounded-md"
+        >
+          Confirm Delivery
+        </button>
 
       </div>
 

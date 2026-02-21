@@ -11,7 +11,7 @@ export default function Logout() {
 
         // 🟢 1. Log out from backend (invalidate token)
         if (token) {
-          await fetch("http://localhost:5000/api/auth/logout", {
+          await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/logout`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

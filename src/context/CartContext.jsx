@@ -29,7 +29,7 @@ export function CartProvider({ children, user, token }) {
       }
 
       try {
-        const res = await fetch(`http://localhost:5000/api/cart/${user._id}`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/cart/${user._id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -65,7 +65,7 @@ export function CartProvider({ children, user, token }) {
     if (!token || !user?._id) return; // Only sync online when logged in
 
     try {
-      const res = await fetch("http://localhost:5000/api/cart/save", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/cart/save`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -120,8 +120,8 @@ export function CartProvider({ children, user, token }) {
       existing.qty <= 1
         ? cart.filter((item) => item.productId !== id)
         : cart.map((item) =>
-            item.productId === id ? { ...item, qty: item.qty - 1 } : item
-          );
+          item.productId === id ? { ...item, qty: item.qty - 1 } : item
+        );
 
     persist(updated);
   }
