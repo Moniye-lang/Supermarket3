@@ -32,7 +32,7 @@ export default function Products() {
   const { data: allProducts, isLoading, isError } = useQuery({
     queryKey: ['products'],
     queryFn: async () => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/products`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "https://supermarket3.onrender.com"}/api/products`);
       if (!res.ok) throw new Error("Failed to fetch products");
       const data = await res.json();
       return data.products || [];

@@ -29,7 +29,7 @@ export function CartProvider({ children, user, token }) {
       }
 
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/cart/${user._id}`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || "https://supermarket3.onrender.com"}/api/cart/${user._id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -65,7 +65,7 @@ export function CartProvider({ children, user, token }) {
     if (!token || !user?._id) return; // Only sync online when logged in
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/cart/save`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "https://supermarket3.onrender.com"}/api/cart/save`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

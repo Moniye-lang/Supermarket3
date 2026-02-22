@@ -26,7 +26,7 @@ export default function ProductDets() {
             try {
                 setLoading(true);
                 // Fetch product details
-                const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/products/${id}`); // Adjust endpoint if needed
+                const res = await fetch(`${import.meta.env.VITE_API_URL || "https://supermarket3.onrender.com"}/api/products/${id}`); // Adjust endpoint if needed
                 const data = await res.json();
 
                 // If the API returns the product directly or in a wrapper
@@ -39,7 +39,7 @@ export default function ProductDets() {
 
                 // Fetch Related (Mock or real)
                 // For now, let's fetch a few products as "related"
-                const relatedRes = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/products?page=1&limit=4`);
+                const relatedRes = await fetch(`${import.meta.env.VITE_API_URL || "https://supermarket3.onrender.com"}/api/products?page=1&limit=4`);
                 const relatedData = await relatedRes.json();
                 const filtered = (relatedData.products || []).filter(p => p._id !== id).slice(0, 4);
                 setRelatedProducts(filtered);

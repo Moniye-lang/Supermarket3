@@ -10,7 +10,7 @@ export default function useOrderTracking(orderId, token) {
 
   useEffect(() => {
     if (!orderId) return;
-    const socket = io(import.meta.env.VITE_API_URL || "http://localhost:5000", { auth: { token } });
+    const socket = io(import.meta.env.VITE_API_URL || "https://supermarket3.onrender.com", { auth: { token } });
     socketRef.current = socket;
 
     socket.on("connect", () => {
@@ -25,7 +25,7 @@ export default function useOrderTracking(orderId, token) {
     socket.on("order:status", (d) => setStatus(d.status));
 
     // fetch initial path from API
-    fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/tracking/${orderId}`, {
+    fetch(`${import.meta.env.VITE_API_URL || "https://supermarket3.onrender.com"}/api/tracking/${orderId}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {}
     }).then(r => r.json()).then(d => {
       if (d?.path) setPath(d.path);

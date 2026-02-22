@@ -24,7 +24,7 @@ export default function AdminProducts({ token }) {
   async function loadProducts() {
     try {
       setLoading(true);
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/products?limit=500`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "https://supermarket3.onrender.com"}/api/products?limit=500`);
       const data = await res.json();
       setProducts(data.products || []);
     } catch (err) {
@@ -42,7 +42,7 @@ export default function AdminProducts({ token }) {
 
     try {
       setSubmitting(true);
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/products`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "https://supermarket3.onrender.com"}/api/products`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -65,7 +65,7 @@ export default function AdminProducts({ token }) {
   async function removeProduct(id) {
     if (!confirm("Are you sure you want to delete this product?")) return;
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/products/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "https://supermarket3.onrender.com"}/api/products/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });

@@ -33,7 +33,7 @@ export default function Pickup() {
 
     async function fetchPickupOrder() {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/orders/latest/pickup`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || "https://supermarket3.onrender.com"}/api/orders/latest/pickup`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -47,7 +47,7 @@ export default function Pickup() {
       } finally {
         setLoading(false);
       }
-      await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/orders/${order._id}/complete`, {
+      await fetch(`${import.meta.env.VITE_API_URL || "https://supermarket3.onrender.com"}/api/orders/${order._id}/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
@@ -60,7 +60,7 @@ export default function Pickup() {
 
   async function handleComplete(orderId) {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/orders/${orderId}/complete`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "https://supermarket3.onrender.com"}/api/orders/${orderId}/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });

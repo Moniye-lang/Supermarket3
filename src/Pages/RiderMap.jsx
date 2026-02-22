@@ -6,7 +6,7 @@ import L from "leaflet";
 import { io } from "socket.io-client";
 
 // Connect socket
-const socket = io(import.meta.env.VITE_API_URL || "http://localhost:5000", { transports: ["websocket"] });
+const socket = io(import.meta.env.VITE_API_URL || "https://supermarket3.onrender.com", { transports: ["websocket"] });
 
 // custom rider icon
 const riderIcon = new L.Icon({
@@ -37,7 +37,7 @@ export default function RiderMap() {
 
     const startSimulation = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/rider/simulate`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || "https://supermarket3.onrender.com"}/api/rider/simulate`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ destination }),

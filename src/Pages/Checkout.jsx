@@ -45,7 +45,7 @@ export default function Checkout() {
     const pickupCode = generateCode();
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/orders`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "https://supermarket3.onrender.com"}/api/orders`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -27,7 +27,7 @@ export default function Order() {
 
     async function fetchOrder() {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/orders/latest/delivery`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || "https://supermarket3.onrender.com"}/api/orders/latest/delivery`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -62,7 +62,7 @@ export default function Order() {
   async function handleComplete() {
     if (!order) return;
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/orders/${order._id}/complete`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "https://supermarket3.onrender.com"}/api/orders/${order._id}/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
@@ -110,8 +110,8 @@ export default function Order() {
           Status:{" "}
           <span
             className={`font-semibold ${order.fulfilled || order.status === "delivered"
-                ? "text-green-700"
-                : "text-yellow-600"
+              ? "text-green-700"
+              : "text-yellow-600"
               }`}
           >
             {order.fulfilled || order.status === "delivered"

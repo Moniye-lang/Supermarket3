@@ -22,7 +22,7 @@ export default function SignIn() {
     setError("");
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/login`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "https://supermarket3.onrender.com"}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -49,7 +49,7 @@ export default function SignIn() {
     onSuccess: async (tokenResponse) => {
       try {
         setLoading(true);
-        const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/google-login`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || "https://supermarket3.onrender.com"}/api/auth/google-login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token: tokenResponse.credential || tokenResponse.access_token, isAccessToken: !tokenResponse.credential }), // Handle different response types if needed, simplified here for credential
@@ -95,7 +95,7 @@ export default function SignIn() {
         // Now send this trusted info to backend? No, can be spoofed.
         // We must send the token to backend.
 
-        const backendRes = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/google-login`, {
+        const backendRes = await fetch(`${import.meta.env.VITE_API_URL || "https://supermarket3.onrender.com"}/api/auth/google-login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token: tokenResponse.access_token, googleId: userInfo.sub, email: userInfo.email, name: userInfo.name }), // improving backend to verify this?
