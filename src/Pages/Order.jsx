@@ -18,7 +18,7 @@ export default function Order() {
 
   // Redirect if no token
   useEffect(() => {
-    if (!token) navigate("/SignIn");
+    if (!token) navigate("/signin");
   }, [token, navigate]);
 
   // Fetch latest delivery order

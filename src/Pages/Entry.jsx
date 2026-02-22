@@ -16,7 +16,7 @@ export default function Entry() {
   }
 
   function handleUserEntry() {
-    navigate("/SignIn"); // Redirect to login/signup page
+    navigate("/signin"); // Redirect to login/signup page
   }
 
   return (

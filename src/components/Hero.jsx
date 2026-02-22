@@ -44,12 +44,12 @@ export default function Hero() {
                     </p>
 
                     <div className="flex flex-wrap gap-4 pt-4">
-                        <Link to="/Order">
+                        <Link to="/order">
                             <Button size="lg" className="rounded-full px-8 text-lg hover:scale-105 transition-transform shadow-brand-primary/25 shadow-xl">
                                 Start Shopping <ArrowRight className="ml-2 w-5 h-5" />
                             </Button>
                         </Link>
-                        <Link to="/Products">
+                        <Link to="/products">
                             <Button variant="glass" size="lg" className="rounded-full px-8 text-lg border-2 border-white/50 hover:border-brand-primary/20">
                                 View Catalog
                             </Button>

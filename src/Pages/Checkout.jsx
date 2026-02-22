@@ -20,7 +20,7 @@ export default function Checkout() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
-    if (!token) navigate("/SignIn");
+    if (!token) navigate("/signin");
   }, [token, navigate]);
 
   const generateCode = () => Math.floor(1000 + Math.random() * 9000);
@@ -73,7 +73,7 @@ export default function Checkout() {
       localStorage.setItem("orderId", id);
 
       // Simulate a success delay/animation if needed, or just navigate
-      navigate(method === "delivery" ? "/Order" : "/Pickup", {
+      navigate(method === "delivery" ? "/order" : "/pickup", {
         state: { orderId: id, code: pickupCode, customerName }
       });
 

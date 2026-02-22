@@ -26,7 +26,7 @@ export default function Pickup() {
 
   useEffect(() => {
     if (!token) {
-      navigate("/SignIn");
+      navigate("/signin");
       return;
     }
 

@@ -123,7 +123,7 @@ export default function Home() {
                 At AMStores, we believe quality shouldn't be a luxury. From fresh produce to pantry staples, every item is hand-picked to ensure it meets our rigorous standards before it reaches your home.
               </p>
               <div className="pt-4">
-                <Link to="/About">
+                <Link to="/about">
                   <Button variant="outline" size="lg" className="rounded-full">Read More About Us</Button>
                 </Link>
               </div>

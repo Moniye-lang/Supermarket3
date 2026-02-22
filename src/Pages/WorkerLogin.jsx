@@ -22,7 +22,7 @@ export default function WorkerLogin() {
 
       localStorage.setItem("workerToken", data.token);
       alert(`Welcome, ${data.user?.name || "Worker"}!`);
-      navigate("/Worker");
+      navigate("/worker");
     } catch (err) {
       setError(err.message);
     }

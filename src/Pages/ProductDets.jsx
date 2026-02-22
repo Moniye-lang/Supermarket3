@@ -75,7 +75,7 @@ export default function ProductDets() {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-brand-light gap-4">
                 <h2 className="text-2xl font-bold text-gray-800">Product Not Found</h2>
-                <Button onClick={() => navigate("/Products")}>Back to Products</Button>
+                <Button onClick={() => navigate("/products")}>Back to Products</Button>
             </div>
         );
     }

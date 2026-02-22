@@ -24,9 +24,9 @@ export default function Navbar() {
 
     const navLinks = [
         { name: "Home", path: "/" },
-        { name: "Shop", path: "/Products" },
-        { name: "About", path: "/About" },
-        { name: "Contact", path: "/Contact" },
+        { name: "Shop", path: "/products" },
+        { name: "About", path: "/about" },
+        { name: "Contact", path: "/contact" },
     ];
 
     return (
@@ -95,7 +95,7 @@ export default function Navbar() {
                             </button>
 
                             {/* Cart */}
-                            <Link to="/Cart" className="relative p-2 hover:bg-white/50 rounded-full transition-all group">
+                            <Link to="/cart" className="relative p-2 hover:bg-white/50 rounded-full transition-all group">
                                 <ShoppingCart size={22} className="text-gray-700 group-hover:text-brand-primary transition-colors" />
                                 <AnimatePresence>
                                     {totalItems > 0 && (
@@ -112,7 +112,7 @@ export default function Navbar() {
                             </Link>
 
                             {/* User / Login */}
-                            <Link to="/SignIn" className="hidden md:block">
+                            <Link to="/signin" className="hidden md:block">
                                 <Button variant="primary" size="sm" className="rounded-full px-5 text-xs uppercase tracking-wider">
                                     Sign In
                                 </Button>
@@ -173,10 +173,10 @@ export default function Navbar() {
                             </div>
 
                             <div className="p-6 border-t border-gray-100 space-y-3">
-                                <Link to="/SignIn" className="block">
+                                <Link to="/signin" className="block">
                                     <Button className="w-full rounded-xl">Sign In</Button>
                                 </Link>
-                                <Link to="/SignUp" className="block text-center text-sm text-gray-500 hover:text-brand-primary">
+                                <Link to="/signup" className="block text-center text-sm text-gray-500 hover:text-brand-primary">
                                     Create data account
                                 </Link>
                             </div>

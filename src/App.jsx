@@ -27,25 +27,25 @@ export default function App() {
       {/* Main Public Routes (Wrapped in Layout) */}
       <Route element={<MainLayout />}>
         <Route path='/' element={<Home />} />
-        <Route path='/About' element={<About />} />
-        <Route path='/Contact' element={<ContactUs />} />
-        <Route path='/Products' element={<Products />} />
-        <Route path='/Order' element={<Order />} />
-        <Route path='/Cart' element={<Cart />} />
-        <Route path='/Checkout' element={<Checkout />} />
-        <Route path='/Pickup' element={<PickUp />} />
+        <Route path='/about' element={<About />} />
+        <Route path='/contact' element={<ContactUs />} />
+        <Route path='/products' element={<Products />} />
+        <Route path='/order' element={<Order />} />
+        <Route path='/cart' element={<Cart />} />
+        <Route path='/checkout' element={<Checkout />} />
+        <Route path='/pickup' element={<PickUp />} />
         <Route path='/product/:id' element={<ProductDets />} />
       </Route>
 
       {/* Auth & Admin Routes (No Standard Layout) */}
-      <Route path='/SignIn' element={<SignIn />} />
-      <Route path='/SignUp' element={<SignUp />} />
-      <Route path='/Logout' element={<Logout />} />
+      <Route path='/signin' element={<SignIn />} />
+      <Route path='/signup' element={<SignUp />} />
+      <Route path='/logout' element={<Logout />} />
 
       {/* Worker / Admin */}
-      <Route path='/Worker' element={<Worker />} />
-      <Route path='/WorkerLogin' element={<WorkerLogin />} />
-      <Route path='/WorkerSignup' element={<WorkerSignUp />} />
+      <Route path='/worker' element={<Worker />} />
+      <Route path='/workerlogin' element={<WorkerLogin />} />
+      <Route path='/workersignup' element={<WorkerSignUp />} />
       <Route path="/admin" element={<AdminProducts token={token} />} />
       <Route path="/admin/products" element={<AdminProducts token={token} />} />
 

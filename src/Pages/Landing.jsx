@@ -8,7 +8,7 @@ export default function Landing() {
 
   const handleEnter = () => {
     if (choice === "user") {
-      navigate("/SignIn");
+      navigate("/signin");
     } else if (choice === "guest") {
       const guestId = `guest_${Date.now()}_${Math.random()
         .toString(36)
@@ -34,11 +34,10 @@ export default function Landing() {
 
         <div className="flex flex-col md:flex-row gap-6 justify-center mb-10">
           <label
-            className={`cursor-pointer px-6 py-4 rounded-2xl shadow-md border-2 transition-all duration-300 w-48 text-center ${
-              choice === "user"
+            className={`cursor-pointer px-6 py-4 rounded-2xl shadow-md border-2 transition-all duration-300 w-48 text-center ${choice === "user"
                 ? "bg-orange-500 text-white border-orange-600 scale-105 shadow-lg"
                 : "bg-white border-transparent hover:border-orange-300 hover:scale-105"
-            }`}
+              }`}
           >
             <input
               type="radio"
@@ -51,11 +50,10 @@ export default function Landing() {
           </label>
 
           <label
-            className={`cursor-pointer px-6 py-4 rounded-2xl shadow-md border-2 transition-all duration-300 w-48 text-center ${
-              choice === "guest"
+            className={`cursor-pointer px-6 py-4 rounded-2xl shadow-md border-2 transition-all duration-300 w-48 text-center ${choice === "guest"
                 ? "bg-orange-500 text-white border-orange-600 scale-105 shadow-lg"
                 : "bg-white border-transparent hover:border-orange-300 hover:scale-105"
-            }`}
+              }`}
           >
             <input
               type="radio"
