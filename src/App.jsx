@@ -16,6 +16,8 @@ import Worker from "./Pages/Worker";
 import WorkerLogin from "./Pages/WorkerLogin";
 import WorkerSignUp from "./Pages/WorkerSignup";
 import Logout from "./Pages/Logout";
+import NotFound from "./Pages/NotFound";
+
 
 const token = localStorage.getItem("token");
 
@@ -46,6 +48,9 @@ export default function App() {
       <Route path='/WorkerSignup' element={<WorkerSignUp />} />
       <Route path="/admin" element={<AdminProducts token={token} />} />
       <Route path="/admin/products" element={<AdminProducts token={token} />} />
+
+      {/* Catch-all 404 Route */}
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
