@@ -2,7 +2,7 @@ import { useContext, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { CartContext } from "../context/CartContext";
 import { Button } from "../components/ui/Button";
-import { Trash2, Plus, Minus, ArrowRight, ShoppingBag } from "lucide-react";
+import { Trash2, Plus, Minus, ArrowRight, ArrowLeft, ShoppingBag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Cart() {
