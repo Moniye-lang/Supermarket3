@@ -43,7 +43,7 @@ export default function Cart() {
             </div>
             <h2 className="text-2xl font-bold text-brand-dark mb-2">Your cart is empty</h2>
             <p className="text-gray-500 mb-8 max-w-sm">Looks like you haven't added anything to your cart yet.</p>
-            <Link to="/Products">
+            <Link to="/products">
               <Button size="lg">Start Shopping</Button>
             </Link>
           </div>
@@ -105,7 +105,7 @@ export default function Cart() {
               </AnimatePresence>
 
               <div className="flex justify-between items-center pt-4">
-                <Link to="/Products" className="text-gray-500 hover:text-brand-primary font-medium flex items-center gap-2">
+                <Link to="/products" className="text-gray-500 hover:text-brand-primary font-medium flex items-center gap-2">
                   <ArrowLeft className="w-4 h-4" /> Continue Shopping
                 </Link>
                 <button

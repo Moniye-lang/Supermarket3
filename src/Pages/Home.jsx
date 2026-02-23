@@ -66,7 +66,7 @@ export default function Home() {
                     </div>
                     <h3 className="text-2xl font-bold text-brand-dark mb-4">{item.label}</h3>
                     <p className="text-gray-500 mb-8 flex-grow">{item.description}</p>
-                    <Link to="/Products">
+                    <Link to="/products">
                       <Button variant="ghost" className="group text-brand-primary hover:bg-brand-primary/5">
                         Explore <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                       </Button>

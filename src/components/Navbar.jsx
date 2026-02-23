@@ -177,7 +177,7 @@ export default function Navbar() {
                                     <Button className="w-full rounded-xl">Sign In</Button>
                                 </Link>
                                 <Link to="/signup" className="block text-center text-sm text-gray-500 hover:text-brand-primary">
-                                    Create data account
+                                    Create account
                                 </Link>
                             </div>
                         </motion.div>
