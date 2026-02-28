@@ -1,4 +1,5 @@
 import { Routes, Route } from "react-router-dom";
+import { useContext } from "react";
 import MainLayout from "./layouts/MainLayout";
 import Home from "./Pages/Home";
 import About from "./Pages/About";
@@ -17,11 +18,11 @@ import WorkerLogin from "./Pages/WorkerLogin";
 import WorkerSignUp from "./Pages/WorkerSignup";
 import Logout from "./Pages/Logout";
 import NotFound from "./Pages/NotFound";
-
-
-const token = localStorage.getItem("token");
+import { AuthContext } from "./context/AuthContext";
 
 export default function App() {
+  const { token } = useContext(AuthContext);
+
   return (
     <Routes>
       {/* Main Public Routes (Wrapped in Layout) */}

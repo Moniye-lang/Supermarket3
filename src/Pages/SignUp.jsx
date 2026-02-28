@@ -4,9 +4,12 @@ import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { Mail, Lock, User, ArrowRight, CheckCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 
 export default function SignUp() {
   const navigate = useNavigate();
+  const { login } = useContext(AuthContext);
   const [step, setStep] = useState(1); // 1: Details, 2: OTP
   const [form, setForm] = useState({ name: "", email: "", password: "", otp: "" });
   const [loading, setLoading] = useState(false);
@@ -60,8 +63,7 @@ export default function SignUp() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Verification failed");
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      login(data.user, data.token);
       navigate("/");
     } catch (err) {
       setError(err.message);

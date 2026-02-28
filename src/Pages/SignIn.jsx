@@ -5,9 +5,11 @@ import { Input } from "../components/ui/Input";
 import { Mail, Lock, LogIn, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useGoogleLogin } from "@react-oauth/google";
+import { AuthContext } from "../context/AuthContext";
 
 export default function SignIn() {
   const navigate = useNavigate();
+  const { login } = useContext(AuthContext);
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -31,8 +33,7 @@ export default function SignIn() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Login failed");
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      login(data.user, data.token);
 
       // Redirect based on details/role
       if (data.user.isAdmin) navigate("/admin");
@@ -45,68 +46,29 @@ export default function SignIn() {
     }
   }
 
-  const login = useGoogleLogin({
+  const handleGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       try {
         setLoading(true);
-        const res = await fetch(`${import.meta.env.VITE_API_URL || "https://supermarket3.onrender.com"}/api/auth/google-login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token: tokenResponse.credential || tokenResponse.access_token, isAccessToken: !tokenResponse.credential }), // Handle different response types if needed, simplified here for credential
-        });
-        // Note: @react-oauth/google useGoogleLogin with default flow 'implicit' returns access_token. 
-        // The backend expects idToken usually for verification if using verifyIdToken.
-        // Let's assume we maintain standard flow. If using 'implicit' (default), we get access_token.
-        // If we want id_token, we should use flow: 'auth-code' or just use the google-login button component. 
-        // However, useGoogleLogin gives more control.
-        // A common pattern with access_token is to fetch user info from Google UP endpoint on backend, OR send id_token.
-        // To get id_token easily, sometimes the standard <GoogleLogin /> component is easier.
-        // Let's try to stick to sending what we get. If we need to fetch user info on backend using access_token, we can update backend.
-        // actually, let's look at backend: it uses client.verifyIdToken. This expects an ID Token.
-        // To get an ID token with useGoogleLogin, we might need to adjust.
-        // OR use flow: 'auth-code' to get a code and swap it.
-        // ALTERNATIVE: Use the <GoogleLogin /> component which returns credential (id_token).
-        // But styling a custom button is harder with that component.
-        // Let's try to get user info on frontend and send to backend? No, insecure.
-        // FIX: Let's use the credential response from <GoogleLogin> component if possible, OR switch backend to use access_token to fetch user profile. 
-        // Simpler path: Update backend to accept access_token and fetch user info? 
-        // Or assume useGoogleLogin returns code?
-        // Actually, let's use the simplest approach: The <GoogleLogin> component from the library renders a standard button. 
-        // If the user wants a CUSTOM button, we need useGoogleLogin. 
-        // If we use useGoogleLogin, we usually get an access token.
-        // Let's adjust the backend to also support fetching user info via access token if verification fails?
-        // BETTER: Let's use `onSuccess` response.access_token to fetch user info in the backend.
-        // WAIT, I see I implemented `client.verifyIdToken` in backend. That requires an ID Token.
-        // For custom button, `useGoogleLogin` doesn't return ID token easily.
-        // I will updated the frontend to send the `access_token` and update the backend to support it.
-
-        // Correction: I will trust the user wants a polished UI.
-        // I will update the backend code to fetch user info from Google using the access token validation endpoint if verifyIdToken fails, or just switch to that method.
-
-        // actually, let's keep it simple. I'll pass the token. 
-        // If it fails, I'll assume I need to update backend in next step. 
-        // But I'm in the middle of a task.
-        // I'll update the backend `google-login` to handle access_token too.
-
         const userInfo = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
           headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
         }).then(r => r.json());
 
-        // Now send this trusted info to backend? No, can be spoofed.
-        // We must send the token to backend.
-
         const backendRes = await fetch(`${import.meta.env.VITE_API_URL || "https://supermarket3.onrender.com"}/api/auth/google-login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token: tokenResponse.access_token, googleId: userInfo.sub, email: userInfo.email, name: userInfo.name }), // improving backend to verify this?
-          // actually, if we send the access_token, the backend can verify it.
+          body: JSON.stringify({
+            token: tokenResponse.access_token,
+            googleId: userInfo.sub,
+            email: userInfo.email,
+            name: userInfo.name
+          }),
         });
 
         const data = await backendRes.json();
         if (!backendRes.ok) throw new Error(data.error || "Google Login failed");
 
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
+        login(data.user, data.token);
         navigate("/");
 
       } catch (err) {
@@ -194,7 +156,7 @@ export default function SignIn() {
 
           <button
             type="button"
-            onClick={() => login()}
+            onClick={() => handleGoogleLogin()}
             className="w-full flex items-center justify-center gap-3 py-4 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors text-gray-700 font-medium shadow-sm"
           >
             <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-6 h-6" />

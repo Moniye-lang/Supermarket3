@@ -1,8 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../context/AuthContext";
 
 export default function Logout() {
   const navigate = useNavigate();
+  const { logout } = useContext(AuthContext);
 
   useEffect(() => {
     async function handleLogout() {
@@ -20,10 +22,8 @@ export default function Logout() {
           });
         }
 
-        // 🧹 2. Clear all sensitive data
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        localStorage.removeItem("cart");
+        // 🧹 2. Clear all sensitive data via context (which also clears localStorage)
+        logout();
 
         // 🆕 3. Create a new guest ID for future guest orders
         const newGuestId = `guest_${Date.now()}_${Math.random()
@@ -31,16 +31,16 @@ export default function Logout() {
           .substring(2, 8)}`;
         localStorage.setItem("guestId", newGuestId);
 
-        // ⏩ 4. Redirect to sign-in
+        // ⏩ 4. Redirect to home
         navigate("/", { replace: true });
       } catch (err) {
         console.error("Logout error:", err);
-        navigate("/SignIn", { replace: true });
+        navigate("/", { replace: true });
       }
     }
 
     handleLogout();
-  }, [navigate]);
+  }, [navigate, logout]);
 
   return (
     <div className="h-screen flex flex-col items-center justify-center text-gray-700">

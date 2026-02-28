@@ -1,7 +1,8 @@
 import { useState, useContext, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ShoppingCart, Menu, X, User, Search } from "lucide-react";
+import { ShoppingCart, Menu, X, User, Search, LogOut } from "lucide-react";
 import { CartContext } from "../context/CartContext";
+import { AuthContext } from "../context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../utils/cn";
 import { Button } from "./ui/Button";
@@ -10,6 +11,7 @@ export default function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const { totalItems } = useContext(CartContext);
+    const { user, logout } = useContext(AuthContext);
     const location = useLocation();
 
     // Handle scroll effect
@@ -112,11 +114,26 @@ export default function Navbar() {
                             </Link>
 
                             {/* User / Login */}
-                            <Link to="/signin" className="hidden md:block">
-                                <Button variant="primary" size="sm" className="rounded-full px-5 text-xs uppercase tracking-wider">
-                                    Sign In
-                                </Button>
-                            </Link>
+                            {user ? (
+                                <div className="hidden md:flex items-center gap-4">
+                                    <span className="text-sm font-medium text-brand-dark">
+                                        Welcome, <span className="text-brand-primary">{user.name.split(' ')[0]}</span>
+                                    </span>
+                                    <button
+                                        onClick={logout}
+                                        className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
+                                        title="Logout"
+                                    >
+                                        <LogOut size={20} />
+                                    </button>
+                                </div>
+                            ) : (
+                                <Link to="/signin" className="hidden md:block">
+                                    <Button variant="primary" size="sm" className="rounded-full px-5 text-xs uppercase tracking-wider">
+                                        Sign In
+                                    </Button>
+                                </Link>
+                            )}
 
                             {/* Mobile Menu Toggle */}
                             <button
@@ -173,12 +190,35 @@ export default function Navbar() {
                             </div>
 
                             <div className="p-6 border-t border-gray-100 space-y-3">
-                                <Link to="/signin" className="block">
-                                    <Button className="w-full rounded-xl">Sign In</Button>
-                                </Link>
-                                <Link to="/signup" className="block text-center text-sm text-gray-500 hover:text-brand-primary">
-                                    Create account
-                                </Link>
+                                {user ? (
+                                    <>
+                                        <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-xl mb-2">
+                                            <div className="w-10 h-10 bg-brand-primary/10 rounded-full flex items-center justify-center text-brand-primary">
+                                                <User size={20} />
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-bold text-gray-900 leading-none">{user.name}</span>
+                                                <span className="text-xs text-gray-500 mt-1">{user.email}</span>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            className="w-full rounded-xl text-red-600 hover:bg-red-50 hover:text-red-600 justify-start h-12"
+                                            onClick={logout}
+                                        >
+                                            <LogOut size={18} className="mr-2" /> Logout
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Link to="/signin" className="block">
+                                            <Button className="w-full rounded-xl">Sign In</Button>
+                                        </Link>
+                                        <Link to="/signup" className="block text-center text-sm text-gray-500 hover:text-brand-primary">
+                                            Create account
+                                        </Link>
+                                    </>
+                                )}
                             </div>
                         </motion.div>
                     </>
