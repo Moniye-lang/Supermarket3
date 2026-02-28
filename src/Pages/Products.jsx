@@ -268,37 +268,51 @@ export default function Products() {
 
                 {/* Pagination Controls */}
                 {totalPages > 1 && (
-                  <div className="flex justify-center items-center gap-2">
+                  <div className="flex justify-center items-center gap-2 mt-8">
                     <Button
                       variant="ghost"
                       disabled={currentPage === 1}
                       onClick={() => handlePageChange(currentPage - 1)}
-                      className="rounded-full w-10 h-10 p-0 flex items-center justify-center disabled:opacity-50"
+                      className="rounded-full w-10 h-10 p-0 flex items-center justify-center disabled:opacity-50 border border-gray-200"
                     >
                       <ChevronLeft size={20} />
                     </Button>
 
                     {/* Page Numbers */}
-                    <div className="flex gap-2">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                        <button
-                          key={page}
-                          onClick={() => handlePageChange(page)}
-                          className={`w-10 h-10 rounded-full font-medium transition-all ${currentPage === page
-                            ? "bg-brand-primary text-white shadow-lg shadow-brand-primary/25"
-                            : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
-                            }`}
-                        >
-                          {page}
-                        </button>
-                      ))}
+                    <div className="flex gap-1 md:gap-2">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(page => {
+                          // Show first page, last page, and pages around the current page
+                          return (
+                            page === 1 ||
+                            page === totalPages ||
+                            (page >= currentPage - 1 && page <= currentPage + 1)
+                          );
+                        })
+                        .map((page, index, array) => (
+                          <div key={page} className="flex items-center">
+                            {/* Add ellipses if there's a gap */}
+                            {index > 0 && array[index - 1] !== page - 1 && (
+                              <span className="px-1 md:px-2 text-gray-400">...</span>
+                            )}
+                            <button
+                              onClick={() => handlePageChange(page)}
+                              className={`w-10 h-10 rounded-full font-medium transition-all text-sm md:text-base ${currentPage === page
+                                ? "bg-brand-primary text-white shadow-lg shadow-brand-primary/25"
+                                : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
+                                }`}
+                            >
+                              {page}
+                            </button>
+                          </div>
+                        ))}
                     </div>
 
                     <Button
                       variant="ghost"
                       disabled={currentPage === totalPages}
                       onClick={() => handlePageChange(currentPage + 1)}
-                      className="rounded-full w-10 h-10 p-0 flex items-center justify-center disabled:opacity-50"
+                      className="rounded-full w-10 h-10 p-0 flex items-center justify-center disabled:opacity-50 border border-gray-200"
                     >
                       <ChevronRight size={20} />
                     </Button>
