@@ -10,6 +10,7 @@ import { Button } from "./ui/Button";
 export default function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const { totalItems } = useContext(CartContext);
     const { user, logout } = useContext(AuthContext);
     const location = useLocation();
@@ -23,6 +24,12 @@ export default function Navbar() {
 
     // Close mobile menu on route change
     useEffect(() => setIsOpen(false), [location]);
+
+    const handleLogout = () => {
+        logout();
+        setShowLogoutConfirm(false);
+        setIsOpen(false);
+    };
 
     const navLinks = [
         { name: "Home", path: "/" },
@@ -120,7 +127,7 @@ export default function Navbar() {
                                         Welcome, <span className="text-brand-primary">{user.name.split(' ')[0]}</span>
                                     </span>
                                     <button
-                                        onClick={logout}
+                                        onClick={() => setShowLogoutConfirm(true)}
                                         className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
                                         title="Logout"
                                     >
@@ -204,7 +211,7 @@ export default function Navbar() {
                                         <Button
                                             variant="ghost"
                                             className="w-full rounded-xl text-red-600 hover:bg-red-50 hover:text-red-600 justify-start h-12"
-                                            onClick={logout}
+                                            onClick={() => setShowLogoutConfirm(true)}
                                         >
                                             <LogOut size={18} className="mr-2" /> Logout
                                         </Button>
@@ -222,6 +229,49 @@ export default function Navbar() {
                             </div>
                         </motion.div>
                     </>
+                )}
+            </AnimatePresence>
+
+            {/* Logout Confirmation Modal */}
+            <AnimatePresence>
+                {showLogoutConfirm && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowLogoutConfirm(false)}
+                            className="absolute inset-0 bg-brand-dark/40 backdrop-blur-md"
+                        />
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            className="relative bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full text-center border border-white/50"
+                        >
+                            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500">
+                                <LogOut size={32} />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">Logout</h3>
+                            <p className="text-gray-500 mb-8">Are you sure you want to log out of your account?</p>
+                            <div className="flex gap-3">
+                                <Button
+                                    variant="ghost"
+                                    className="flex-1 rounded-xl h-12"
+                                    onClick={() => setShowLogoutConfirm(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    variant="primary"
+                                    className="flex-1 rounded-xl h-12 bg-red-500 hover:bg-red-600 border-none"
+                                    onClick={handleLogout}
+                                >
+                                    Yes, Logout
+                                </Button>
+                            </div>
+                        </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
         </>

@@ -164,7 +164,7 @@ export default function About() {
       </section>
 
       {/* Reviews */}
-      <section className="py-24 bg-brand-dark text-white relative overflow-hidden">
+      <section className="py-24 bg-gray-400 text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('/pattern.png')] opacity-5" />
         <div className="container mx-auto px-6 relative z-10">
           <div className="text-center mb-16">
