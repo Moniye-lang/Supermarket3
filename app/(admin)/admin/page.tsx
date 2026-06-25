@@ -3,7 +3,7 @@ import { useState, useEffect, useContext } from "react";
 import { DollarSign, Package, ShoppingCart, Users, TrendingUp, TrendingDown, AlertTriangle, ChevronRight, BarChart3 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { socket } from "@/socket";
+import pusherClient from "@/lib/pusher-client";
 import { AuthContext } from "@/context/AuthContext";
 
 export default function AdminDashboardHome() {
@@ -12,7 +12,7 @@ export default function AdminDashboardHome() {
     const [loading, setLoading] = useState(true);
     const [period, setPeriod] = useState("weekly");
 
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://supermarket3.onrender.com";
+    const API_URL = "";
 
     useEffect(() => {
         const currentToken = token || localStorage.getItem("token");
@@ -43,16 +43,16 @@ export default function AdminDashboardHome() {
 
         fetchAnalytics();
 
+        // Subscribe to Pusher for real-time dashboard updates
+        const channel = pusherClient.subscribe("admin-orders");
         const handleUpdate = () => fetchAnalytics();
-
-        socket.on("orderCreated", handleUpdate);
-        socket.on("order:status", handleUpdate);
+        channel.bind("orderCreated", handleUpdate);
+        channel.bind("order:status", handleUpdate);
 
         return () => {
-            socket.off("orderCreated", handleUpdate);
-            socket.off("order:status", handleUpdate);
+            pusherClient.unsubscribe("admin-orders");
         };
-    }, [token, period, API_URL]);
+    }, [token, period]);
 
     const stats = [
         { 

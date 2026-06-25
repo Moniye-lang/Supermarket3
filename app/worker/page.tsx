@@ -6,7 +6,7 @@ import { CheckCircle, MapPin, Truck, ShieldCheck, LogOut, Loader2, Phone, Messag
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { motion, AnimatePresence } from "framer-motion";
-import { socket } from "@/socket";
+import pusherClient from "@/lib/pusher-client";
 
 let globalAudioCtx: AudioContext | null = null;
 
@@ -33,7 +33,7 @@ export default function Worker() {
   const [goodsStatusText, setGoodsStatusText] = useState("");
   const [goodsStatusLoading, setGoodsStatusLoading] = useState(false);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://supermarket3.onrender.com";
+  const API_URL = "";
 
   useEffect(() => {
     async function loadWorkerProfile() {
@@ -172,26 +172,22 @@ export default function Worker() {
     }
   }, [router, fetchOrders, fetchVerifyingOrders]);
 
-  // Real-time socket listeners
+  // Real-time Pusher listeners + polling
   useEffect(() => {
-    const handleNewOrder = () => {
-      fetchOrders();
-      playChime();
-    };
+    const channel = pusherClient.subscribe("admin-orders");
 
+    const handleNewOrder = () => { fetchOrders(); playChime(); };
     const handleOrderStatus = ({ orderId, status }: { orderId: string; status: string }) => {
       if (status === "delivered" || status === "picked_up" || status === "completed" || status === "cancelled") {
         setOrders(prev => prev.filter(o => o._id !== orderId));
         setVerifyingOrders(prev => prev.filter(o => o._id !== orderId));
         if (paymentPopup && paymentPopup._id === orderId) setPaymentPopup(null);
       } else if (status === "packing") {
-        fetchOrders();
-        fetchVerifyingOrders();
+        fetchOrders(); fetchVerifyingOrders();
       } else {
         setOrders(prev => prev.map(o => o._id === orderId ? { ...o, status } : o));
       }
     };
-
     const handlePaymentVerification = (order: any) => {
       setVerifyingOrders(prev => {
         const exists = prev.find(o => o._id === order._id);
@@ -201,24 +197,21 @@ export default function Worker() {
       setPaymentPopup(order);
       playChime();
     };
-
     const handleOrderUpdated = (updatedOrder: any) => {
       setOrders(prev => prev.map(o => o._id === updatedOrder._id ? updatedOrder : o));
-      if (updatedOrder.paymentStatus === "verifying") {
-        fetchVerifyingOrders();
-      }
+      if (updatedOrder.paymentStatus === "verifying") fetchVerifyingOrders();
     };
 
-    socket.on("orderCreated", handleNewOrder);
-    socket.on("order:status", handleOrderStatus);
-    socket.on("paymentVerificationRequest", handlePaymentVerification);
-    socket.on("orderUpdated", handleOrderUpdated);
+    channel.bind("orderCreated", handleNewOrder);
+    channel.bind("order:status", handleOrderStatus);
+    channel.bind("paymentVerificationRequest", handlePaymentVerification);
+    channel.bind("orderUpdated", handleOrderUpdated);
+
+    const pollInterval = setInterval(() => { fetchOrders(); fetchVerifyingOrders(); }, 30000);
 
     return () => {
-      socket.off("orderCreated", handleNewOrder);
-      socket.off("order:status", handleOrderStatus);
-      socket.off("paymentVerificationRequest", handlePaymentVerification);
-      socket.off("orderUpdated", handleOrderUpdated);
+      pusherClient.unsubscribe("admin-orders");
+      clearInterval(pollInterval);
     };
   }, [fetchOrders, fetchVerifyingOrders, paymentPopup]);
 

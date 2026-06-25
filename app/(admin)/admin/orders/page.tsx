@@ -3,7 +3,7 @@ import { useEffect, useState, useRef, useCallback, useContext } from "react";
 import { Search, Eye, MapPin, Truck, CheckCircle, Clock, AlertCircle, RefreshCw, BellRing, ThumbsUp, ThumbsDown, Send, Package, X, ShieldCheck, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { socket } from "@/socket";
+import pusherClient from "@/lib/pusher-client";
 import { motion, AnimatePresence } from "framer-motion";
 import { AuthContext } from "@/context/AuthContext";
 
@@ -35,7 +35,7 @@ export default function AdminOrdersPage() {
   const [goodsStatusText, setGoodsStatusText] = useState("");
   const [goodsStatusLoading, setGoodsStatusLoading] = useState(false);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://supermarket3.onrender.com";
+  const API_URL = "";
 
   // Initialize and unlock audio context
   const initAudio = () => {
@@ -174,53 +174,32 @@ export default function AdminOrdersPage() {
     loadWorkers();
     loadVerifyingOrders();
 
+    // Subscribe to Pusher for real-time admin order updates
+    const channel = pusherClient.subscribe("admin-orders");
     const handleUpdate = () => { loadOrders(true); loadVerifyingOrders(); };
-    const handleNewOrder = () => {
-      loadOrders(true);
-      loadVerifyingOrders();
-      playChime();
-    };
+    const handleNewOrder = () => { loadOrders(true); loadVerifyingOrders(); playChime(); };
     const handlePaymentVerification = (order: any) => {
       setVerifyingOrders(prev => {
-        const exists = prev.find(o => o._id === order._id);
+        const exists = prev.find((o: any) => o._id === order._id);
         return exists ? prev : [order, ...prev];
       });
       setPaymentPopup(order);
       playChime();
     };
 
-    const onConnect = () => {
-      console.log("Admin Socket Connected!");
-      loadOrders(true);
-      loadVerifyingOrders();
-    };
-    const onDisconnect = () => console.log("Admin Socket Disconnected!");
-
-    socket.on("connect", onConnect);
-    socket.on("disconnect", onDisconnect);
-    socket.on("orderCreated", handleNewOrder);
-    socket.on("orderUpdated", handleUpdate);
-    socket.on("order:status", handleUpdate);
-    socket.on("paymentVerificationRequest", handlePaymentVerification);
-    socket.on("workerStatusChanged", () => loadWorkers());
-
-    if (!socket.connected) {
-      socket.connect();
-    }
+    channel.bind("orderCreated", handleNewOrder);
+    channel.bind("orderUpdated", handleUpdate);
+    channel.bind("order:status", handleUpdate);
+    channel.bind("paymentVerificationRequest", handlePaymentVerification);
+    channel.bind("workerStatusChanged", () => loadWorkers());
 
     pollIntervalRef.current = setInterval(() => { loadOrders(true); loadVerifyingOrders(); }, 30000);
 
     return () => {
-      socket.off("connect", onConnect);
-      socket.off("disconnect", onDisconnect);
-      socket.off("orderCreated", handleNewOrder);
-      socket.off("orderUpdated", handleUpdate);
-      socket.off("order:status", handleUpdate);
-      socket.off("paymentVerificationRequest", handlePaymentVerification);
-      socket.off("workerStatusChanged");
+      pusherClient.unsubscribe("admin-orders");
       clearInterval(pollIntervalRef.current);
     };
-  }, [token, API_URL, loadOrders, loadWorkers, loadVerifyingOrders]);
+  }, [token, loadOrders, loadWorkers, loadVerifyingOrders]);
 
   async function handleManualRefresh() {
     setIsRefreshing(true);
