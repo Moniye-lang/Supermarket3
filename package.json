@@ -1,5 +1,5 @@
 {
-  "name": "amstores_next",
+  "name": "amstores",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -36,6 +36,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/leaflet": "^1.9.21",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.1",
     "@types/react": "^19",

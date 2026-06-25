@@ -1,6 +1,6 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { addToBlacklist } from "C:/Users/HP/Desktop/oio/AMstores/backend/tokenBlacklist.js";
+import { addToBlacklist } from "@/lib/tokenBlacklist";
 
 export const authOptions = {
   providers: [

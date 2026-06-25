@@ -5,12 +5,14 @@ import { Server as IOServer } from "socket.io";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import dns from "dns";
 import User from "./lib/models/User";
 import Order from "./lib/models/Order";
 import Tracking from "./lib/models/Tracking";
 import { cleanupOldGuestOrders } from "./lib/utils/cleanup";
 
-dotenv.config({ path: ".env.local" });
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
+dotenv.config({ path: ".env.local", override: true });
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";

@@ -1,0 +1,762 @@
+"use client";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { CheckCircle, MapPin, Truck, ShieldCheck, LogOut, Loader2, Phone, MessageCircle, Navigation, X, Package, Send, BellRing, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { motion, AnimatePresence } from "framer-motion";
+import { socket } from "@/socket";
+
+let globalAudioCtx: AudioContext | null = null;
+
+export default function Worker() {
+  const router = useRouter();
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
+
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [code, setCode] = useState("");
+  const [confirmLoading, setConfirmLoading] = useState(false);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const [workerStatus, setWorkerStatus] = useState("available");
+
+  // Payment verification queue
+  const [verifyingOrders, setVerifyingOrders] = useState<any[]>([]);
+  const [paymentPopup, setPaymentPopup] = useState<any>(null); // order awaiting accept/decline
+  const [paymentActionLoading, setPaymentActionLoading] = useState(false);
+
+  // Goods status update
+  const [goodsStatusModal, setGoodsStatusModal] = useState<any>(null); // order to update goods status
+  const [goodsStatusText, setGoodsStatusText] = useState("");
+  const [goodsStatusLoading, setGoodsStatusLoading] = useState(false);
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://supermarket3.onrender.com";
+
+  useEffect(() => {
+    async function loadWorkerProfile() {
+      try {
+        const token = localStorage.getItem("workerToken") || localStorage.getItem("token");
+        if (!token) return;
+        const res = await fetch(`${API_URL}/api/worker/profile`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setWorkerStatus(data.status || "available");
+        }
+      } catch (err) {
+        console.error("Error loading worker profile:", err);
+      }
+    }
+    loadWorkerProfile();
+  }, [API_URL]);
+
+  async function updateStatus(newStatus: string) {
+    try {
+      const token = localStorage.getItem("workerToken") || localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/worker/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setWorkerStatus(newStatus);
+      } else {
+        alert(data.error || "Failed to update status");
+      }
+    } catch (err) {
+      console.error("Error updating status:", err);
+    }
+  }
+
+  // Initialize and unlock audio context
+  const initAudio = () => {
+    try {
+      if (!globalAudioCtx) {
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioContextClass) globalAudioCtx = new AudioContextClass();
+      }
+      if (globalAudioCtx && globalAudioCtx.state === "suspended") {
+        globalAudioCtx.resume().then(() => setAudioUnlocked(true));
+      } else if (globalAudioCtx && globalAudioCtx.state === "running") {
+        setAudioUnlocked(true);
+      }
+    } catch (e) {
+      console.error("Audio init error", e);
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener("click", initAudio, { once: true });
+    return () => document.removeEventListener("click", initAudio);
+  }, []);
+
+  const playChime = () => {
+    try {
+      initAudio();
+      if (!globalAudioCtx) return;
+
+      const playDing = (freq: number, startTime: number, duration: number) => {
+        if (!globalAudioCtx) return;
+        const osc = globalAudioCtx.createOscillator();
+        const gain = globalAudioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(globalAudioCtx.destination);
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, startTime);
+        gain.gain.setValueAtTime(0, startTime);
+        gain.gain.linearRampToValueAtTime(0.6, startTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+      };
+
+      const now = globalAudioCtx.currentTime;
+      playDing(1046.50, now, 0.8);
+    } catch (err) {
+      console.error("Audio playback failed", err);
+    }
+  };
+
+  const fetchOrders = useCallback(async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("workerToken") || localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/worker/orders?_t=${Date.now()}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache"
+        }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setOrders(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error("Error fetching orders:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [API_URL]);
+
+  const fetchVerifyingOrders = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("workerToken") || localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/orders/verifying`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setVerifyingOrders(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error("Error fetching verifying orders:", err);
+    }
+  }, [API_URL]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("workerToken") || localStorage.getItem("token");
+    if (!token) {
+      router.push("/workerlogin");
+    } else {
+      fetchOrders();
+      fetchVerifyingOrders();
+    }
+  }, [router, fetchOrders, fetchVerifyingOrders]);
+
+  // Real-time socket listeners
+  useEffect(() => {
+    const handleNewOrder = () => {
+      fetchOrders();
+      playChime();
+    };
+
+    const handleOrderStatus = ({ orderId, status }: { orderId: string; status: string }) => {
+      if (status === "delivered" || status === "picked_up" || status === "completed" || status === "cancelled") {
+        setOrders(prev => prev.filter(o => o._id !== orderId));
+        setVerifyingOrders(prev => prev.filter(o => o._id !== orderId));
+        if (paymentPopup && paymentPopup._id === orderId) setPaymentPopup(null);
+      } else if (status === "packing") {
+        fetchOrders();
+        fetchVerifyingOrders();
+      } else {
+        setOrders(prev => prev.map(o => o._id === orderId ? { ...o, status } : o));
+      }
+    };
+
+    const handlePaymentVerification = (order: any) => {
+      setVerifyingOrders(prev => {
+        const exists = prev.find(o => o._id === order._id);
+        if (!exists) return [order, ...prev];
+        return prev;
+      });
+      setPaymentPopup(order);
+      playChime();
+    };
+
+    const handleOrderUpdated = (updatedOrder: any) => {
+      setOrders(prev => prev.map(o => o._id === updatedOrder._id ? updatedOrder : o));
+      if (updatedOrder.paymentStatus === "verifying") {
+        fetchVerifyingOrders();
+      }
+    };
+
+    socket.on("orderCreated", handleNewOrder);
+    socket.on("order:status", handleOrderStatus);
+    socket.on("paymentVerificationRequest", handlePaymentVerification);
+    socket.on("orderUpdated", handleOrderUpdated);
+
+    return () => {
+      socket.off("orderCreated", handleNewOrder);
+      socket.off("order:status", handleOrderStatus);
+      socket.off("paymentVerificationRequest", handlePaymentVerification);
+      socket.off("orderUpdated", handleOrderUpdated);
+    };
+  }, [fetchOrders, fetchVerifyingOrders, paymentPopup]);
+
+  // Handle payment accept/decline
+  async function handlePaymentAction(order: any, action: "accept" | "decline") {
+    setPaymentActionLoading(true);
+    try {
+      const token = localStorage.getItem("workerToken") || localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/orders/${order._id}/confirm-payment`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ action })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+
+      setPaymentPopup(null);
+      setVerifyingOrders(prev => prev.filter(o => o._id !== order._id));
+      fetchOrders();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setPaymentActionLoading(false);
+    }
+  }
+
+  // Handle goods status update
+  async function handleGoodsStatusSend() {
+    if (!goodsStatusModal || !goodsStatusText.trim()) return;
+    setGoodsStatusLoading(true);
+    try {
+      const token = localStorage.getItem("workerToken") || localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/orders/${goodsStatusModal._id}/goods-status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ goodsStatus: goodsStatusText.trim() })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+
+      setOrders(prev => prev.map(o => o._id === goodsStatusModal._id ? { ...o, goodsStatus: goodsStatusText.trim() } : o));
+      setGoodsStatusText("");
+      setGoodsStatusModal(null);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setGoodsStatusLoading(false);
+    }
+  }
+
+  async function handleConfirm(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedOrder || !code.trim()) return setMessage({ type: "error", text: "Enter the 4-digit code." });
+
+    setConfirmLoading(true);
+    setMessage(null);
+
+    try {
+      const token = localStorage.getItem("workerToken") || localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/worker/confirm`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ orderId: selectedOrder._id, code }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to confirm order");
+
+      setMessage({ type: "success", text: "Order successfully fulfilled!" });
+      setTimeout(() => {
+        setSelectedOrder(null);
+        setCode("");
+        setMessage(null);
+        fetchOrders();
+      }, 2000);
+
+    } catch (err: any) {
+      console.error("Confirm Error:", err);
+      setMessage({ type: "error", text: err.message });
+    } finally {
+      setConfirmLoading(false);
+    }
+  }
+
+  async function updateOrderStatus(orderId: string, status: string) {
+    try {
+      const token = localStorage.getItem("workerToken") || localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/orders/${orderId}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status })
+      });
+      if (!res.ok) throw new Error("Failed to update status");
+      fetchOrders();
+    } catch (e: any) {
+      console.error(e);
+      alert(e.message);
+    }
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem("workerToken");
+    localStorage.removeItem("token");
+    router.push("/workerlogin");
+  };
+
+  return (
+    <div className="min-h-screen bg-brand-light flex flex-col relative overflow-hidden">
+      {/* Decorative Background */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-primary/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
+
+      {/* Header */}
+      <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 p-4 sticky top-0 z-40">
+        <div className="container mx-auto max-w-4xl flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="font-display text-2xl font-bold tracking-tight text-brand-dark">AM<span className="text-brand-primary">Stores</span></span>
+            <span className="bg-brand-dark text-white text-xs px-2 py-0.5 rounded-md font-medium tracking-wide">WORKER</span>
+          </Link>
+          <div className="flex items-center gap-4">
+            {/* Payment Verification Badge */}
+            {verifyingOrders.length > 0 && (
+              <button
+                onClick={() => setPaymentPopup(verifyingOrders[0])}
+                className="relative flex items-center gap-1.5 text-xs font-bold bg-amber-500 text-white px-3 py-1.5 rounded-full animate-pulse hover:animate-none hover:bg-amber-600 transition-colors"
+              >
+                <BellRing size={14} />
+                {verifyingOrders.length} Payment{verifyingOrders.length > 1 ? "s" : ""} Pending
+              </button>
+            )}
+            {/* Status Dropdown */}
+            <select
+              value={workerStatus}
+              onChange={(e) => updateStatus(e.target.value)}
+              className={`text-xs font-bold border rounded-full px-3 py-1.5 focus:outline-none transition-colors cursor-pointer ${
+                workerStatus === "available" ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100" :
+                workerStatus === "busy" ? "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100" :
+                workerStatus === "break" ? "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100" :
+                "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
+              }`}
+            >
+              <option value="available">🟢 Available</option>
+              <option value="busy">🟡 Busy</option>
+              <option value="break">🔵 Break</option>
+              <option value="offline">⚫ Offline</option>
+            </select>
+            <button
+              onClick={playChime}
+              className="flex items-center gap-2 text-brand-primary hover:text-brand-dark transition-colors text-sm font-medium bg-brand-primary/10 px-3 py-1.5 rounded-full"
+            >
+              Test Sound
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 text-gray-500 hover:text-red-500 transition-colors text-sm font-medium"
+            >
+              <LogOut size={16} /> Logout
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 container mx-auto max-w-2xl px-4 py-8 relative z-10 flex flex-col">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 font-display">My Tasks</h1>
+            <p className="text-gray-500">Active deliveries and pickups assigned to you.</p>
+          </div>
+        </div>
+
+        {/* Verifying Payments Banner */}
+        {verifyingOrders.length > 0 && (
+          <div className="mb-6 space-y-3">
+            <h2 className="text-sm font-bold text-amber-700 uppercase tracking-wider flex items-center gap-2">
+              <BellRing size={14} /> Awaiting Payment Verification
+            </h2>
+            {verifyingOrders.map(vo => (
+              <motion.div
+                key={vo._id}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between gap-4"
+              >
+                <div>
+                  <p className="font-bold text-amber-900 text-sm">Order #{vo.pickupCode} — {vo.pickupName}</p>
+                  <p className="text-xs text-amber-700">₦{vo.amount?.toLocaleString()} · {vo.collectionMethod}</p>
+                </div>
+                <button
+                  onClick={() => setPaymentPopup(vo)}
+                  className="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors shrink-0"
+                >
+                  Verify
+                </button>
+              </motion.div>
+            ))}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="flex-1 flex items-center justify-center py-20">
+            <Loader2 className="animate-spin text-brand-primary w-10 h-10" />
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-10 bg-white rounded-3xl border border-gray-100 shadow-sm">
+            <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-4 text-green-500">
+              <CheckCircle size={40} />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900">All Caught Up!</h2>
+            <p className="text-gray-500 mt-2">You have no active tasks at the moment.</p>
+            <Button variant="ghost" className="mt-6 border border-gray-200" onClick={fetchOrders}>Refresh List</Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {orders.map((order, idx) => (
+              <motion.div
+                key={order._id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.1 }}
+                className="bg-white rounded-3xl shadow-md border border-gray-100 overflow-hidden"
+              >
+                <div className="p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Order #{order.pickupCode}</span>
+                        {order.collectionMethod === "delivery" ? (
+                          <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded font-bold flex items-center gap-1"><Truck size={12}/> Delivery</span>
+                        ) : (
+                          <span className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded font-bold flex items-center gap-1"><MapPin size={12}/> Pickup</span>
+                        )}
+                        {/* Status badge */}
+                        {order.status === "packing" && (
+                          <span className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded font-bold flex items-center gap-1">
+                            <Package size={12} /> Packing
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900">{order.pickupName}</h3>
+                      {order.goodsStatus && (
+                        <p className="text-xs text-brand-primary mt-1 font-medium">📦 Last update: {order.goodsStatus}</p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xl font-bold text-brand-primary">₦{order.amount.toLocaleString()}</p>
+                      <p className="text-xs text-gray-500">{order.items.length} items</p>
+                    </div>
+                  </div>
+
+                  {/* Location Details */}
+                  {order.collectionMethod === "delivery" && (
+                    <div className="bg-gray-50 rounded-2xl p-4 mb-4 flex items-start gap-3">
+                      <Navigation className="text-brand-primary mt-0.5 shrink-0" size={20} />
+                      <div>
+                        <p className="font-semibold text-gray-900">Delivery Address</p>
+                        <p className="text-gray-600 text-sm leading-relaxed">{order.deliveryAddress}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Items List */}
+                  <div className="bg-gray-50 rounded-2xl p-4 mb-4 border border-gray-100">
+                    <h4 className="text-sm font-bold text-gray-900 mb-2">Order Items</h4>
+                    <ul className="divide-y divide-gray-200">
+                      {order.items.map((it: any, idx: number) => (
+                        <li key={it._id || idx} className="py-2 flex justify-between items-center text-sm text-gray-700">
+                          <span>
+                            {it.name || it.productId?.name || "Unnamed"} ×{" "}
+                            <span className="font-semibold">{it.qty}</span>
+                          </span>
+                          <span className="font-medium text-gray-900">₦{((it.price || it.productId?.price) * it.qty).toLocaleString()}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-wrap items-center gap-3 mt-4">
+                    {(order.customerPhone || order.customerId?.phone) && (
+                      <>
+                        <a href={`tel:${order.customerPhone || order.customerId?.phone}`} className="w-12 h-12 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl flex items-center justify-center transition-colors">
+                          <Phone size={20} />
+                        </a>
+                        <a href={`https://wa.me/${(order.customerPhone || order.customerId?.phone || "").replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="w-12 h-12 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#25D366] rounded-xl flex items-center justify-center transition-colors">
+                          <MessageCircle size={20} />
+                        </a>
+                      </>
+                    )}
+
+                    {/* Send Goods Status */}
+                    <button
+                      onClick={() => { setGoodsStatusModal(order); setGoodsStatusText(order.goodsStatus || ""); }}
+                      className="w-12 h-12 bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary rounded-xl flex items-center justify-center transition-colors"
+                      title="Send goods status update"
+                    >
+                      <Send size={18} />
+                    </button>
+
+                    <Button onClick={() => setSelectedOrder(order)} className="flex-1 py-6 text-lg shadow-brand-primary/20 shadow-lg">
+                      Verify & Complete
+                    </Button>
+
+                    {order.status === "packing" && order.collectionMethod === "delivery" && (
+                      <Button
+                        onClick={() => updateOrderStatus(order._id, "delivery_here")}
+                        className="flex-1 py-6 ml-2 bg-green-600 text-white rounded hover:bg-green-700"
+                      >
+                        Delivery Here
+                      </Button>
+                    )}
+                    {order.status === "packing" && order.collectionMethod === "pickup" && (
+                      <Button
+                        onClick={() => updateOrderStatus(order._id, "ready_for_pickup")}
+                        className="flex-1 py-6 ml-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                      >
+                        Pickup Ready
+                      </Button>
+                    )}
+                    {/* Fallback for legacy status */}
+                    {order.status !== "packing" && order.collectionMethod === "delivery" && (
+                      <Button
+                        onClick={() => updateOrderStatus(order._id, "delivery_here")}
+                        className="flex-1 py-6 ml-2 bg-green-600 text-white rounded hover:bg-green-700"
+                      >
+                        Delivery Here
+                      </Button>
+                    )}
+                    {order.status !== "packing" && order.collectionMethod === "pickup" && (
+                      <Button
+                        onClick={() => updateOrderStatus(order._id, "ready_for_pickup")}
+                        className="flex-1 py-6 ml-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                      >
+                        Pickup Ready
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </main>
+
+      {/* PAYMENT VERIFICATION POPUP */}
+      <AnimatePresence>
+        {paymentPopup && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => !paymentActionLoading && setPaymentPopup(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 280 }}
+              className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md relative z-10 border border-gray-100"
+            >
+              <button
+                onClick={() => setPaymentPopup(null)}
+                disabled={paymentActionLoading}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-905 bg-gray-100 rounded-full p-2"
+              >
+                <X size={18} />
+              </button>
+
+              <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-amber-600">
+                <ShieldCheck size={28} />
+              </div>
+              <h2 className="text-xl font-bold text-center text-gray-900 mb-1">Payment Verification</h2>
+              <p className="text-center text-gray-500 text-sm mb-5">
+                Customer <strong className="text-gray-800">{paymentPopup.pickupName}</strong> claims to have paid for their order.
+              </p>
+
+              <div className="bg-gray-50 rounded-2xl p-4 mb-5 border border-gray-100 space-y-1.5 text-sm">
+                <div className="flex justify-between"><span className="text-gray-500">Order Code</span><span className="font-bold text-gray-900">#{paymentPopup.pickupCode}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Amount</span><span className="font-bold text-brand-primary">₦{paymentPopup.amount?.toLocaleString()}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Method</span><span className="font-medium capitalize">{paymentPopup.collectionMethod}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Items</span><span className="font-medium">{paymentPopup.items?.length} item(s)</span></div>
+              </div>
+
+              <p className="text-xs text-center text-gray-400 mb-4">Verify via your payment platform before accepting. Only accept if payment is confirmed received.</p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handlePaymentAction(paymentPopup, "decline")}
+                  disabled={paymentActionLoading}
+                  className="flex-1 py-3 rounded-xl border-2 border-red-200 text-red-600 font-semibold hover:bg-red-50 flex items-center justify-center gap-2 transition-colors"
+                >
+                  {paymentActionLoading ? <Loader2 size={16} className="animate-spin" /> : <><ThumbsDown size={16} /> Decline</>}
+                </button>
+                <button
+                  onClick={() => handlePaymentAction(paymentPopup, "accept")}
+                  disabled={paymentActionLoading}
+                  className="flex-1 py-3 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 flex items-center justify-center gap-2 transition-colors"
+                >
+                  {paymentActionLoading ? <Loader2 size={16} className="animate-spin" /> : <><ThumbsUp size={16} /> Accept</>}
+                </button>
+              </div>
+
+              <p className="text-center text-xs text-gray-400 mt-3">
+                If declined: customer will be notified that payment was not received.
+              </p>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* GOODS STATUS MODAL */}
+      <AnimatePresence>
+        {goodsStatusModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => !goodsStatusLoading && setGoodsStatusModal(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md relative z-10 border border-gray-100"
+            >
+              <button onClick={() => setGoodsStatusModal(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 bg-gray-50 rounded-full p-2">
+                <X size={18} />
+              </button>
+
+              <div className="w-14 h-14 bg-brand-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4 text-brand-primary">
+                <Package size={26} />
+              </div>
+              <h2 className="text-xl font-bold text-center text-gray-900 mb-1">Send Goods Update</h2>
+              <p className="text-center text-gray-500 text-sm mb-5">
+                Send a status message to <strong className="text-gray-800">{goodsStatusModal.pickupName}</strong> about their order.
+              </p>
+
+              {/* Quick presets */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {[
+                  "We are packing your items 📦",
+                  "Your items are being freshly prepared 🍃",
+                  "Packing complete, almost ready! ✅",
+                  "Out of stock: 1 item substituted 🔄",
+                ].map((preset) => (
+                  <button
+                    key={preset}
+                    onClick={() => setGoodsStatusText(preset)}
+                    className="text-xs bg-gray-100 hover:bg-brand-primary/10 hover:text-brand-primary text-gray-600 px-3 py-1.5 rounded-full transition-colors"
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                value={goodsStatusText}
+                onChange={(e) => setGoodsStatusText(e.target.value)}
+                placeholder="Type a custom status message..."
+                rows={3}
+                className="w-full border border-gray-200 rounded-xl p-3 text-sm resize-none focus:outline-none focus:border-brand-primary mb-4"
+              />
+
+              <Button
+                onClick={handleGoodsStatusSend}
+                disabled={goodsStatusLoading || !goodsStatusText.trim()}
+                className="w-full py-3 flex items-center justify-center gap-2"
+              >
+                {goodsStatusLoading ? <Loader2 size={16} className="animate-spin" /> : <><Send size={16} /> Send Update</>}
+              </Button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* VERIFY & COMPLETE MODAL */}
+      <AnimatePresence>
+        {selectedOrder && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => !confirmLoading && setSelectedOrder(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md relative z-10 border border-gray-100"
+            >
+              <button onClick={() => setSelectedOrder(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-905 bg-gray-50 rounded-full p-2"><X size={20} /></button>
+
+              <div className="text-center mb-6 pt-4">
+                <div className="w-16 h-16 bg-brand-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4 text-brand-primary">
+                  <ShieldCheck size={32} />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900">Verify Order</h2>
+                <p className="text-gray-500 mt-1">Ask <strong className="text-gray-900">{selectedOrder.pickupName}</strong> for their 4-digit code.</p>
+              </div>
+
+              {message && (
+                <div className={`p-3 rounded-xl mb-4 text-sm font-medium flex items-center gap-2 ${message.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+                  {message.type === "success" ? <CheckCircle size={16} /> : <span>⚠️</span>}
+                  {message.text}
+                </div>
+              )}
+
+              <form onSubmit={handleConfirm}>
+                <div className="mb-6">
+                  <Input
+                    type="text"
+                    placeholder="4920"
+                    value={code}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    maxLength={4}
+                    required
+                    autoFocus
+                    className="text-center tracking-[1em] text-3xl font-mono font-bold py-6 bg-gray-50 border-gray-200"
+                  />
+                </div>
+                <Button type="submit" disabled={confirmLoading || code.length < 4} className="w-full py-6 text-lg">
+                  {confirmLoading ? <Loader2 className="animate-spin" /> : "Confirm Fulfillment"}
+                </Button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
