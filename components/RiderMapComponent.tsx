@@ -57,7 +57,7 @@ export default function RiderMapComponent() {
     };
 
     startSimulation();
-  }, [destination, API_URL]);
+  }, [destination]);
 
   // Step 2 — Move rider along route every second
   useEffect(() => {
