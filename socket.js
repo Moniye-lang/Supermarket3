@@ -1,8 +1,2 @@
-import { io } from "socket.io-client";
-
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "https://supermarket3.onrender.com";
-
-export const socket = io(SOCKET_URL, {
-  withCredentials: true,
-  autoConnect: false,
-});
+// Real-time is now handled by Pusher Channels.
+// See lib/pusher-client.ts (client) and lib/pusher.ts (server)

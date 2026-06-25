@@ -3,12 +3,8 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { MapContainer, TileLayer, Marker, Polyline, Popup } from "react-leaflet";
 import L from "leaflet";
-import { io } from "socket.io-client";
+import pusherClient from "@/lib/pusher-client";
 import "leaflet/dist/leaflet.css";
-
-// Connect socket
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://supermarket3.onrender.com";
-const socket = io(API_URL);
 
 // custom rider icon
 let riderIcon: L.Icon | null = null;
@@ -43,7 +39,7 @@ export default function RiderMapComponent() {
 
     const startSimulation = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/rider/simulate`, {
+      const res = await fetch(`/api/rider/simulate`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ destination }),
@@ -79,11 +75,12 @@ export default function RiderMapComponent() {
     }
   }, [route]);
 
-  // Step 3 — Listen for backend real-time location updates
+  // Step 3 — Listen for Pusher real-time location updates
   useEffect(() => {
-    socket.on("riderLocation", (data: any) => setRiderPos(data));
+    const channel = pusherClient.subscribe("rider-global");
+    channel.bind("riderLocation", (data: any) => setRiderPos(data));
     return () => {
-      socket.off("riderLocation");
+      pusherClient.unsubscribe("rider-global");
     };
   }, []);
 

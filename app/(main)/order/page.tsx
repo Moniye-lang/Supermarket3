@@ -1,10 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { io } from "socket.io-client";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://supermarket3.onrender.com";
-const socket = io(API_URL);
+import pusherClient from "@/lib/pusher-client";
 
 export default function Order() {
   const router = useRouter();
@@ -30,13 +27,12 @@ export default function Order() {
       try {
         setLoading(true);
         setError("");
-        const res = await fetch(`${API_URL}/api/orders/latest/${orderType}`, {
+        const res = await fetch(`/api/orders/latest/${orderType}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to fetch order");
         setOrder(data);
-        socket.emit("joinOrderRoom", data._id);
       } catch (err: any) {
         setOrder(null);
         setError(err.message);
@@ -48,28 +44,29 @@ export default function Order() {
   }, [token, orderType]);
 
   useEffect(() => {
-    socket.on("order:status", ({ orderId: id, status }: any) => {
-      if (order && id === order._id) {
+    if (!order?._id) return;
+    const channel = pusherClient.subscribe(`order-${order._id}`);
+    channel.bind("order:status", ({ orderId: id, status }: any) => {
+      if (id === order._id) {
         const isCompleted = status === "delivered" || status === "picked_up" || status === "completed";
         if (isCompleted) setOrder(null);
         else setOrder((prev: any) => ({ ...prev, status }));
       }
     });
-    socket.on("orderUpdated", (updatedOrder: any) => {
-      if (order && updatedOrder._id === order._id) setOrder(updatedOrder);
+    channel.bind("orderUpdated", (updatedOrder: any) => {
+      if (updatedOrder._id === order._id) setOrder(updatedOrder);
     });
     return () => {
-      socket.off("order:status");
-      socket.off("orderUpdated");
+      pusherClient.unsubscribe(`order-${order._id}`);
     };
-  }, [order]);
+  }, [order?._id]);
 
   async function handleCancelOrder() {
     if (!order) return;
     if (!confirm("Are you sure you want to cancel this order and payment?")) return;
     try {
       setCancelLoading(true);
-      const res = await fetch(`${API_URL}/api/orders/${order._id}/cancel`, {
+      const res = await fetch(`/api/orders/${order._id}/cancel`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       });
@@ -87,7 +84,7 @@ export default function Order() {
   async function handleComplete() {
     if (!order) return;
     try {
-      const res = await fetch(`${API_URL}/api/orders/${order._id}/complete`, {
+      const res = await fetch(`/api/orders/${order._id}/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
