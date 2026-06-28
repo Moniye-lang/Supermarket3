@@ -107,14 +107,24 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
                         </div>
                     </div>
 
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-brand-primary bg-brand-primary/5 hover:bg-brand-primary hover:text-white transition-all ml-auto"
-                        onClick={() => onBuyNow && onBuyNow(product)}
-                    >
-                        Buy Now
-                    </Button>
+                    <div className="flex gap-2 ml-auto">
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-2 text-xs flex items-center gap-1 border border-brand-primary/30"
+                            onClick={() => onAddToCart && onAddToCart(product)}
+                        >
+                            <ShoppingCart size={14} /> Add
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="primary"
+                            className="h-8 px-3 text-xs"
+                            onClick={() => onBuyNow && onBuyNow(product)}
+                        >
+                            Buy Now
+                        </Button>
+                    </div>
                 </div>
             </div>
         </motion.div>

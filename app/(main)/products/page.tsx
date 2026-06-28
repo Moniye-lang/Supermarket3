@@ -93,14 +93,26 @@ export default function Products() {
           </div>
         </div>
 
-        {/* Mobile Filter Toggle */}
-        <div className="flex justify-end mb-6">
-          <button
-            className="lg:hidden flex items-center gap-2 px-5 py-2.5 bg-white rounded-full shadow-md border border-gray-100 text-brand-dark font-semibold hover:bg-gray-50 transition-colors"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter size={18} /> Filters &amp; Sorting
-          </button>
+        {/* Search and Filters Bar */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-between items-center mb-10 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+          <div className="w-full sm:max-w-md relative">
+            <Input
+              placeholder="Search products..."
+              icon={<Search size={18} className="text-brand-primary" />}
+              value={searchTerm}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+              className="bg-gray-50/50 border-gray-200 focus-visible:ring-brand-primary"
+            />
+          </div>
+
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+            <button
+              className="lg:hidden flex items-center gap-2 px-5 py-2.5 bg-white rounded-xl shadow-sm border border-gray-200 text-brand-dark font-semibold hover:bg-gray-50 transition-all text-sm"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter size={16} /> Filters &amp; Sorting
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
@@ -110,16 +122,6 @@ export default function Products() {
             <div className="bg-white p-6 rounded-3xl shadow-lg shadow-gray-100 border border-gray-100">
               <div className="flex items-center gap-2 mb-6 text-brand-dark font-bold text-lg">
                 <SlidersHorizontal size={20} /> Filter By
-              </div>
-
-              {/* Search */}
-              <div className="mb-8">
-                <Input
-                  placeholder="Search products..."
-                  icon={<Search size={18} className="text-gray-400" />}
-                  value={searchTerm}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                />
               </div>
 
               {/* Categories */}
