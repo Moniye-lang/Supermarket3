@@ -10,7 +10,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const page = Number(searchParams.get("page")) || 1;
     let limit = Number(searchParams.get("limit")) || 20;
-    if (limit > 50) limit = 50; // enforce maximum ceiling limit
+    if (limit > 1000) limit = 1000; // enforce maximum ceiling limit of 1000
     const skip = (page - 1) * limit;
 
     const query: any = {};

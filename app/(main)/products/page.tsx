@@ -17,7 +17,7 @@ export default function Products() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("All Departments");
-  const [priceRange, setPriceRange] = useState(100000);
+  const [priceRange, setPriceRange] = useState(200000);
   const [showFilters, setShowFilters] = useState(false);
   const [sortOption, setSortOption] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
