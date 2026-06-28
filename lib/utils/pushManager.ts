@@ -45,7 +45,7 @@ export async function subscribeUser(
   }
 
   // Send subscription to backend using API URL
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://supermarket3.onrender.com";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
   console.log(`Sending subscription to backend at ${apiUrl}:`, subscription);
   const response = await fetch(`${apiUrl}/api/notifications/subscribe`, {
     method: 'POST',

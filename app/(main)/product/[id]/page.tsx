@@ -7,7 +7,7 @@ import { Minus, Plus, ShoppingCart, Star, Truck, ShieldCheck, ArrowLeft, Share2 
 import { motion } from "framer-motion";
 import ProductCard from "@/components/ProductCard";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://supermarket3.onrender.com";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 export default function ProductDets() {
     const params = useParams();

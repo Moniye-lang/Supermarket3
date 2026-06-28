@@ -28,7 +28,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     await order.save();
 
     // Notify customer about goods update
-    const clientUrl = process.env.CLIENT_URL || 'https://supermarket3.onrender.com';
+    const clientUrl = process.env.CLIENT_URL || "";
     const customerPayload = {
       title: '📦 Order Goods Update',
       body: `Status: ${goodsStatus}`,

@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://supermarket3.onrender.com";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 export default function Products() {
   const router = useRouter();

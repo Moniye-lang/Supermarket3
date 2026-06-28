@@ -88,7 +88,7 @@ export default function ChatWidget() {
     setIsTyping(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://supermarket3.onrender.com";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
       const response = await fetch(`${apiUrl}/api/chatbot/chat`, {
         method: "POST",
         headers: {

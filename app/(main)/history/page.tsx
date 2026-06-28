@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { Clock, MapPin, Truck, CheckCircle, CreditCard, ShoppingBag, ChevronRight, PackageOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://supermarket3.onrender.com";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 const COLORS = ["#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#f97316"];
 
 export default function History() {

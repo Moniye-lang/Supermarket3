@@ -8,7 +8,7 @@ import { Mail, Lock, User, ArrowRight, CheckCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AuthContext } from "@/context/AuthContext";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://supermarket3.onrender.com";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 export default function SignUp() {
   const router = useRouter();

@@ -9,7 +9,7 @@ import { motion } from "framer-motion";
 import { useGoogleLogin } from "@react-oauth/google";
 import { AuthContext } from "@/context/AuthContext";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://supermarket3.onrender.com";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 export default function SignIn() {
   const router = useRouter();
@@ -91,8 +91,8 @@ export default function SignIn() {
         if (!backendRes.ok) throw new Error(data.error || "Google Login failed");
         login(data.user, data.token);
         router.push("/");
-      } catch (err) {
-        setError("Google Login failed. Please try again.");
+      } catch (err: any) {
+        setError(err.message || "Google Login failed. Please try again.");
         setLoading(false);
       }
     },

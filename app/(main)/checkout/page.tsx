@@ -7,7 +7,7 @@ import { Truck, CreditCard, CheckCircle, MapPin, User, ShieldCheck, Phone, X, Al
 import { motion, AnimatePresence } from "framer-motion";
 import { CartContext } from "@/context/CartContext";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://supermarket3.onrender.com";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 export default function Checkout() {
   const router = useRouter();

@@ -23,7 +23,7 @@ export default function AdminProductsPage() {
     description: "",
   });
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://supermarket3.onrender.com";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
   useEffect(() => {
     loadProducts();

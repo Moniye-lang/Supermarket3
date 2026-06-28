@@ -8,7 +8,7 @@ import { ShieldCheck, Lock, ArrowRight, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 import { AuthContext } from "@/context/AuthContext";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://supermarket3.onrender.com";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 export default function AdminLoginPage() {
   const router = useRouter();

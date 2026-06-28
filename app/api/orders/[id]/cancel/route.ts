@@ -45,7 +45,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     // If worker assigned, notify them about cancellation
     if (order.assignedToWorkerId) {
-      const clientUrl = process.env.CLIENT_URL || 'https://supermarket3.onrender.com';
+      const clientUrl = process.env.CLIENT_URL || "";
       await sendPushToUser(
         order.assignedToWorkerId.toString(),
         "❌ Order Cancelled",

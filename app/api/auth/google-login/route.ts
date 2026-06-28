@@ -31,18 +31,20 @@ export async function POST(req: Request) {
       googleId = payload.sub;
       email = payload.email;
       name = payload.name;
-    } catch (idTokenError) {
+    } catch (idTokenError: any) {
+      console.warn("ID Token verification failed, trying fallback as Access Token. Error:", idTokenError.message || idTokenError);
       // Fallback: Verify as Access Token
       try {
         const userInfoRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
           headers: { Authorization: `Bearer ${token}` }
         });
-        if (!userInfoRes.ok) throw new Error("Invalid Access Token");
+        if (!userInfoRes.ok) throw new Error(`Google userinfo returned status ${userInfoRes.status}`);
         const userInfo = await userInfoRes.json() as any;
         googleId = userInfo.sub;
         email = userInfo.email;
         name = userInfo.name;
-      } catch (accessTokenError) {
+      } catch (accessTokenError: any) {
+        console.error("Google Access Token verification failed:", accessTokenError.message || accessTokenError);
         return NextResponse.json({ error: "Invalid Google Token" }, { status: 400 });
       }
     }

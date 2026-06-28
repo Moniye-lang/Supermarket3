@@ -30,7 +30,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     const io = (global as any).io;
-    const clientUrl = process.env.CLIENT_URL || 'https://supermarket3.onrender.com';
+    const clientUrl = process.env.CLIENT_URL || "";
 
     if (action === "accept") {
       order.paymentStatus = "paid";
