@@ -1,4 +1,9 @@
 import mongoose from "mongoose";
+import "@/lib/models/User";
+import "@/lib/models/Product";
+import "@/lib/models/Order";
+import "@/lib/models/Cart";
+import "@/lib/models/Tracking";
 
 const MONGODB_URI = process.env.MONGO_URI || process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/amstores";
 
