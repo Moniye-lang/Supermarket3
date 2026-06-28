@@ -52,7 +52,8 @@ app.prepare().then(async () => {
     try {
       const token = socket.handshake.auth?.token;
       if (!token) return nextFn(); // allow unauthenticated viewer
-      const JWT_SECRET = process.env.JWT_SECRET || "14875bded9a025da665549e07f131b2e5ee0a06eda3efaafa813f9dd56ea1681970edeccdd10fc53b9b9ee8fe0e18d4a50eec";
+      const JWT_SECRET = process.env.JWT_SECRET;
+      if (!JWT_SECRET) return nextFn(new Error("JWT_SECRET environment variable is missing"));
       const payload = jwt.verify(token, JWT_SECRET) as any;
       const user = await User.findById(payload.id);
       if (!user) return nextFn(new Error("Auth error"));

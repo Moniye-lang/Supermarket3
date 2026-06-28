@@ -1,14 +1,18 @@
 import webpush from "web-push";
 
 // Configure VAPID keys
-const vapidPublic = process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY || process.env.VITE_WEB_PUSH_PUBLIC_KEY || "BOju6wTind8L1FClnGaqbBwUrN67yQJ4TjhHZEv00lOPCXqO4PP_0DyH2aJLjHxeGGGMvZvi44HTAcl54kJGScs";
-const vapidPrivate = process.env.WEB_PUSH_PRIVATE_KEY || process.env.VITE_WEB_PUSH_PRIVATE_KEY || "90nfEqwdHBeebOVj-_r5x18xEP8M2qTMfmnYFWcJ1y8";
+const vapidPublic = process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY || process.env.VITE_WEB_PUSH_PUBLIC_KEY;
+const vapidPrivate = process.env.WEB_PUSH_PRIVATE_KEY || process.env.VITE_WEB_PUSH_PRIVATE_KEY;
 
-webpush.setVapidDetails(
-  "mailto:example@yourdomain.com",
-  vapidPublic,
-  vapidPrivate
-);
+if (!vapidPublic || !vapidPrivate) {
+  console.warn("[Push] VAPID public or private key is missing. Push notifications will not be configured.");
+} else {
+  webpush.setVapidDetails(
+    "mailto:example@yourdomain.com",
+    vapidPublic,
+    vapidPrivate
+  );
+}
 
 // Prevent re-initialization of maps on hot reload
 if (!(global as any).globalSubscriptionsMap) {

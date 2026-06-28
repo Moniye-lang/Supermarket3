@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { addSubscription } from "@/lib/subscriptions";
 
-const JWT_SECRET = process.env.JWT_SECRET || "14875bded9a025da665549e07f131b2e5ee0a06eda3efaafa813f9dd56ea1681970edeccdd10fc53b9b9ee8fe0e18d4a50eec";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is missing");
+}
 
 export async function POST(req: Request) {
   try {
