@@ -10,8 +10,8 @@ if (!JWT_SECRET) {
 export async function POST(req: Request) {
   try {
     const subscription = await req.json();
-    if (!subscription || !subscription.endpoint) {
-      return NextResponse.json({ error: "Invalid subscription" }, { status: 400 });
+    if (!subscription || !subscription.endpoint || !subscription.keys) {
+      return NextResponse.json({ error: "Invalid subscription object" }, { status: 400 });
     }
 
     // Soft-verify token if available to map to userId
@@ -29,9 +29,12 @@ export async function POST(req: Request) {
       }
     }
 
-    addSubscription(subscription, userId);
+    // MUST be awaited — addSubscription is now async (MongoDB write)
+    await addSubscription(subscription, userId);
+    console.log(`[Push] Subscription saved. userId=${userId ?? "anonymous"}`);
     return NextResponse.json({ message: "Subscribed successfully" }, { status: 201 });
   } catch (err: any) {
+    console.error("[Push] Subscribe error:", err.message);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
