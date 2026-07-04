@@ -49,7 +49,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     const clientUrl = process.env.NEXTAUTH_URL || process.env.CLIENT_URL || 'https://supermarket3.vercel.app';
-    await sendPushToUser(order.customerId.toString(), title, body, `${clientUrl}/order`).catch(() => {});
+    await sendPushToUser(order.customerId.toString(), title, body, `${clientUrl}/order`).catch((e) => {
+      console.error("[Push] sendPushToUser failed:", e?.message || e);
+    });
 
     const updatedOrder = await Order.findById(order._id)
       .populate('items.productId')
