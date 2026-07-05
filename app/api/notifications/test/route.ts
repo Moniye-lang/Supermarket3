@@ -23,14 +23,28 @@ export async function GET(req: Request) {
     }
 
     // Send a test push to the given userId
-    await sendPushToUser(
-      userId,
-      "AMstores Test",
-      "Push notifications are working correctly!",
-      "/order"
-    );
+    let sent = false;
+    let sendError: string | null = null;
 
-    return NextResponse.json({ success: true, message: `Test notification sent to userId: ${userId}` });
+    try {
+      await sendPushToUser(
+        userId,
+        "AMstores Test",
+        "Push notifications are working correctly!",
+        "/order"
+      );
+      sent = true;
+    } catch (e: any) {
+      sendError = e.message;
+    }
+
+    return NextResponse.json({
+      success: sent,
+      userId,
+      message: sent
+        ? `Notification dispatched to userId: ${userId}`
+        : `Failed to send. Error: ${sendError || "No subscription found or send failed"}`,
+    });
   } catch (err: any) {
     return NextResponse.json({ error: err.message, stack: err.stack }, { status: 500 });
   }

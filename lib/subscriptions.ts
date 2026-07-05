@@ -45,15 +45,17 @@ export async function sendPushToUser(
   const subs = await PushSubscriptionModel.find({ userId }).lean();
   if (!subs || subs.length === 0) {
     console.log(`[Push] No subscription found for userId: ${userId}`);
-    return;
+    throw new Error(`No subscription found for userId: ${userId}`);
   }
   const payload = JSON.stringify({ title, body, url });
+  let lastError: any = null;
   for (const sub of subs) {
     const pushSub = { endpoint: sub.endpoint, keys: sub.keys as any };
     try {
       await webpush.sendNotification(pushSub, payload);
       console.log(`[Push] Sent to userId: ${userId}`);
     } catch (e: any) {
+      lastError = e;
       console.error(`[Push] Error sending to ${userId}:`, e.message);
       if (e.statusCode === 410 || e.statusCode === 404) {
         // Subscription expired — remove it
@@ -61,6 +63,7 @@ export async function sendPushToUser(
       }
     }
   }
+  if (lastError) throw lastError;
 }
 
 export async function sendPushToAll(payload: { title: string; body: string; url?: string }) {
