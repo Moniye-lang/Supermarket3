@@ -29,10 +29,10 @@ export default function Products() {
   const { data: allProducts, isLoading, isError } = useQuery({
     queryKey: ["products"],
     queryFn: async () => {
-      const res = await fetch("/api/items/retail?size=1000");
+      const res = await fetch("/api/products?limit=1000");
       if (!res.ok) throw new Error("Failed to fetch products");
       const data = await res.json();
-      return data.items || data.products || [];
+      return data.products || [];
     },
     staleTime: 1000 * 60 * 5,
   });

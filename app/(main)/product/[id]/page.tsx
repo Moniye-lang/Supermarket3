@@ -31,9 +31,7 @@ export default function ProductDets() {
             try {
                 setLoading(true);
 
-                // 1. Cleanly strip any trailing slash from your base environment variable
-                const targetUrl = "/api/items/retail?size=1000";
-
+                const targetUrl = `/api/products/${id}`;
                 console.log("Targeting exact clean URL:", targetUrl);
 
                 const res = await fetch(targetUrl);
@@ -41,24 +39,21 @@ export default function ProductDets() {
 
                 const data = await res.json();
 
-                // Find our target item by matching the documented 'productId' field
-                const matchedProduct = (data.items || []).find((item: any) => item.productId === id);
-
-                if (matchedProduct) {
+                if (data) {
                     setProduct({
-                        ...matchedProduct,
-                        images: [matchedProduct.imageUrl],
-                        stockStatus: matchedProduct.stock > 0 ? "In Stock" : "Out of Stock"
+                        ...data,
+                        images: data.image ? [data.image] : [],
+                        stockStatus: data.stock > 0 ? "In Stock" : "Out of Stock"
                     });
 
                     // Fetch related items using the relative path in the embedded project
-                    const relatedUrl = `/api/items/retail?category=${matchedProduct.category}&size=5`;
+                    const relatedUrl = `/api/products?category=${data.category}&limit=5`;
                     const relatedRes = await fetch(relatedUrl);
 
                     if (relatedRes.ok) {
                         const relatedData = await relatedRes.json();
-                        const filtered = (relatedData.items || [])
-                            .filter((p: any) => p.productId !== id)
+                        const filtered = (relatedData.products || [])
+                            .filter((p: any) => p._id !== id)
                             .slice(0, 4);
                         setRelatedProducts(filtered);
                     }
@@ -259,9 +254,9 @@ export default function ProductDets() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                             {relatedProducts.map((p: any) => (
                                 <ProductCard
-                                    key={p.productId}
-                                    product={{ ...p, _id: p.productId }}
-                                    onViewDetails={(prod) => router.push(`/product/${prod.productId}`)}
+                                    key={p._id}
+                                    product={p}
+                                    onViewDetails={(prod) => router.push(`/product/${prod._id}`)}
                                     onAddToCart={() => addToCart({ ...p, qty: 1 })}
                                 />
                             ))}
