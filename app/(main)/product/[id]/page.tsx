@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import ProductCard from "@/components/ProductCard";
 
 // Fallback base URL directly matching the documentation overview
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://supermarket3.vercel.app";
 
 export default function ProductDets() {
     const params = useParams();
@@ -31,7 +31,8 @@ export default function ProductDets() {
             try {
                 setLoading(true);
 
-                const targetUrl = `/api/products/${id}`;
+                const cleanApiUrl = API_URL.endsWith("/") ? API_URL.slice(0, -1) : API_URL;
+                const targetUrl = `${cleanApiUrl}/api/products/${id}`;
                 console.log("Targeting exact clean URL:", targetUrl);
 
                 const res = await fetch(targetUrl);
@@ -47,7 +48,7 @@ export default function ProductDets() {
                     });
 
                     // Fetch related items using the relative path in the embedded project
-                    const relatedUrl = `/api/products?category=${data.category}&limit=5`;
+                    const relatedUrl = `${cleanApiUrl}/api/products?category=${data.category}&limit=5`;
                     const relatedRes = await fetch(relatedUrl);
 
                     if (relatedRes.ok) {
