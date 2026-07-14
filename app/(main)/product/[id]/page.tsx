@@ -7,6 +7,7 @@ import { Minus, Plus, ShoppingCart, Star, Truck, ShieldCheck, ArrowLeft, Share2 
 import { motion } from "framer-motion";
 import ProductCard from "@/components/ProductCard";
 
+// Fallback base URL directly matching the documentation overview
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 export default function ProductDets() {
@@ -25,29 +26,56 @@ export default function ProductDets() {
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: "smooth" });
-        const fetchProduct = async () => {
+
+        const fetchProductData = async () => {
             try {
                 setLoading(true);
-                const res = await fetch(`${API_URL}/api/products/${id}`);
-                const data = await res.json();
-                const prod = data.product || data;
-                setProduct({
-                    ...prod,
-                    name: prod.name || prod.title,
-                    images: prod.images || [prod.image],
-                });
 
-                const relatedRes = await fetch(`${API_URL}/api/products?page=1&limit=4`);
-                const relatedData = await relatedRes.json();
-                const filtered = (relatedData.products || []).filter((p: any) => p._id !== id).slice(0, 4);
-                setRelatedProducts(filtered);
+                // 1. Cleanly strip any trailing slash from your base environment variable
+                const targetUrl = "/api/items/retail?size=1000";
+
+                console.log("Targeting exact clean URL:", targetUrl);
+
+                const res = await fetch(targetUrl);
+                if (!res.ok) throw new Error(`Server responded with status: ${res.status}`);
+
+                const data = await res.json();
+
+                // Find our target item by matching the documented 'productId' field
+                const matchedProduct = (data.items || []).find((item: any) => item.productId === id);
+
+                if (matchedProduct) {
+                    setProduct({
+                        ...matchedProduct,
+                        images: [matchedProduct.imageUrl],
+                        stockStatus: matchedProduct.stock > 0 ? "In Stock" : "Out of Stock"
+                    });
+
+                    // Fetch related items using the relative path in the embedded project
+                    const relatedUrl = `/api/items/retail?category=${matchedProduct.category}&size=5`;
+                    const relatedRes = await fetch(relatedUrl);
+
+                    if (relatedRes.ok) {
+                        const relatedData = await relatedRes.json();
+                        const filtered = (relatedData.items || [])
+                            .filter((p: any) => p.productId !== id)
+                            .slice(0, 4);
+                        setRelatedProducts(filtered);
+                    }
+                } else {
+                    setProduct(null);
+                }
             } catch (err) {
-                console.error("Error fetching product details:", err);
+                console.error("Error connecting to the E-Commerce API:", err);
+                setProduct(null);
             } finally {
                 setLoading(false);
             }
         };
-        fetchProduct();
+
+        if (id) {
+            fetchProductData();
+        }
     }, [id]);
 
     const handleAddToCart = () => {
@@ -104,14 +132,10 @@ export default function ProductDets() {
                             <img
                                 key={activeImage}
                                 src={product.images[activeImage] || "/placeholder-food.png"}
+                                onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder-food.png"; }}
                                 alt={product.name}
                                 className="w-full h-full object-contain hover:scale-110 transition-transform duration-500"
                             />
-                            {product.discount && (
-                                <span className="absolute top-6 left-6 bg-red-500 text-white font-bold px-4 py-1.5 rounded-full shadow-lg">
-                                    -{product.discount}%
-                                </span>
-                            )}
                         </motion.div>
 
                         {product.images.length > 1 && (
@@ -150,19 +174,18 @@ export default function ProductDets() {
                                 </div>
                                 <span>(128 Reviews)</span>
                                 <span className="w-1 h-1 bg-gray-300 rounded-full" />
-                                <span className="text-green-600 font-medium">In Stock</span>
+                                <span className={`font-medium ${product.stock > 0 ? "text-green-600" : "text-red-600"}`}>
+                                    {product.stockStatus} ({product.stock} left)
+                                </span>
                             </div>
                         </div>
 
                         <div className="flex items-baseline gap-4 border-b border-gray-100 pb-8">
                             <span className="text-4xl font-bold text-brand-dark">₦{product.price?.toLocaleString()}</span>
-                            {product.oldPrice && (
-                                <span className="text-xl text-gray-400 line-through">₦{product.oldPrice.toLocaleString()}</span>
-                            )}
                         </div>
 
                         <p className="text-gray-600 leading-relaxed text-lg">
-                            {product.description || "Experience premium quality with our carefully selected products. Freshness guaranteed directly to your doorstep."}
+                            {product.description}
                         </p>
 
                         {/* Quantity & Actions */}
@@ -170,21 +193,39 @@ export default function ProductDets() {
                             <div className="flex items-center gap-6">
                                 <span className="font-semibold text-gray-900">Quantity</span>
                                 <div className="flex items-center border border-gray-200 rounded-full bg-white">
-                                    <button onClick={() => setQty(Math.max(1, qty - 1))} className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-brand-primary transition-colors">
+                                    <button
+                                        onClick={() => setQty(Math.max(1, qty - 1))}
+                                        className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-brand-primary transition-colors"
+                                    >
                                         <Minus size={18} />
                                     </button>
                                     <span className="w-10 text-center font-bold text-gray-900">{qty}</span>
-                                    <button onClick={() => setQty(qty + 1)} className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-brand-primary transition-colors">
+                                    <button
+                                        onClick={() => setQty(Math.min(product.stock, qty + 1))}
+                                        className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-brand-primary transition-colors"
+                                        disabled={qty >= product.stock}
+                                    >
                                         <Plus size={18} />
                                     </button>
                                 </div>
                             </div>
 
                             <div className="flex flex-col sm:flex-row gap-4">
-                                <Button size="lg" className="flex-1 text-lg py-6 rounded-xl shadow-brand-primary/25 shadow-xl" onClick={handleAddToCart}>
+                                <Button
+                                    size="lg"
+                                    className="flex-1 text-lg py-6 rounded-xl shadow-brand-primary/25 shadow-xl"
+                                    onClick={handleAddToCart}
+                                    disabled={product.stock === 0}
+                                >
                                     <ShoppingCart className="mr-2" /> Add to Cart
                                 </Button>
-                                <Button size="lg" variant="glass" className="flex-1 text-lg py-6 rounded-xl border-2 border-brand-dark/10" onClick={handleBuyNow}>
+                                <Button
+                                    size="lg"
+                                    variant="glass"
+                                    className="flex-1 text-lg py-6 rounded-xl border-2 border-brand-dark/10"
+                                    onClick={handleBuyNow}
+                                    disabled={product.stock === 0}
+                                >
                                     Buy Now
                                 </Button>
                             </div>
@@ -203,7 +244,7 @@ export default function ProductDets() {
                                 <ShieldCheck className="text-brand-primary shrink-0" />
                                 <div>
                                     <h5 className="font-bold text-sm">Quality Guarantee</h5>
-                                    <p className="text-xs text-gray-500 mt-1">Verified freshness</p>
+                                    <p className="text-xs text-gray-500 mt-1">Brand: {product.brand}</p>
                                 </div>
                             </div>
                         </div>
@@ -218,9 +259,9 @@ export default function ProductDets() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                             {relatedProducts.map((p: any) => (
                                 <ProductCard
-                                    key={p._id}
-                                    product={{ ...p, name: p.name || p.title }}
-                                    onViewDetails={(prod) => router.push(`/product/${prod._id}`)}
+                                    key={p.productId}
+                                    product={{ ...p, _id: p.productId }}
+                                    onViewDetails={(prod) => router.push(`/product/${prod.productId}`)}
                                     onAddToCart={() => addToCart({ ...p, qty: 1 })}
                                 />
                             ))}

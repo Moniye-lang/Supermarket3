@@ -38,6 +38,7 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
             <div className="relative aspect-square overflow-hidden bg-gray-50">
                 <img
                     src={product.image || "/placeholder-food.png"}
+                    onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder-food.png"; }}
                     alt={product.name || product.title}
                     className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
                 />

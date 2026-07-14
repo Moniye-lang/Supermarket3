@@ -29,10 +29,10 @@ export default function Products() {
   const { data: allProducts, isLoading, isError } = useQuery({
     queryKey: ["products"],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/api/products?limit=1000`);
+      const res = await fetch("/api/items/retail?size=1000");
       if (!res.ok) throw new Error("Failed to fetch products");
       const data = await res.json();
-      return data.products || [];
+      return data.items || data.products || [];
     },
     staleTime: 1000 * 60 * 5,
   });
@@ -66,7 +66,7 @@ export default function Products() {
   const handleAddToCart = (product: any) => addToCart(product);
   const handleBuyNow = (product: any) => { addToCart(product); router.push("/cart"); };
 
-  const categories = ["All Departments", "Groceries", "Beverages", "Household", "Personal Care", "Electronics"];
+  const categories = ["All Departments", "Charcuterie", "Sushi & Sashimi", "Fresh Juice", "Gourmet Seafood"];
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
