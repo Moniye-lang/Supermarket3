@@ -7,8 +7,7 @@ import { Minus, Plus, ShoppingCart, Star, Truck, ShieldCheck, ArrowLeft, Share2 
 import { motion } from "framer-motion";
 import ProductCard from "@/components/ProductCard";
 
-// Fallback base URL directly matching the documentation overview
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://supermarket3.vercel.app";
+// Relative paths — always hits this app's own API routes, backed by MongoDB
 
 export default function ProductDets() {
     const params = useParams();
@@ -31,9 +30,8 @@ export default function ProductDets() {
             try {
                 setLoading(true);
 
-                const cleanApiUrl = API_URL.endsWith("/") ? API_URL.slice(0, -1) : API_URL;
-                const targetUrl = `${cleanApiUrl}/api/products/${id}`;
-                console.log("Targeting exact clean URL:", targetUrl);
+                const targetUrl = `/api/products/${id}`;
+                console.log("Fetching product from:", targetUrl);
 
                 const res = await fetch(targetUrl);
                 if (!res.ok) throw new Error(`Server responded with status: ${res.status}`);
@@ -47,9 +45,8 @@ export default function ProductDets() {
                         stockStatus: data.stock > 0 ? "In Stock" : "Out of Stock"
                     });
 
-                    // Fetch related items using the relative path in the embedded project
-                    const relatedUrl = `${cleanApiUrl}/api/products?category=${data.category}&limit=5`;
-                    const relatedRes = await fetch(relatedUrl);
+                    // Fetch related products from own MongoDB-backed API
+                    const relatedRes = await fetch(`/api/products?category=${data.category}&limit=5`);
 
                     if (relatedRes.ok) {
                         const relatedData = await relatedRes.json();
@@ -62,7 +59,7 @@ export default function ProductDets() {
                     setProduct(null);
                 }
             } catch (err) {
-                console.error("Error connecting to the E-Commerce API:", err);
+                console.error("Error fetching product:", err);
                 setProduct(null);
             } finally {
                 setLoading(false);

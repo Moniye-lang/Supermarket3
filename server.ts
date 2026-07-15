@@ -22,7 +22,7 @@ const app = next({ dev, hostname, port, dir: __dirname });
 const handle = app.getRequestHandler();
 
 // Connect to MongoDB
-const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/amstores";
+const MONGO_URI = process.env.MONGO_URI || "";
 mongoose.connect(MONGO_URI, {
   maxPoolSize: 30,
 }).then(() => {
@@ -34,23 +34,6 @@ mongoose.connect(MONGO_URI, {
 app.prepare().then(async () => {
   const httpServer = createServer((req, res) => {
     const parsedUrl = parse(req.url!, true);
-
-    // Apply CORS headers to all API endpoints
-    if (req.url && req.url.startsWith("/api/")) {
-      const origin = req.headers.origin || "*";
-      res.setHeader("Access-Control-Allow-Origin", origin);
-      res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
-      res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, token, X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Date, X-Api-Version");
-      res.setHeader("Access-Control-Allow-Credentials", "true");
-      res.setHeader("Access-Control-Max-Age", "86400");
-
-      if (req.method === "OPTIONS") {
-        res.writeHead(200);
-        res.end();
-        return;
-      }
-    }
-
     handle(req, res, parsedUrl);
   });
 
