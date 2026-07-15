@@ -31,7 +31,7 @@ export default function CheckoutMap({ latitude, longitude, onChange }: CheckoutM
     setLoading(true);
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+        `/api/map/reverse?lat=${lat}&lng=${lng}`
       );
       if (response.ok) {
         const data = await response.json();
@@ -72,7 +72,7 @@ export default function CheckoutMap({ latitude, longitude, onChange }: CheckoutM
           style={{ height: "100%", width: "100%" }}
         >
           <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            url="/api/map/tiles/{z}/{x}/{y}"
             attribution="© OpenStreetMap contributors"
           />
           <Marker position={position} icon={customIcon} />

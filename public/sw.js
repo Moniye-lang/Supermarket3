@@ -1,6 +1,13 @@
 // public/sw.js
 self.addEventListener('push', function(event) {
-  const data = event.data ? event.data.json() : {};
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data = { body: event.data.text() };
+    }
+  }
   const title = data.title || 'AMstores';
   const options = {
     body: data.body || 'You have a new update.',

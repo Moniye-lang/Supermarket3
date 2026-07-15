@@ -115,7 +115,7 @@ export default function RiderMapComponent({ destination: propDestination }: Ride
         style={{ height: "100%", width: "100%" }}
       >
         <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          url="/api/map/tiles/{z}/{x}/{y}"
           attribution="© OpenStreetMap contributors"
         />
 

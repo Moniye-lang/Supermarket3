@@ -53,8 +53,24 @@ export default function PushNotificationPrompt() {
     try {
       const permission = await Notification.requestPermission();
       if (permission === "granted") {
+        let pubKey = "";
+        try {
+          const res = await fetch("/api/notifications/vapid");
+          if (res.ok) {
+            const data = await res.json();
+            pubKey = data.publicKey;
+          }
+        } catch (e: any) {
+          console.warn("[Push] Failed to fetch VAPID key dynamically, falling back to env:", e.message);
+        }
+
+        const activeKey = pubKey || VAPID_PUBLIC_KEY;
+        if (!activeKey) {
+          throw new Error("VAPID public key is missing");
+        }
+
         const registration = await registerServiceWorker();
-        await subscribeUser(registration, VAPID_PUBLIC_KEY, token);
+        await subscribeUser(registration, activeKey, token);
         setShowPrompt(false);
       } else {
         console.warn("[Push] Permission denied or dismissed");

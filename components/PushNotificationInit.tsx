@@ -13,10 +13,6 @@ export default function PushNotificationInit() {
   useEffect(() => {
     // Only run once per session, only for authenticated users
     if (!token || !user || didSubscribe.current) return;
-    if (!VAPID_PUBLIC_KEY) {
-      console.warn("[Push] NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY is not set.");
-      return;
-    }
     if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) {
       console.warn("[Push] Push notifications not supported in this browser.");
       return;
@@ -27,8 +23,25 @@ export default function PushNotificationInit() {
         // Only auto-subscribe if permission is already granted.
         // Otherwise, the PushNotificationPrompt will guide/ask the user via a user gesture.
         if (Notification.permission === "granted") {
+          let pubKey = "";
+          try {
+            const res = await fetch("/api/notifications/vapid");
+            if (res.ok) {
+              const data = await res.json();
+              pubKey = data.publicKey;
+            }
+          } catch (e: any) {
+            console.warn("[Push] Failed to fetch VAPID key dynamically, falling back to env:", e.message);
+          }
+
+          const activeKey = pubKey || VAPID_PUBLIC_KEY;
+          if (!activeKey) {
+            console.warn("[Push] VAPID public key is missing. Skipping subscription.");
+            return;
+          }
+
           const registration = await registerServiceWorker();
-          await subscribeUser(registration, VAPID_PUBLIC_KEY, token);
+          await subscribeUser(registration, activeKey, token);
           didSubscribe.current = true;
           console.log("[Push] Successfully subscribed to push notifications.");
         }
