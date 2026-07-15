@@ -8,8 +8,53 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle, Clock, XCircle, Package, Truck, ShoppingBag,
   AlertTriangle, MapPin, ChevronRight, ChevronDown, PackageOpen,
-  Calendar, User, Hash, History, Loader2, ReceiptText, Ban
+  Calendar, User, Hash, History, Loader2, ReceiptText, Ban, Phone
 } from "lucide-react";
+import dynamic from "next/dynamic";
+
+const RiderMapComponent = dynamic(
+  () => import("@/components/RiderMapComponent"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[280px] w-full rounded-2xl bg-gray-50 flex items-center justify-center text-sm text-gray-500 border border-gray-200">
+        Loading Live Tracking Map...
+      </div>
+    )
+  }
+);
+
+function FulfillmentProgressBar({ status, orderType }: { status: string; orderType: string }) {
+  let percentage = 0;
+  if (status === "payment_pending" || status === "payment_declined" || status === "cancelled") {
+    percentage = 15;
+  } else if (status === "packing") {
+    percentage = 50;
+  } else if (status === "delivery_here" || status === "ready_for_pickup") {
+    percentage = 80;
+  } else if (status === "delivered" || status === "picked_up" || status === "completed") {
+    percentage = 100;
+  } else {
+    percentage = 30;
+  }
+
+  return (
+    <div className="w-full mb-6 bg-gray-50 border border-gray-100 rounded-2xl p-4">
+      <div className="flex justify-between items-center mb-1.5">
+        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Fulfillment Progress</span>
+        <span className="text-xs font-bold text-brand-primary">{percentage}%</span>
+      </div>
+      <div className="w-full h-3 bg-gray-200/50 rounded-full overflow-hidden p-[2px]">
+        <motion.div 
+          initial={{ width: 0 }}
+          animate={{ width: `${percentage}%` }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="h-full bg-gradient-to-r from-brand-primary to-orange-500 rounded-full"
+        />
+      </div>
+    </div>
+  );
+}
 
 // ─── Status helpers ────────────────────────────────────────────────────────────
 
@@ -449,13 +494,40 @@ export default function Order() {
                     <span className="text-lg font-extrabold text-brand-primary">₦{order.amount?.toLocaleString()}</span>
                   </div>
 
-                  {/* Status Banner */}
                   <StatusBanner order={order} orderType={orderType} />
+                  
+                  <FulfillmentProgressBar status={order.status} orderType={orderType} />
 
-                  {/* Progress Stepper */}
                   <ProgressStepper order={order} orderType={orderType} />
 
-                  {/* Staff Update */}
+                  {orderType === "delivery" && order.status !== "delivered" && order.status !== "completed" && order.status !== "cancelled" && (
+                    <div className="mb-6">
+                      {order.assignedToWorkerId?.phone ? (
+                        <a
+                          href={`tel:${order.assignedToWorkerId.phone}`}
+                          className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg shadow-green-600/25 cursor-pointer"
+                        >
+                          <Phone size={16} /> Call your Rider ({order.assignedToWorkerId.name})
+                        </a>
+                      ) : (
+                        <div className="w-full bg-gray-50 text-gray-400 py-3 px-4 rounded-xl font-semibold text-xs text-center border border-gray-100">
+                          ℹ️ Rider will be assigned once preparation is complete
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {orderType === "delivery" && order.latitude && order.longitude && order.status !== "delivered" && order.status !== "completed" && order.status !== "cancelled" && (
+                    <div className="mb-6">
+                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5 flex items-center gap-1">
+                        Live Delivery Route
+                      </h3>
+                      <div className="h-[280px] w-full rounded-2xl overflow-hidden border border-gray-100 shadow-sm relative z-0">
+                        <RiderMapComponent destination={{ lat: order.latitude, lng: order.longitude }} />
+                      </div>
+                    </div>
+                  )}
+
                   {order.goodsStatus && (
                     <div className="bg-brand-primary/5 rounded-2xl p-4 mb-5 border border-brand-primary/10 flex items-start gap-3">
                       <Package size={18} className="text-brand-primary mt-0.5 shrink-0" />

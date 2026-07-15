@@ -44,10 +44,9 @@ export async function subscribeUser(
     headers['Authorization'] = `Bearer ${activeToken}`;
   }
 
-  // Send subscription to backend using API URL
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-  console.log(`Sending subscription to backend at ${apiUrl}:`, subscription);
-  const response = await fetch(`${apiUrl}/api/notifications/subscribe`, {
+  // Send subscription to backend using relative path
+  console.log(`Sending subscription to backend:`, subscription);
+  const response = await fetch(`/api/notifications/subscribe`, {
     method: 'POST',
     headers,
     body: JSON.stringify(subscription)

@@ -16,7 +16,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ collecti
     const { collectionMethod } = await params;
     const order = await Order.findOne({ customerId: authUser.id, collectionMethod })
       .sort({ createdAt: -1 })
-      .populate("items.productId");
+      .populate("items.productId")
+      .populate("assignedToWorkerId", "name role status phone");
 
     if (!order) {
       return NextResponse.json({ error: "No recent order found" }, { status: 404 });

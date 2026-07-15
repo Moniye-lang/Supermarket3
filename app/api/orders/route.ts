@@ -6,6 +6,7 @@ import Product from "@/lib/models/Product";
 import User from "@/lib/models/User";
 import { verifyAuth, verifyAdmin } from "@/lib/authMiddleware";
 import { sendPushToUser } from "@/lib/subscriptions";
+import pusher from "@/lib/pusher";
 
 function generateCode(): string {
   return Math.floor(1000 + Math.random() * 9000).toString();
@@ -127,7 +128,9 @@ export async function POST(req: Request) {
       fulfilled: false,
       paymentStatus: "verifying",
       status: "payment_pending",
-      assignmentStatus: "unassigned"
+      assignmentStatus: "unassigned",
+      latitude: body.latitude || null,
+      longitude: body.longitude || null
     });
 
     await order.save();
@@ -137,6 +140,15 @@ export async function POST(req: Request) {
     if (io) {
       io.emit("paymentVerificationRequest", order);
       io.emit("orderCreated", order);
+    }
+
+    // Broadcast via Pusher to admin-orders channel for real-time frontend updates
+    try {
+      await pusher.trigger("admin-orders", "orderCreated", order);
+      await pusher.trigger("admin-orders", "paymentVerificationRequest", order);
+      console.log(`[Pusher] Triggered orderCreated & paymentVerificationRequest for order #${order.pickupCode}`);
+    } catch (pushErr: any) {
+      console.error("[Pusher] Failed to broadcast order creation:", pushErr.message);
     }
 
     // Let's notify admin/worker about payment verification request via Push

@@ -4,6 +4,7 @@ import Order from "@/lib/models/Order";
 import User from "@/lib/models/User";
 import { verifyAuth } from "@/lib/authMiddleware";
 import { sendPushToUser } from "@/lib/subscriptions";
+import pusher from "@/lib/pusher";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -107,6 +108,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         io.emit("order:status", { orderId: order._id.toString(), status: "packing" });
       }
 
+      try {
+        const updated = await Order.findById(order._id)
+          .populate("items.productId")
+          .populate("assignedToWorkerId", "name role status phone");
+        // Update other workers/admins
+        await pusher.trigger("admin-orders", "orderUpdated", updated);
+        await pusher.trigger("admin-orders", "order:status", { orderId: order._id.toString(), status: "packing" });
+        // Update specific customer
+        await pusher.trigger(`order-${order._id}`, "orderUpdated", updated);
+        await pusher.trigger(`order-${order._id}`, "order:status", { orderId: order._id.toString(), status: "packing" });
+      } catch (pushErr: any) {
+        console.error("[Pusher] Accept broadcast error:", pushErr.message);
+      }
+
     } else if (action === "decline") {
       order.paymentStatus = "declined";
       order.status = "payment_declined";
@@ -125,6 +140,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         const updated = await Order.findById(order._id).populate("items.productId");
         io.emit("orderUpdated", updated);
         io.emit("order:status", { orderId: order._id.toString(), status: "payment_declined" });
+      }
+
+      try {
+        const updated = await Order.findById(order._id).populate("items.productId");
+        await pusher.trigger("admin-orders", "orderUpdated", updated);
+        await pusher.trigger("admin-orders", "order:status", { orderId: order._id.toString(), status: "payment_declined" });
+        await pusher.trigger(`order-${order._id}`, "orderUpdated", updated);
+        await pusher.trigger(`order-${order._id}`, "order:status", { orderId: order._id.toString(), status: "payment_declined" });
+      } catch (pushErr: any) {
+        console.error("[Pusher] Decline broadcast error:", pushErr.message);
       }
     } else {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });

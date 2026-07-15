@@ -2,14 +2,10 @@
 import { useEffect, useContext, useRef } from "react";
 import { AuthContext } from "@/context/AuthContext";
 import { registerServiceWorker, subscribeUser } from "@/lib/utils/pushManager";
+import PushNotificationPrompt from "./PushNotificationPrompt";
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY || "";
 
-/**
- * Mounts invisibly inside Providers.
- * On login (token + user present), registers the service worker and
- * subscribes the user to push notifications — once per session.
- */
 export default function PushNotificationInit() {
   const { token, user } = useContext(AuthContext);
   const didSubscribe = useRef(false);
@@ -28,17 +24,14 @@ export default function PushNotificationInit() {
 
     async function initPush() {
       try {
-        // Request notification permission if not already granted
-        const permission = await Notification.requestPermission();
-        if (permission !== "granted") {
-          console.log("[Push] Notification permission denied.");
-          return;
+        // Only auto-subscribe if permission is already granted.
+        // Otherwise, the PushNotificationPrompt will guide/ask the user via a user gesture.
+        if (Notification.permission === "granted") {
+          const registration = await registerServiceWorker();
+          await subscribeUser(registration, VAPID_PUBLIC_KEY, token);
+          didSubscribe.current = true;
+          console.log("[Push] Successfully subscribed to push notifications.");
         }
-
-        const registration = await registerServiceWorker();
-        await subscribeUser(registration, VAPID_PUBLIC_KEY, token);
-        didSubscribe.current = true;
-        console.log("[Push] Successfully subscribed to push notifications.");
       } catch (err) {
         console.error("[Push] Failed to initialize push notifications:", err);
       }
@@ -47,5 +40,5 @@ export default function PushNotificationInit() {
     initPush();
   }, [token, user]);
 
-  return null;
+  return <PushNotificationPrompt />;
 }

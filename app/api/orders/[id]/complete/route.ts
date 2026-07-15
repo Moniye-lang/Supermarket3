@@ -3,6 +3,7 @@ import dbConnect from "@/lib/mongodb";
 import Order from "@/lib/models/Order";
 import { verifyAuth } from "@/lib/authMiddleware";
 import { sendPushToUser } from "@/lib/subscriptions";
+import pusher from "@/lib/pusher";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -41,6 +42,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const io = (global as any).io;
     if (io) {
       io.emit("order:status", { orderId: id, status: "delivered" });
+    }
+
+    try {
+      await pusher.trigger("admin-orders", "order:status", { orderId: id, status: "delivered" });
+      await pusher.trigger(`order-${id}`, "order:status", { orderId: id, status: "delivered" });
+    } catch (pushErr: any) {
+      console.error("[Pusher] Order completion broadcast error:", pushErr.message);
     }
 
     return NextResponse.json({ success: true, message: "Order marked as completed", order });

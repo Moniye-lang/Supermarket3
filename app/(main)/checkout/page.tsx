@@ -6,6 +6,16 @@ import { Input } from "@/components/ui/Input";
 import { Truck, CreditCard, CheckCircle, MapPin, User, ShieldCheck, Phone, X, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CartContext } from "@/context/CartContext";
+import dynamic from "next/dynamic";
+
+const CheckoutMap = dynamic(() => import("@/components/CheckoutMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[250px] w-full rounded-2xl bg-gray-50 flex items-center justify-center text-sm text-gray-500 border border-gray-200">
+      Loading Geographical Map...
+    </div>
+  )
+});
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -15,6 +25,8 @@ export default function Checkout() {
   const [address, setAddress] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [customerName, setCustomerName] = useState("");
+  const [latitude, setLatitude] = useState(7.4332);
+  const [longitude, setLongitude] = useState(3.9471);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPaymentConfirm, setShowPaymentConfirm] = useState(false);
@@ -56,6 +68,8 @@ export default function Checkout() {
           customerPhone: method === "delivery" ? phoneNumber : undefined,
           paymentMethod: "manual_transfer",
           items: items.map((i: any) => ({ productId: i.productId || i._id, qty: i.qty })),
+          latitude: method === "delivery" ? latitude : null,
+          longitude: method === "delivery" ? longitude : null,
         }),
       });
 
@@ -133,13 +147,16 @@ export default function Checkout() {
                 </div>
                 {method === "delivery" && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Address</label>
-                      <Input placeholder="123 Main Street" value={address} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAddress(e.target.value)} icon={<MapPin size={18} className="text-gray-400" />} />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                      <Input placeholder="08012345678" value={phoneNumber} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPhoneNumber(e.target.value)} icon={<Phone size={18} className="text-gray-400" />} />
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Address</label>
+                        <Input placeholder="123 Main Street" value={address} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAddress(e.target.value)} icon={<MapPin size={18} className="text-gray-400" />} />
+                      </div>
+                      <CheckoutMap latitude={latitude} longitude={longitude} onChange={(lat, lng, addr) => { setLatitude(lat); setLongitude(lng); setAddress(addr); }} />
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                        <Input placeholder="08012345678" value={phoneNumber} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPhoneNumber(e.target.value)} icon={<Phone size={18} className="text-gray-400" />} />
+                      </div>
                     </div>
                   </motion.div>
                 )}

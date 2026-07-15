@@ -3,6 +3,7 @@ import dbConnect from "@/lib/mongodb";
 import Order from "@/lib/models/Order";
 import { verifyAuth } from "@/lib/authMiddleware";
 import { sendPushToUser } from "@/lib/subscriptions";
+import pusher from "@/lib/pusher";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -43,6 +44,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         .populate("assignedToWorkerId", "name role status phone");
       io.emit("orderUpdated", updated);
       io.emit("order:goods-status", { orderId: order._id.toString(), goodsStatus: order.goodsStatus });
+    }
+
+    try {
+      const updated = await Order.findById(order._id)
+        .populate("items.productId")
+        .populate("assignedToWorkerId", "name role status phone");
+      await pusher.trigger("admin-orders", "orderUpdated", updated);
+      await pusher.trigger(`order-${order._id}`, "orderUpdated", updated);
+      await pusher.trigger(`order-${order._id}`, "order:goods-status", { orderId: order._id.toString(), goodsStatus: order.goodsStatus });
+    } catch (pushErr: any) {
+      console.error("[Pusher] Goods status broadcast error:", pushErr.message);
     }
 
     return NextResponse.json({ success: true, order });

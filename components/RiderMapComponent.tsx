@@ -16,15 +16,21 @@ if (typeof window !== "undefined") {
   });
 }
 
-export default function RiderMapComponent() {
-  const searchParams = useSearchParams();
-  const paramLat = searchParams.get("lat");
-  const paramLng = searchParams.get("lng");
+interface RiderMapProps {
+  destination?: { lat: number; lng: number } | null;
+}
 
-  const fallbackDest = { lat: 6.5244, lng: 3.3792 };
-  const destination = paramLat && paramLng 
-    ? { lat: parseFloat(paramLat), lng: parseFloat(paramLng) } 
-    : fallbackDest;
+export default function RiderMapComponent({ destination: propDestination }: RiderMapProps) {
+  const searchParams = useSearchParams();
+  const paramLat = searchParams?.get("lat");
+  const paramLng = searchParams?.get("lng");
+
+  const fallbackDest = { lat: 7.4332, lng: 3.9471 };
+  const destination = propDestination
+    ? propDestination
+    : (paramLat && paramLng 
+        ? { lat: parseFloat(paramLat), lng: parseFloat(paramLng) } 
+        : fallbackDest);
 
   const [route, setRoute] = useState<any[]>([]);
   const [riderPos, setRiderPos] = useState<any>(null);

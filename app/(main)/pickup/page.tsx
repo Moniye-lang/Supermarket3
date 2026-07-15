@@ -3,6 +3,39 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import pusherClient from "@/lib/pusher-client";
 import useStoreCountdown from "@/hooks/useStoreCountdown";
+import { motion } from "framer-motion";
+
+function FulfillmentProgressBar({ status }: { status: string }) {
+  let percentage = 0;
+  if (status === "payment_pending" || status === "payment_declined" || status === "cancelled") {
+    percentage = 15;
+  } else if (status === "packing") {
+    percentage = 50;
+  } else if (status === "ready_for_pickup") {
+    percentage = 80;
+  } else if (status === "picked_up" || status === "delivered" || status === "completed") {
+    percentage = 100;
+  } else {
+    percentage = 30;
+  }
+
+  return (
+    <div className="w-full mb-6 bg-gray-50 border border-gray-100 rounded-2xl p-4">
+      <div className="flex justify-between items-center mb-1.5">
+        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Fulfillment Progress</span>
+        <span className="text-xs font-bold text-brand-primary">{percentage}%</span>
+      </div>
+      <div className="w-full h-3 bg-gray-200/50 rounded-full overflow-hidden p-[2px]">
+        <motion.div 
+          initial={{ width: 0 }}
+          animate={{ width: `${percentage}%` }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="h-full bg-gradient-to-r from-red-500 to-orange-500 rounded-full"
+        />
+      </div>
+    </div>
+  );
+}
 
 export default function Pickup() {
   const router = useRouter();
@@ -154,6 +187,9 @@ export default function Pickup() {
         }`}>
           <span className={getStatusColor()}>{getStatusText()}</span>
         </div>
+
+        {/* Fulfillment Progress Bar */}
+        <FulfillmentProgressBar status={order.status} />
 
         {order.goodsStatus && (
           <div className="bg-brand-primary/5 rounded-2xl p-4 mb-6 border border-brand-primary/10 flex items-start gap-3">
