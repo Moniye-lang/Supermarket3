@@ -82,6 +82,13 @@ body {
     /* Prevent horizontal scroll from animations */
 }
 
+/* Bottom tab bar clearance on mobile */
+@media (max-width: 767px) {
+    body {
+        padding-bottom: calc(env(safe-area-inset-bottom) + 88px);
+    }
+}
+
 /* Scrollbar Customization */
 ::-webkit-scrollbar {
     width: 8px;
