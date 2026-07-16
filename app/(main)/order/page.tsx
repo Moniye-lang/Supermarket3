@@ -195,18 +195,6 @@ function InfoGrid({ order, orderType }: { order: any; orderType: string }) {
         <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider flex items-center gap-1.5 mb-1"><User size={12} /> Recipient Name</p>
         <p className="text-sm font-bold text-brand-dark truncate">{order.pickupName || "—"}</p>
       </div>
-      <div className="col-span-2 bg-brand-primary/5 border border-brand-primary/10 rounded-2xl p-4 flex justify-between items-center">
-        <div>
-          <p className="text-[10px] font-extrabold text-brand-primary uppercase tracking-wider flex items-center gap-1.5 mb-0.5">
-            <Hash size={12} /> {orderType === "pickup" ? "Pickup Code" : "Order Code"}
-          </p>
-          <p className="text-2xl font-black text-brand-primary tracking-widest font-display">{order.pickupCode || "—"}</p>
-        </div>
-        <div className="text-right">
-          <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider">Method</p>
-          <p className="text-sm font-bold text-brand-dark capitalize">{orderType}</p>
-        </div>
-      </div>
       {orderType === "delivery" && order.deliveryAddress && (
         <div className="col-span-2 bg-gray-50/50 border border-gray-100 rounded-2xl p-3.5">
           <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider flex items-center gap-1.5 mb-1"><MapPin size={12} /> Delivery Destination</p>
@@ -491,7 +479,27 @@ export default function Order() {
                   </Link>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <div className="space-y-6">
+                  {/* Prominent Code Banner on Top */}
+                  <div className="bg-brand-primary/10 border border-brand-primary/20 rounded-3xl p-5 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm shadow-brand-primary/5">
+                    <div className="flex items-center gap-4 w-full sm:w-auto">
+                      <div className="w-12 h-12 rounded-2xl bg-brand-primary flex items-center justify-center text-white shrink-0 shadow-lg shadow-brand-primary/25">
+                        <Hash size={24} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-extrabold text-brand-primary uppercase tracking-wider">
+                          {orderType === "pickup" ? "Pickup Code" : "Order Code"}
+                        </p>
+                        <p className="text-3xl font-black text-brand-primary tracking-widest font-display mt-0.5">{order.pickupCode || "—"}</p>
+                      </div>
+                    </div>
+                    <div className="text-center sm:text-right shrink-0 w-full sm:w-auto border-t sm:border-t-0 border-gray-100 pt-3 sm:pt-0">
+                      <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider">Fulfillment Method</p>
+                      <p className="text-base font-extrabold text-brand-dark capitalize mt-0.5">{orderType}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                   
                   {/* Left Column (Fulfillment Stepper and tracking map) */}
                   <div className="lg:col-span-7 space-y-6">
@@ -648,7 +656,8 @@ export default function Order() {
                   </div>
 
                 </div>
-              )}
+              </div>
+            )}
             </motion.div>
           )}
 

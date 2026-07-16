@@ -164,6 +164,12 @@ export default function Pickup() {
       <div className="backdrop-blur-xl bg-white/80 shadow-2xl rounded-3xl p-8 w-full max-w-lg border border-gray-100 transition-all duration-300">
         <h1 className="text-4xl font-extrabold text-center text-red-600 mb-3 tracking-tight">Pickup Order</h1>
 
+        {/* Prominent Pickup Code Banner on Top */}
+        <div className="bg-red-50/80 border border-red-100 rounded-2xl p-5 mb-6 text-center shadow-sm">
+          <p className="text-xs font-bold text-red-600 uppercase tracking-wider mb-1">Your Pickup Code</p>
+          <p className="text-3xl font-black text-red-600 tracking-widest font-mono">{order.pickupCode || "—"}</p>
+        </div>
+
         <div className="flex flex-col items-center text-center mb-6">
           <p className={`text-sm px-3 py-1 rounded-full font-semibold ${isOpen ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}>
             Store is {isOpen ? "OPEN" : "CLOSED"}
@@ -204,7 +210,6 @@ export default function Pickup() {
         <div className="bg-gray-50 rounded-2xl shadow-inner p-4 mb-6">
           <p className="text-gray-600 mb-1">Date: <span className="font-semibold text-gray-800">{new Date(order.createdAt).toLocaleString()}</span></p>
           <p className="text-gray-600 mb-1">Name: <span className="font-semibold text-gray-800">{order.pickupName}</span></p>
-          <p className="text-gray-600 mb-1">Pickup Code: <span className="font-semibold text-red-600 text-lg">{order.pickupCode}</span></p>
           <p className={`mt-3 font-bold ${order.fulfilled ? "text-green-600" : "text-red-500"}`}>
             {order.fulfilled ? "Collected" : "Not Collected"}
           </p>
