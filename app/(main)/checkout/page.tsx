@@ -84,7 +84,7 @@ export default function Checkout() {
       const id = data.order?._id || data._id;
       localStorage.setItem("orderId", id);
       clearCart();
-      router.push(method === "delivery" ? "/order" : "/pickup");
+      router.push(method === "delivery" ? "/order?type=delivery" : "/order?type=pickup");
     } catch (err) {
       setError("Network error. Please try again.");
       setLoading(false);
