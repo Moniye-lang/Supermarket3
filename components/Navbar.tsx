@@ -12,6 +12,9 @@ import {
     ShoppingBag,
     ClipboardList,
     UserCircle2,
+    Menu,
+    Info,
+    Mail,
 } from "lucide-react";
 import { CartContext } from "@/context/CartContext";
 import { AuthContext } from "@/context/AuthContext";
@@ -33,20 +36,25 @@ interface MobileBottomNavProps {
    Tab Definitions
 ────────────────────────────────────────────────────────────── */
 const tabs = [
-    { name: "Home",    path: "/",         icon: Home,          isCart: false, isAccount: false },
-    { name: "Shop",    path: "/products", icon: Store,         isCart: false, isAccount: false },
-    { name: "Cart",    path: "/cart",     icon: ShoppingBag,   isCart: true,  isAccount: false },
-    { name: "Orders",  path: "/order",    icon: ClipboardList, isCart: false, isAccount: false },
-    { name: "Account", path: "/signin",   icon: UserCircle2,   isCart: false, isAccount: true  },
+    { name: "Home",    path: "/",         icon: Home,          isAccount: false, isMore: false },
+    { name: "Shop",    path: "/products", icon: Store,         isAccount: false, isMore: false },
+    { name: "More",    path: "#",         icon: Menu,          isAccount: false, isMore: true  },
+    { name: "Orders",  path: "/order",    icon: ClipboardList, isAccount: false, isMore: false },
+    { name: "Account", path: "/signin",   icon: UserCircle2,   isAccount: true,  isMore: false },
 ];
 
 /* ──────────────────────────────────────────────────────────────
    Mobile Bottom Tab Bar
 ────────────────────────────────────────────────────────────── */
 function MobileBottomNav({ pathname, totalItems, user, onLogout }: MobileBottomNavProps) {
-    const isActive = (path: string) => {
-        if (path === "/") return pathname === "/";
-        return pathname.startsWith(path);
+    const [showMoreMenu, setShowMoreMenu] = useState(false);
+
+    const isActive = (tab: typeof tabs[0]) => {
+        if (tab.isMore) {
+            return pathname === "/about" || pathname === "/contact";
+        }
+        if (tab.path === "/") return pathname === "/";
+        return pathname.startsWith(tab.path);
     };
 
     return (
@@ -57,50 +65,94 @@ function MobileBottomNav({ pathname, totalItems, user, onLogout }: MobileBottomN
             className="md:hidden fixed bottom-0 left-0 right-0 z-50"
             style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
-            <div className="mx-3 mb-3 rounded-2xl bg-white/85 backdrop-blur-xl border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.14)] px-1 py-1 flex items-end justify-around">
-                {tabs.map((tab) => {
-                    const active = isActive(tab.path);
-                    const Icon = tab.icon;
-
-                    /* ── Floating Cart Button ── */
-                    if (tab.isCart) {
-                        return (
-                            <Link key={tab.path} href={tab.path} className="relative flex flex-col items-center -mt-5">
-                                <motion.div
-                                    whileTap={{ scale: 0.85 }}
-                                    transition={{ type: "spring", stiffness: 400, damping: 20 }}
+            <div className="mx-3 mb-3 rounded-2xl bg-white/85 backdrop-blur-xl border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.14)] px-1 py-1 flex items-end justify-around relative">
+                {/* ── More Dropdown Menu ── */}
+                <AnimatePresence>
+                    {showMoreMenu && (
+                        <>
+                            {/* Backdrop close area */}
+                            <div 
+                                className="fixed inset-0 z-40" 
+                                onClick={() => setShowMoreMenu(false)}
+                            />
+                            {/* Dropdown Menu */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 15, scale: 0.95 }}
+                                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                                className="absolute bottom-[76px] left-1/2 -translate-x-1/2 z-50 w-44 bg-white/90 backdrop-blur-xl border border-white/60 shadow-[0_8px_24px_rgba(0,0,0,0.12)] rounded-2xl p-2 flex flex-col gap-1"
+                            >
+                                <Link
+                                    href="/about"
+                                    onClick={() => setShowMoreMenu(false)}
                                     className={cn(
-                                        "w-[58px] h-[58px] rounded-2xl flex items-center justify-center shadow-lg transition-all duration-300",
-                                        active
-                                            ? "bg-[#AD343E] shadow-[0_4px_24px_rgba(173,52,62,0.55)]"
-                                            : "bg-[#AD343E] shadow-[0_4px_18px_rgba(173,52,62,0.38)]"
+                                        "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                                        pathname === "/about"
+                                            ? "bg-[#AD343E]/10 text-[#AD343E]"
+                                            : "text-gray-700 hover:bg-gray-50"
                                     )}
                                 >
-                                    <Icon size={26} className="text-white" />
+                                    <Info size={18} className={pathname === "/about" ? "text-[#AD343E]" : "text-gray-500"} />
+                                    <span>About Us</span>
+                                </Link>
+                                <Link
+                                    href="/contact"
+                                    onClick={() => setShowMoreMenu(false)}
+                                    className={cn(
+                                        "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                                        pathname === "/contact"
+                                            ? "bg-[#AD343E]/10 text-[#AD343E]"
+                                            : "text-gray-700 hover:bg-gray-50"
+                                    )}
+                                >
+                                    <Mail size={18} className={pathname === "/contact" ? "text-[#AD343E]" : "text-gray-500"} />
+                                    <span>Contact Us</span>
+                                </Link>
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>
 
-                                    {/* Cart badge */}
-                                    <AnimatePresence>
-                                        {totalItems > 0 && (
-                                            <motion.span
-                                                key="badge"
-                                                initial={{ scale: 0 }}
-                                                animate={{ scale: 1 }}
-                                                exit={{ scale: 0 }}
-                                                className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 bg-[#D4AF37] text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white"
-                                            >
-                                                {totalItems > 9 ? "9+" : totalItems}
-                                            </motion.span>
+                {tabs.map((tab) => {
+                    const active = isActive(tab);
+                    const Icon = tab.icon;
+
+                    /* ── More Tab ── */
+                    if (tab.isMore) {
+                        return (
+                            <button
+                                key={tab.name}
+                                onClick={() => setShowMoreMenu(!showMoreMenu)}
+                                className="flex flex-col items-center py-2 px-3 gap-0.5 min-w-[54px] focus:outline-none relative"
+                            >
+                                <motion.div
+                                    whileTap={{ scale: 0.82 }}
+                                    transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                                >
+                                    <Icon
+                                        size={24}
+                                        className={cn(
+                                            "transition-colors duration-200",
+                                            active ? "text-[#AD343E]" : "text-gray-400"
                                         )}
-                                    </AnimatePresence>
+                                    />
                                 </motion.div>
 
                                 <span className={cn(
-                                    "text-[10px] font-semibold mt-1 mb-0.5 transition-colors duration-200",
+                                    "text-[10px] font-semibold transition-colors duration-200",
                                     active ? "text-[#AD343E]" : "text-gray-400"
                                 )}>
                                     {tab.name}
                                 </span>
-                            </Link>
+
+                                {active && (
+                                    <motion.div
+                                        layoutId="tab-dot"
+                                        className="w-1 h-1 rounded-full bg-[#AD343E]"
+                                    />
+                                )}
+                            </button>
                         );
                     }
 
@@ -287,8 +339,8 @@ export default function Navbar() {
                                 <Search size={20} />
                             </button>
 
-                            {/* Cart — desktop only */}
-                            <Link href="/cart" className="relative p-2 hover:bg-white/50 rounded-full transition-all group hidden md:block">
+                            {/* Cart — visible on both mobile and desktop */}
+                            <Link href="/cart" className="relative p-2 hover:bg-white/50 rounded-full transition-all group">
                                 <ShoppingCart size={22} className="text-gray-700 group-hover:text-brand-primary transition-colors" />
                                 <AnimatePresence>
                                     {totalItems > 0 && (
