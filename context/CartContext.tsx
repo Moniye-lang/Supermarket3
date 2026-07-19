@@ -21,6 +21,7 @@ interface CartContextType {
   clearCart: () => void;
   totalItems: number;
   totalPrice: number;
+  lastAdded: { name: string; image?: string; ts: number } | null;
 }
 
 export const CartContext = createContext<CartContextType>({
@@ -32,12 +33,14 @@ export const CartContext = createContext<CartContextType>({
   clearCart: () => {},
   totalItems: 0,
   totalPrice: 0,
+  lastAdded: null,
 });
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const { user, token } = useContext(AuthContext);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastAdded, setLastAdded] = useState<{ name: string; image?: string; ts: number } | null>(null);
 
   // Load cart from localStorage first
   useEffect(() => {
@@ -56,6 +59,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function loadCart() {
       if (!token || !user?._id) {
+        setCart([]);
+        localStorage.removeItem("cart");
         setLoading(false);
         return;
       }
@@ -143,6 +148,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
 
     persist(updated);
+    setLastAdded({ name: product.name || "Unnamed Product", image: product.image || "", ts: Date.now() });
   }
 
   // Remove one quantity
@@ -182,6 +188,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         clearCart,
         totalItems,
         totalPrice,
+        lastAdded,
       }}
     >
       {children}
