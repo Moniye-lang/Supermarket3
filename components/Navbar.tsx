@@ -266,9 +266,8 @@ export default function Navbar() {
         const handleScroll = () => setScrolled(window.scrollY > 20);
         window.addEventListener("scroll", handleScroll);
         
-        // Initialize dark theme state
-        const isDark = localStorage.getItem("theme") === "dark" || 
-                       (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        // Initialize dark theme state (default to light mode unless explicitly dark)
+        const isDark = localStorage.getItem("theme") === "dark";
         setDarkMode(isDark);
         if (isDark) {
             document.documentElement.classList.add("dark");
