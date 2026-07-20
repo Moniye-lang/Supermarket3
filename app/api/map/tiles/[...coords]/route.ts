@@ -13,11 +13,19 @@ export async function GET(
     }
 
     const [z, x, y] = coords;
+    
+    // Parse theme from URL query
+    const { searchParams } = new URL(req.url);
+    const theme = searchParams.get("theme") || "light";
 
-    // Pick a subdomain randomly (a, b, c) like standard Leaflet tile loading
-    const subdomains = ["a", "b", "c"];
+    // Pick a subdomain randomly (a, b, c, d)
+    const subdomains = ["a", "b", "c", "d"];
     const sub = subdomains[Math.floor(Math.random() * subdomains.length)];
-    const tileUrl = `https://${sub}.tile.openstreetmap.org/${z}/${x}/${y}.png`;
+    
+    // Use CartoDB voyager style for light (similar to Google Maps/Chowdeck) and dark_all for dark
+    const tileUrl = theme === "dark"
+      ? `https://${sub}.basemaps.cartocdn.com/dark_all/${z}/${x}/${y}.png`
+      : `https://${sub}.basemaps.cartocdn.com/rastertiles/voyager/${z}/${x}/${y}.png`;
 
     const response = await fetch(tileUrl, {
       headers: {

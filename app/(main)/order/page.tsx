@@ -7,8 +7,8 @@ import { AuthContext } from "@/context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle, Clock, XCircle, Package, Truck, ShoppingBag,
-  AlertTriangle, MapPin, ChevronRight, ChevronDown, PackageOpen,
-  Calendar, User, Hash, History, Loader2, ReceiptText, Ban, Phone
+  MapPin, ChevronRight, ChevronDown, PackageOpen,
+  Calendar, User, Hash, History, Loader2, ReceiptText, Phone
 } from "lucide-react";
 import dynamic from "next/dynamic";
 
@@ -88,7 +88,7 @@ const STATUS_META: Record<string, { color: string; bg: string; border: string; I
   packing:          { color: "text-orange-700", bg: "bg-orange-50",  border: "border-orange-200/50", Icon: Package,      label: "Packing your items..."               },
   delivery_here:    { color: "text-blue-700",   bg: "bg-blue-50",    border: "border-blue-200/50",   Icon: Truck,        label: "Rider Arrived!"                       },
   ready_for_pickup: { color: "text-blue-700",   bg: "bg-blue-50",    border: "border-blue-200/50",   Icon: ShoppingBag,  label: "Ready for Pickup!"                   },
-  cancelled:        { color: "text-red-700",    bg: "bg-red-50",     border: "border-red-200/50",    Icon: Ban,          label: "Order Cancelled"                     },
+  cancelled:        { color: "text-red-700",    bg: "bg-red-50",     border: "border-red-200/50",    Icon: XCircle,      label: "Order Cancelled"                     },
   delivered:        { color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200/50", Icon: CheckCircle,  label: "Delivered successfully!"            },
   picked_up:        { color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200/50", Icon: CheckCircle,  label: "Collected successfully!"            },
   default:          { color: "text-amber-700",  bg: "bg-amber-50",   border: "border-amber-200/50",  Icon: Clock,        label: "Preparing your order..."             },
@@ -345,7 +345,6 @@ export default function Order() {
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [cancelLoading, setCancelLoading] = useState(false);
 
   const token = ctxToken || (typeof window !== "undefined" ? localStorage.getItem("token") : null);
 
@@ -386,24 +385,6 @@ export default function Order() {
     return () => { pusherClient.unsubscribe(`order-${order._id}`); };
   }, [order?._id]);
 
-  async function handleCancelOrder() {
-    if (!order) return;
-    if (!confirm("Are you sure you want to cancel this order and payment?")) return;
-    try {
-      setCancelLoading(true);
-      const res = await fetch(`/api/orders/${order._id}/cancel`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (!res.ok) { alert(data.error || "Failed to cancel order"); return; }
-      setOrder((prev: any) => ({ ...prev, status: "cancelled", paymentStatus: "cancelled" }));
-    } catch {
-      alert("Error cancelling order");
-    } finally {
-      setCancelLoading(false);
-    }
-  }
 
   async function handleComplete() {
     if (!order) return;
@@ -631,27 +612,6 @@ export default function Order() {
                       <InfoGrid order={order} orderType={orderType} />
                     </div>
 
-                    {/* Packing cancellation actions */}
-                    {order.status === "packing" && (
-                      <div className="bg-red-50/50 rounded-3xl border border-red-100 p-5 space-y-4">
-                        <div className="flex gap-2">
-                          <AlertTriangle className="text-red-600 shrink-0 mt-0.5" size={16} />
-                          <div>
-                            <p className="font-bold text-red-950 text-sm">Cancel Order</p>
-                            <p className="text-xs text-red-700/80 mt-0.5 leading-relaxed">
-                              You can cancel your order and secure a refund only during the packing phase.
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={handleCancelOrder}
-                          disabled={cancelLoading}
-                          className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-600/10 cursor-pointer"
-                        >
-                          {cancelLoading ? <Loader2 size={16} className="animate-spin" /> : <><Ban size={15} /> Cancel Order & Refund</>}
-                        </button>
-                      </div>
-                    )}
 
                     {/* Collection confirmations */}
                     {canConfirm && (

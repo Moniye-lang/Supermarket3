@@ -59,6 +59,21 @@ export default function CheckoutMap({ latitude, longitude, onChange }: CheckoutM
     return null;
   }
 
+  const [theme, setTheme] = useState("light");
+
+  useEffect(() => {
+    const isDark = document.documentElement.classList.contains("dark");
+    setTheme(isDark ? "dark" : "light");
+
+    const observer = new MutationObserver(() => {
+      const isCurrentlyDark = document.documentElement.classList.contains("dark");
+      setTheme(isCurrentlyDark ? "dark" : "light");
+    });
+    
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-center text-xs text-gray-500 font-semibold">
@@ -72,8 +87,9 @@ export default function CheckoutMap({ latitude, longitude, onChange }: CheckoutM
           style={{ height: "100%", width: "100%" }}
         >
           <TileLayer
-            url="/api/map/tiles/{z}/{x}/{y}"
-            attribution="© OpenStreetMap contributors"
+            key={theme}
+            url={`/api/map/tiles/{z}/{x}/{y}?theme=${theme}`}
+            attribution="© CartoDB contributors"
           />
           <Marker position={position} icon={customIcon} />
           <MapEvents />

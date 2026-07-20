@@ -42,7 +42,6 @@ export default function Pickup() {
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [cancelLoading, setCancelLoading] = useState(false);
 
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   const { countdown, isOpen } = useStoreCountdown("08:00", "20:00");
@@ -87,25 +86,6 @@ export default function Pickup() {
     fetchPickupOrder();
   }, [token, router]);
 
-  async function handleCancelOrder() {
-    if (!order) return;
-    if (!confirm("Are you sure you want to cancel this order and payment?")) return;
-    try {
-      setCancelLoading(true);
-      const res = await fetch(`/api/orders/${order._id}/cancel`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (!res.ok) { alert(data.error || "Failed to cancel order"); return; }
-      alert("✅ Order cancelled successfully.");
-      setOrder((prev: any) => ({ ...prev, status: "cancelled", paymentStatus: "cancelled" }));
-    } catch (err) {
-      alert("Error cancelling order");
-    } finally {
-      setCancelLoading(false);
-    }
-  }
 
   async function handleComplete(orderId: string) {
     try {
@@ -234,14 +214,6 @@ export default function Pickup() {
           <p className="text-2xl font-extrabold text-red-600">₦{order.amount.toLocaleString()}</p>
         </div>
 
-        {order.status === "packing" && (
-          <div className="mb-4 p-4 bg-amber-50 rounded-xl border border-amber-100">
-            <p className="text-xs text-amber-800 mb-3 font-medium">⚠️ You can only cancel during the packing status.</p>
-            <button onClick={handleCancelOrder} disabled={cancelLoading} className="bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-lg font-semibold w-full transition-colors flex items-center justify-center gap-2">
-              {cancelLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "Cancel Order & Payment"}
-            </button>
-          </div>
-        )}
 
         {order.status === "ready_for_pickup" && !order.fulfilled && (
           <button onClick={() => handleComplete(order._id)} className="bg-green-600 text-white px-4 py-3 rounded-xl font-semibold w-full hover:bg-green-700 transition-colors">

@@ -90,6 +90,21 @@ export default function RiderMapComponent({ destination: propDestination }: Ride
     };
   }, []);
 
+  const [theme, setTheme] = useState("light");
+
+  useEffect(() => {
+    const isDark = document.documentElement.classList.contains("dark");
+    setTheme(isDark ? "dark" : "light");
+
+    const observer = new MutationObserver(() => {
+      const isCurrentlyDark = document.documentElement.classList.contains("dark");
+      setTheme(isCurrentlyDark ? "dark" : "light");
+    });
+    
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
   if (!destination) {
     return (
       <div className="h-screen flex items-center justify-center text-gray-600 text-lg">
@@ -115,8 +130,9 @@ export default function RiderMapComponent({ destination: propDestination }: Ride
         style={{ height: "100%", width: "100%" }}
       >
         <TileLayer
-          url="/api/map/tiles/{z}/{x}/{y}"
-          attribution="© OpenStreetMap contributors"
+          key={theme}
+          url={`/api/map/tiles/{z}/{x}/{y}?theme=${theme}`}
+          attribution="© CartoDB contributors"
         />
 
         {/* Route Path */}

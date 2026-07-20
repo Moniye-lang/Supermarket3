@@ -24,13 +24,13 @@ export default function Hero() {
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.3 }}
-                        className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/80 backdrop-blur-xl border border-white shadow-sm"
+                        className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/90 backdrop-blur-xl border border-white shadow-sm light-card"
                     >
                         <span className="flex h-2.5 w-2.5 relative">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-primary opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-primary"></span>
                         </span>
-                        <span className="text-sm font-semibold text-brand-dark tracking-wide uppercase">Delivering Freshness Daily</span>
+                        <span className="text-sm font-bold text-black dark:text-white tracking-wide uppercase">Delivering Freshness Daily</span>
                     </motion.div>
 
                     <h1 className="text-6xl md:text-7xl lg:text-8xl font-display font-extrabold text-brand-dark leading-[1.05] tracking-tight">
@@ -120,14 +120,14 @@ export default function Hero() {
                     <motion.div
                         animate={{ y: [-10, 10, -10] }}
                         transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
-                        className="absolute top-20 left-10 p-5 bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/50 z-30 flex items-center gap-4"
+                        className="absolute top-20 left-10 p-5 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-white/50 z-30 flex items-center gap-4 light-card"
                     >
                         <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-green-600">
                             <ShoppingBag className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-sm text-gray-500 font-medium">Just ordered</p>
-                            <p className="text-brand-dark font-bold">Fresh Strawberries</p>
+                            <p className="text-sm text-black dark:text-white font-medium">Just ordered</p>
+                            <p className="text-black dark:text-white font-bold">Fresh Strawberries</p>
                         </div>
                     </motion.div>
 
