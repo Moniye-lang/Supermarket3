@@ -310,8 +310,19 @@ function HistoryList({ token }: { token: string | null }) {
                       {order.customerPhone && <p className="text-brand-muted mt-0.5">{order.customerPhone}</p>}
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider">{order.collectionMethod === "delivery" ? "Delivery Destination" : "Pickup Code"}</p>
-                      <p className="font-bold text-brand-dark mt-0.5">{order.collectionMethod === "delivery" ? (order.deliveryAddress || "—") : order.pickupCode}</p>
+                      <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider">{order.collectionMethod === "delivery" ? "Delivery Destination" : "Pickup Details"}</p>
+                      {order.collectionMethod === "delivery" ? (
+                        <p className="font-bold text-brand-dark mt-0.5">{order.deliveryAddress || "—"}</p>
+                      ) : (
+                        <div className="space-y-0.5 mt-0.5">
+                          <p className="font-bold text-brand-dark">Code: {order.pickupCode}</p>
+                          {order.deliveryAddress && order.deliveryAddress.includes("Pickup Station (Time:") && (
+                            <p className="font-semibold text-brand-primary text-[10px]">
+                              Time: {order.deliveryAddress.replace("Pickup Station (Time: ", "").replace(")", "")}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

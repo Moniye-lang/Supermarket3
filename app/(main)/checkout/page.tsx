@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/Input";
 import { Truck, CreditCard, CheckCircle, MapPin, User, ShieldCheck, Phone, X, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CartContext } from "@/context/CartContext";
+import { AuthContext } from "@/context/AuthContext";
 import dynamic from "next/dynamic";
 
 const CheckoutMap = dynamic(() => import("@/components/CheckoutMap"), {
@@ -21,6 +22,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 export default function Checkout() {
   const router = useRouter();
+  const { user } = useContext(AuthContext);
   const [method, setMethod] = useState("delivery");
   const [address, setAddress] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -30,6 +32,8 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPaymentConfirm, setShowPaymentConfirm] = useState(false);
+  const [pickupDate, setPickupDate] = useState("Today");
+  const [pickupTime, setPickupTime] = useState("12:00 PM - 02:00 PM");
   const { clearCart, cart, totalPrice } = useContext(CartContext);
 
   const items = cart;
@@ -40,6 +44,13 @@ export default function Checkout() {
     window.scrollTo({ top: 0, behavior: "smooth" });
     if (!token) router.push("/signin");
   }, [token, router]);
+
+  useEffect(() => {
+    if (user) {
+      setCustomerName((prev) => prev || user.name || "");
+      setPhoneNumber((prev) => prev || user.phone || "");
+    }
+  }, [user]);
 
   function handleIHavePaidClick() {
     setError("");
@@ -64,7 +75,7 @@ export default function Checkout() {
         body: JSON.stringify({
           customerName,
           collectionMethod: method,
-          deliveryAddress: method === "delivery" ? address : "Pickup Station",
+          deliveryAddress: method === "delivery" ? address : `Pickup Station (Time: ${pickupDate}, ${pickupTime})`,
           customerPhone: method === "delivery" ? phoneNumber : undefined,
           paymentMethod: "manual_transfer",
           items: items.map((i: any) => ({ productId: i.productId || i._id, qty: i.qty })),
@@ -133,6 +144,48 @@ export default function Checkout() {
                   </div>
                 </div>
               </div>
+
+              {/* Scheduling Selection for Pickup */}
+              <AnimatePresence>
+                {method === "pickup" && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-6 pt-6 border-t border-gray-100 space-y-4 overflow-hidden"
+                  >
+                    <h3 className="text-md font-bold text-gray-900">Schedule Pickup Time</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Select Date</label>
+                        <select
+                          value={pickupDate}
+                          onChange={(e) => setPickupDate(e.target.value)}
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-brand-primary rounded-xl outline-none text-sm font-semibold transition-colors"
+                        >
+                          <option value="Today">Today</option>
+                          <option value="Tomorrow">Tomorrow</option>
+                          <option value="Next Day">Next Day</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Select Time Slot</label>
+                        <select
+                          value={pickupTime}
+                          onChange={(e) => setPickupTime(e.target.value)}
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-brand-primary rounded-xl outline-none text-sm font-semibold transition-colors"
+                        >
+                          <option value="09:00 AM - 11:00 AM">09:00 AM - 11:00 AM</option>
+                          <option value="11:00 AM - 01:00 PM">11:00 AM - 01:00 PM</option>
+                          <option value="01:00 PM - 03:00 PM">01:00 PM - 03:00 PM</option>
+                          <option value="03:00 PM - 05:00 PM">03:00 PM - 05:00 PM</option>
+                          <option value="05:00 PM - 07:00 PM">05:00 PM - 07:00 PM</option>
+                        </select>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </section>
 
             {/* Contact Info */}

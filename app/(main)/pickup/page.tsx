@@ -210,6 +210,11 @@ export default function Pickup() {
         <div className="bg-gray-50 rounded-2xl shadow-inner p-4 mb-6">
           <p className="text-gray-600 mb-1">Date: <span className="font-semibold text-gray-800">{new Date(order.createdAt).toLocaleString()}</span></p>
           <p className="text-gray-600 mb-1">Name: <span className="font-semibold text-gray-800">{order.pickupName}</span></p>
+          {order.deliveryAddress && order.deliveryAddress.includes("Pickup Station (Time:") && (
+            <p className="text-gray-600 mb-1">
+              Scheduled Time: <span className="font-semibold text-gray-800">{order.deliveryAddress.replace("Pickup Station (Time: ", "").replace(")", "")}</span>
+            </p>
+          )}
           <p className={`mt-3 font-bold ${order.fulfilled ? "text-green-600" : "text-red-500"}`}>
             {order.fulfilled ? "Collected" : "Not Collected"}
           </p>
