@@ -13,11 +13,14 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Worker access required!" }, { status: 403 });
     }
 
-    // Query active, uncompleted orders assigned to the logged-in worker
-    const query = { fulfilled: false, assignedToWorkerId: authUser.id };
+    const { searchParams } = new URL(req.url);
+    const history = searchParams.get("history") === "true";
+
+    // Query active or completed orders assigned to the logged-in worker
+    const query = { fulfilled: history, assignedToWorkerId: authUser.id };
 
     const orders = await Order.find(query)
-      .sort({ createdAt: 1 })
+      .sort({ updatedAt: -1 })
       .populate("customerId", "name phone") // get customer details
       .populate("items.productId", "name image price");
 

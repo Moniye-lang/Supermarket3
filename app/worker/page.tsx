@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle, MapPin, Truck, ShieldCheck, LogOut, Loader2, Phone, MessageCircle, Navigation, X, Package, Send, BellRing, ThumbsUp, ThumbsDown } from "lucide-react";
+import { CheckCircle, MapPin, Truck, ShieldCheck, LogOut, Loader2, Phone, MessageCircle, Navigation, X, Package, Send, BellRing, ThumbsUp, ThumbsDown, History, Award, ChevronDown, ChevronUp } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -23,6 +23,8 @@ export default function Worker() {
 
   const [workerStatus, setWorkerStatus] = useState("available");
   const [workerRole, setWorkerRole] = useState<"worker" | "rider" | null>(null);
+  const [completedOrders, setCompletedOrders] = useState<any[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
 
   // Payment verification queue
   const [verifyingOrders, setVerifyingOrders] = useState<any[]>([]);
@@ -152,6 +154,25 @@ export default function Worker() {
     }
   }, [API_URL]);
 
+  const fetchCompletedOrders = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("workerToken") || localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/worker/orders?history=true&_t=${Date.now()}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache"
+        }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCompletedOrders(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error("Error fetching completed orders:", err);
+    }
+  }, [API_URL]);
+
   const fetchVerifyingOrders = useCallback(async () => {
     try {
       const token = localStorage.getItem("workerToken") || localStorage.getItem("token");
@@ -174,8 +195,9 @@ export default function Worker() {
     } else {
       fetchOrders();
       fetchVerifyingOrders();
+      fetchCompletedOrders();
     }
-  }, [router, fetchOrders, fetchVerifyingOrders]);
+  }, [router, fetchOrders, fetchVerifyingOrders, fetchCompletedOrders]);
 
   // Real-time Pusher listeners + polling
   useEffect(() => {
@@ -300,6 +322,7 @@ export default function Worker() {
         setCode("");
         setMessage(null);
         fetchOrders();
+        fetchCompletedOrders();
       }, 2000);
 
     } catch (err: any) {
@@ -407,6 +430,34 @@ export default function Worker() {
             </p>
           </div>
         </div>
+
+        {/* Shift Stats Summary Card */}
+        {(() => {
+          const totalCollections = completedOrders.reduce((sum, o) => sum + (o.amount || 0), 0);
+          const completedCount = completedOrders.length;
+          return (
+            <div className="bg-gradient-to-r from-brand-dark to-brand-primary/95 text-white rounded-3xl p-6 shadow-xl mb-8 relative overflow-hidden">
+              <div className="absolute right-0 top-0 w-32 h-32 bg-white/5 rounded-full blur-2xl pointer-events-none" />
+              <div className="flex items-center justify-between mb-4 relative z-10">
+                <div className="flex items-center gap-2">
+                  <Award className="text-yellow-400" size={20} />
+                  <span className="text-sm font-semibold uppercase tracking-wider text-white/80">Shift Summary</span>
+                </div>
+                <span className="bg-white/10 text-xs px-2.5 py-1 rounded-full font-medium backdrop-blur-sm">Today</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4 relative z-10">
+                <div>
+                  <p className="text-xs text-white/70 font-medium">Fulfillments Completed</p>
+                  <p className="text-3xl font-black mt-1">{completedCount} {workerRole === "rider" ? "Trips" : "Orders"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-white/70 font-medium">Total Value Processed</p>
+                  <p className="text-3xl font-black mt-1">₦{totalCollections.toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Role Stats Strip */}
         {(() => {
@@ -659,6 +710,63 @@ export default function Worker() {
             ))}
           </div>
         )})()}
+
+        {/* Completed History Section */}
+        <div className="mt-8 border-t border-gray-150 pt-8">
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="w-full flex items-center justify-between bg-white hover:bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 transition-all shadow-sm focus:outline-none cursor-pointer"
+          >
+            <div className="flex items-center gap-3 text-gray-700">
+              <History size={20} className="text-brand-primary" />
+              <span className="font-bold text-base">Completed Task History</span>
+              <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full font-semibold">
+                {completedOrders.length}
+              </span>
+            </div>
+            {showHistory ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />}
+          </button>
+
+          <AnimatePresence>
+            {showHistory && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="overflow-hidden"
+              >
+                {completedOrders.length === 0 ? (
+                  <p className="text-center text-sm text-gray-400 py-6">No completed tasks recorded yet.</p>
+                ) : (
+                  <div className="space-y-3 mt-4">
+                    {completedOrders.map((order) => (
+                      <div
+                        key={order._id}
+                        className="bg-white/60 border border-gray-100 rounded-2xl p-4 flex items-center justify-between text-sm shadow-sm"
+                      >
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs font-mono font-bold text-gray-400">#{order.pickupCode}</span>
+                            <span className="bg-emerald-100 text-emerald-800 text-[10px] px-1.5 py-0.5 rounded font-black uppercase">Fulfilled</span>
+                          </div>
+                          <p className="font-semibold text-gray-800">{order.pickupName}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            Completed: {new Date(order.updatedAt).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-emerald-600">₦{order.amount?.toLocaleString()}</p>
+                          <p className="text-xs text-gray-400">{order.items?.length || 0} items</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </main>
 
       {/* PAYMENT VERIFICATION POPUP */}
