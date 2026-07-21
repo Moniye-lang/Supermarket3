@@ -454,32 +454,43 @@ export default function AdminDashboardHome() {
                                     </div>
                                 </div>
 
-                                {/* Order Distribution Pie Chart */}
+                                {/* Shopping Category Pie Chart */}
                                 <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
                                     <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
                                         <div>
-                                            <h2 className="text-xl font-black text-gray-900">Order Distribution</h2>
-                                            <p className="text-sm text-gray-500 mt-0.5">Breakdown of orders by status &amp; type.</p>
+                                            <h2 className="text-xl font-black text-gray-900">Sales by Category</h2>
+                                            <p className="text-sm text-gray-500 mt-0.5">Revenue breakdown across all shopping categories.</p>
                                         </div>
+                                        <span className="text-xs font-bold text-gray-400 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100 uppercase tracking-wider">
+                                            {period} period
+                                        </span>
                                     </div>
+                                    {(!analytics?.categoryDistribution || analytics.categoryDistribution.length === 0) ? (
+                                        <div className="flex flex-col items-center justify-center py-16 text-center">
+                                            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-3">
+                                                <Package size={28} className="text-gray-300" />
+                                            </div>
+                                            <p className="text-gray-500 font-medium">No category sales data yet for this period.</p>
+                                        </div>
+                                    ) : (
                                     <div className="flex flex-col lg:flex-row items-center gap-10">
-                                        {/* Pie */}
-                                        <div className="w-full lg:w-[280px] h-[280px] flex-shrink-0">
+                                        {/* Donut Pie */}
+                                        <div className="w-full lg:w-[280px] h-[280px] flex-shrink-0 relative">
                                             <ResponsiveContainer width="100%" height="100%">
                                                 <PieChart>
                                                     <Pie
-                                                        data={analytics?.orderDistribution || []}
+                                                        data={analytics.categoryDistribution}
                                                         cx="50%"
                                                         cy="50%"
-                                                        innerRadius={72}
-                                                        outerRadius={110}
-                                                        paddingAngle={4}
+                                                        innerRadius={70}
+                                                        outerRadius={112}
+                                                        paddingAngle={3}
                                                         dataKey="value"
                                                         animationBegin={0}
-                                                        animationDuration={900}
+                                                        animationDuration={1000}
                                                         stroke="none"
                                                     >
-                                                        {(analytics?.orderDistribution || []).map((entry: any, idx: number) => (
+                                                        {analytics.categoryDistribution.map((entry: any, idx: number) => (
                                                             <Cell key={`cell-${idx}`} fill={entry.fill} />
                                                         ))}
                                                     </Pie>
@@ -490,43 +501,50 @@ export default function AdminDashboardHome() {
                                                             boxShadow: "0 12px 30px -4px rgb(0 0 0 / 0.1)",
                                                             padding: "10px 14px",
                                                         }}
-                                                        formatter={(value: any, name: any) => [value, name]}
+                                                        formatter={(value: any, name: any) => [`₦${Number(value).toLocaleString()}`, name]}
                                                     />
                                                 </PieChart>
                                             </ResponsiveContainer>
+                                            {/* Center label */}
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total</p>
+                                                <p className="text-lg font-black text-gray-900">
+                                                    ₦{analytics.categoryDistribution.reduce((s: number, e: any) => s + e.value, 0).toLocaleString()}
+                                                </p>
+                                            </div>
                                         </div>
-                                        {/* Legend + stats */}
-                                        <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-4 w-full">
-                                            {(analytics?.orderDistribution || []).map((entry: any) => {
-                                                const total = (analytics?.orderDistribution || []).reduce((s: number, e: any) => s + e.value, 0);
+                                        {/* Legend stat cards */}
+                                        <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-3 w-full">
+                                            {analytics.categoryDistribution.map((entry: any) => {
+                                                const total = analytics.categoryDistribution.reduce((s: number, e: any) => s + e.value, 0);
                                                 const pct = total > 0 ? Math.round((entry.value / total) * 100) : 0;
                                                 return (
                                                     <div
                                                         key={entry.name}
-                                                        className="p-5 rounded-2xl border-2 border-transparent hover:border-gray-100 transition-all"
-                                                        style={{ backgroundColor: entry.fill + "14" }}
+                                                        className="p-4 rounded-2xl border border-transparent hover:border-gray-100 transition-all cursor-default"
+                                                        style={{ backgroundColor: entry.fill + "12" }}
                                                     >
-                                                        <div className="flex items-center gap-2 mb-3">
-                                                            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.fill }} />
-                                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{entry.name}</span>
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: entry.fill }} />
+                                                            <span className="text-xs font-bold text-gray-600 truncate">{entry.name}</span>
                                                         </div>
-                                                        <p className="text-3xl font-black" style={{ color: entry.fill }}>{entry.value}</p>
-                                                        <div className="mt-3">
-                                                            <div className="flex items-center justify-between mb-1">
-                                                                <span className="text-xs text-gray-400 font-semibold">{pct}% of total</span>
-                                                            </div>
-                                                            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                                                <div
-                                                                    className="h-full rounded-full transition-all duration-700"
-                                                                    style={{ width: `${pct}%`, backgroundColor: entry.fill }}
-                                                                />
-                                                            </div>
+                                                        <p className="text-xl font-black" style={{ color: entry.fill }}>
+                                                            ₦{Number(entry.value).toLocaleString()}
+                                                        </p>
+                                                        <p className="text-xs text-gray-400 mt-0.5">{entry.qty} units sold</p>
+                                                        <div className="mt-2 h-1 bg-gray-100 rounded-full overflow-hidden">
+                                                            <div
+                                                                className="h-full rounded-full"
+                                                                style={{ width: `${pct}%`, backgroundColor: entry.fill }}
+                                                            />
                                                         </div>
+                                                        <p className="text-xs text-gray-400 mt-1 font-semibold">{pct}%</p>
                                                     </div>
                                                 );
                                             })}
                                         </div>
                                     </div>
+                                    )}
                                 </div>
 
                                 {/* Inventory Alerts */}

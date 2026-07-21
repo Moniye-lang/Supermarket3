@@ -104,6 +104,42 @@ export async function GET(req: Request) {
       };
     }));
 
+    // Category Revenue Breakdown
+    const categoryColors: Record<string, string> = {
+      "Fruits": "#10b981",
+      "Vegetables": "#22c55e",
+      "Dairy": "#3b82f6",
+      "Meat": "#ef4444",
+      "Bakery": "#f97316",
+      "Beverages": "#8b5cf6",
+      "Snacks": "#f59e0b",
+      "Seafood": "#06b6d4",
+      "Frozen": "#60a5fa",
+      "Household": "#a855f7",
+      "Personal Care": "#ec4899",
+      "Uncategorized": "#9ca3af",
+    };
+    const fallbackColors = ["#6366f1","#14b8a6","#f43f5e","#84cc16","#fb923c","#a78bfa"];
+
+    const categoryStats: Record<string, { revenue: number; qty: number }> = {};
+    await Promise.all(Object.keys(productStats).map(async pid => {
+      const product = await Product.findById(pid).select("category");
+      const cat = product?.category || "Uncategorized";
+      if (!categoryStats[cat]) categoryStats[cat] = { revenue: 0, qty: 0 };
+      categoryStats[cat].revenue += productStats[pid].revenue;
+      categoryStats[cat].qty += productStats[pid].qty;
+    }));
+
+    const sortedCategories = Object.entries(categoryStats)
+      .sort(([, a], [, b]) => b.revenue - a.revenue);
+    
+    const categoryDistribution = sortedCategories.map(([name, stats], idx) => ({
+      name,
+      value: stats.revenue,
+      qty: stats.qty,
+      fill: categoryColors[name] || fallbackColors[idx % fallbackColors.length],
+    }));
+
     return NextResponse.json({
       summary: {
         totalUsers,
@@ -127,12 +163,7 @@ export async function GET(req: Request) {
       trendData,
       topProducts,
       lowStockProducts: lowStockProducts.map(p => ({ name: p.name, stock: p.stock, id: p._id })),
-      orderDistribution: [
-        { name: "Fulfilled", value: await Order.countDocuments({ fulfilled: true }), fill: "#10b981" },
-        { name: "Pending", value: await Order.countDocuments({ fulfilled: false, paymentStatus: "pending" }), fill: "#f59e0b" },
-        { name: "Pickup", value: await Order.countDocuments({ collectionMethod: "pickup" }), fill: "#f97316" },
-        { name: "Delivery", value: await Order.countDocuments({ collectionMethod: "delivery" }), fill: "#6366f1" },
-      ],
+      categoryDistribution,
     });
   } catch (err: any) {
     console.error("Analytics Error:", err);
