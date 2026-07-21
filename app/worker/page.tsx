@@ -33,6 +33,9 @@ export default function Worker() {
   const [goodsStatusText, setGoodsStatusText] = useState("");
   const [goodsStatusLoading, setGoodsStatusLoading] = useState(false);
 
+  // Packing checklist state
+  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+
   const API_URL = "";
 
   useEffect(() => {
@@ -449,13 +452,20 @@ export default function Worker() {
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Order #{order.pickupCode}</span>
                         {order.collectionMethod === "delivery" ? (
                           <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded font-bold flex items-center gap-1"><Truck size={12}/> Delivery</span>
                         ) : (
                           <span className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded font-bold flex items-center gap-1"><MapPin size={12}/> Pickup</span>
                         )}
+                        {/* KDS Urgency Timer */}
+                        {(() => {
+                          const mins = Math.floor((Date.now() - new Date(order.createdAt).getTime()) / 60000);
+                          if (mins > 30) return <span className="bg-rose-100 text-rose-800 text-xs px-2 py-0.5 rounded-full font-black flex items-center gap-1">🔴 {mins}m overdue</span>;
+                          if (mins > 15) return <span className="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full font-bold flex items-center gap-1">🟡 {mins}m ago</span>;
+                          return <span className="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-full font-bold flex items-center gap-1">🟢 {mins}m ago</span>;
+                        })()}
                         {/* Status badge */}
                         {order.status === "packing" && (
                           <span className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded font-bold flex items-center gap-1">
@@ -485,21 +495,57 @@ export default function Worker() {
                     </div>
                   )}
 
-                  {/* Items List */}
-                  <div className="bg-gray-50 rounded-2xl p-4 mb-4 border border-gray-100">
-                    <h4 className="text-sm font-bold text-gray-900 mb-2">Order Items</h4>
-                    <ul className="divide-y divide-gray-200">
-                      {order.items.map((it: any, idx: number) => (
-                        <li key={it._id || idx} className="py-2 flex justify-between items-center text-sm text-gray-700">
-                          <span>
-                            {it.name || it.productId?.name || "Unnamed"} ×{" "}
-                            <span className="font-semibold">{it.qty}</span>
+                  {/* Packing Checklist & Progress */}
+                  {(() => {
+                    const packedCount = order.items.filter((_: any, idx: number) => checkedItems[`${order._id}_${idx}`]).length;
+                    const isAllPacked = packedCount === order.items.length;
+                    const percent = Math.round((packedCount / (order.items.length || 1)) * 100);
+                    return (
+                      <div className="bg-gray-50 rounded-2xl p-4 mb-4 border border-gray-100">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                            <Package size={16} className="text-brand-primary" /> Item Packing Checklist
+                          </h4>
+                          <span className={`text-xs font-extrabold px-2 py-0.5 rounded-full ${isAllPacked ? "bg-emerald-100 text-emerald-800" : "bg-gray-200 text-gray-700"}`}>
+                            {packedCount} / {order.items.length} packed ({percent}%)
                           </span>
-                          <span className="font-medium text-gray-900">₦{((it.price || it.productId?.price) * it.qty).toLocaleString()}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="w-full bg-gray-200 h-1.5 rounded-full mb-3 overflow-hidden">
+                          <div
+                            className="bg-emerald-500 h-full transition-all duration-300"
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
+
+                        <ul className="divide-y divide-gray-200">
+                          {order.items.map((it: any, idx: number) => {
+                            const itemKey = `${order._id}_${idx}`;
+                            const isChecked = !!checkedItems[itemKey];
+                            return (
+                              <li key={it._id || idx} className="py-2.5 flex justify-between items-center text-sm">
+                                <label className="flex items-center gap-3 cursor-pointer select-none">
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={(e) => {
+                                      setCheckedItems(prev => ({ ...prev, [itemKey]: e.target.checked }));
+                                    }}
+                                    className="w-4 h-4 rounded text-brand-primary focus:ring-brand-primary cursor-pointer"
+                                  />
+                                  <span className={isChecked ? "line-through text-gray-400 font-medium" : "text-gray-800 font-medium"}>
+                                    {it.name || it.productId?.name || "Unnamed"} × <span className="font-bold text-brand-dark">{it.qty}</span>
+                                  </span>
+                                </label>
+                                <span className="font-medium text-gray-700 text-xs">₦{((it.price || it.productId?.price) * it.qty).toLocaleString()}</span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    );
+                  })()}
 
                   {/* Action Buttons */}
                   <div className="flex flex-wrap items-center gap-3 mt-4">

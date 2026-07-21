@@ -283,6 +283,33 @@ export default function AdminOrdersPage() {
     }
   }
 
+  async function autoAssignOrders() {
+    const unassignedOrders = orders.filter((o: any) => !o.assignedToWorkerId && o.status !== "delivered" && o.status !== "cancelled");
+    if (unassignedOrders.length === 0) {
+      alert("No unassigned active orders to assign!");
+      return;
+    }
+    const availableStaff = workers.filter((w: any) => w.status === "available");
+    const targetStaff = availableStaff.length > 0 ? availableStaff : workers;
+    if (targetStaff.length === 0) {
+      alert("No active workers or riders available!");
+      return;
+    }
+    
+    let successCount = 0;
+    for (let i = 0; i < unassignedOrders.length; i++) {
+      const order = unassignedOrders[i];
+      const isPickup = order.deliveryMethod === "pickup";
+      const matchingRole = isPickup ? "worker" : "rider";
+      const bestWorker = targetStaff.find((s: any) => s.role === matchingRole) || targetStaff[i % targetStaff.length];
+      if (bestWorker) {
+        await assignOrder(order._id, bestWorker._id);
+        successCount++;
+      }
+    }
+    alert(`Smart Auto-Assigned ${successCount} order(s) successfully!`);
+  }
+
   async function updateOrderStatus(orderId: string, newStatus: string) {
     if (!confirm(`Change order status to ${newStatus}?`)) return;
     const currentToken = token || localStorage.getItem("token");
@@ -343,14 +370,24 @@ export default function AdminOrdersPage() {
           <h1 className="text-2xl font-bold text-gray-900">Orders Management</h1>
           <p className="text-gray-500 text-sm mt-1">Track and update customer orders</p>
         </div>
-        <Button
-          onClick={handleManualRefresh}
-          disabled={isRefreshing || loading}
-          className="flex items-center gap-2 shrink-0 cursor-pointer"
-        >
-          <RefreshCw size={16} className={isRefreshing || loading ? "animate-spin" : ""} />
-          {isRefreshing ? "Refreshing..." : "Refresh"}
-        </Button>
+        <div className="flex items-center gap-3 flex-wrap">
+          <Button
+            onClick={autoAssignOrders}
+            disabled={loading}
+            className="flex items-center gap-2 shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white border-none cursor-pointer shadow-sm"
+          >
+            <Package size={16} />
+            Smart Auto-Assign All
+          </Button>
+          <Button
+            onClick={handleManualRefresh}
+            disabled={isRefreshing || loading}
+            className="flex items-center gap-2 shrink-0 cursor-pointer"
+          >
+            <RefreshCw size={16} className={isRefreshing || loading ? "animate-spin" : ""} />
+            {isRefreshing ? "Refreshing..." : "Refresh"}
+          </Button>
+        </div>
       </div>
 
       {error && (

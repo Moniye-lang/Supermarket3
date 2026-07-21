@@ -69,13 +69,14 @@ export async function GET(req: Request) {
         ? d.getHours() + ":00" 
         : d.toISOString().split('T')[0];
       
-      const rev = currentOrders.filter(o => {
+      const matchingOrders = currentOrders.filter(o => {
         const od = new Date(o.createdAt);
         if (period === "daily") return od.getHours() === d.getHours() && od.toDateString() === d.toDateString();
         return od.toISOString().split('T')[0] === dateStr;
-      }).reduce((sum, o) => sum + (o.amount || 0), 0);
+      });
+      const rev = matchingOrders.reduce((sum, o) => sum + (o.amount || 0), 0);
 
-      trendData.push({ name: dateStr, revenue: rev });
+      trendData.push({ name: dateStr, revenue: rev, orders: matchingOrders.length });
     }
 
     // Top Products
