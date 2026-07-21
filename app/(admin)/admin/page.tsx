@@ -490,7 +490,7 @@ export default function AdminDashboardHome() {
                                                             boxShadow: "0 12px 30px -4px rgb(0 0 0 / 0.1)",
                                                             padding: "10px 14px",
                                                         }}
-                                                        formatter={(value: any, name: string) => [value, name]}
+                                                        formatter={(value: any, name: any) => [value, name]}
                                                     />
                                                 </PieChart>
                                             </ResponsiveContainer>
