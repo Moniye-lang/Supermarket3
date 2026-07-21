@@ -449,7 +449,10 @@ export default function Worker() {
               >
                 <div>
                   <p className="font-bold text-amber-900 text-sm">Order #{vo.pickupCode} — {vo.pickupName}</p>
-                  <p className="text-xs text-amber-700">₦{vo.amount?.toLocaleString()} · {vo.collectionMethod}</p>
+                  <p className="text-xs text-amber-700">
+                    ₦{vo.amount?.toLocaleString()} · {vo.collectionMethod} ·{" "}
+                    {new Date(vo.createdAt).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  </p>
                 </div>
                 <button
                   onClick={() => setPaymentPopup(vo)}
@@ -515,6 +518,9 @@ export default function Worker() {
                         )}
                       </div>
                       <h3 className="text-xl font-bold text-gray-900">{order.pickupName}</h3>
+                      <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                        🗓 {new Date(order.createdAt).toLocaleString("en-NG", { weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </p>
                       {order.goodsStatus && (
                         <p className="text-xs text-brand-primary mt-1 font-medium">📦 Last update: {order.goodsStatus}</p>
                       )}
