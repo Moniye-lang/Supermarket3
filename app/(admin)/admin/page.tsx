@@ -337,7 +337,7 @@ export default function AdminDashboardHome() {
                                                             backgroundColor: "#fff"
                                                         }}
                                                         labelStyle={{ fontWeight: 800, fontSize: 12, color: "#111827", marginBottom: 6 }}
-                                                        formatter={(value: any, name: string) =>
+                                                        formatter={(value: any, name: any) =>
                                                             name === "revenue"
                                                                 ? [`₦${Number(value).toLocaleString()}`, "Revenue"]
                                                                 : [value, "Orders"]
