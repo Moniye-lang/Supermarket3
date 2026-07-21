@@ -67,7 +67,7 @@ function MobileBottomNav({ pathname, totalItems, user, onLogout }: MobileBottomN
             className="md:hidden fixed bottom-0 left-0 right-0 z-50"
             style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
-            <div className="mx-3 mb-3 rounded-2xl bg-white/85 dark:bg-zinc-900/90 backdrop-blur-xl border border-white/60 dark:border-zinc-800 shadow-[0_8px_32px_rgba(0,0,0,0.14)] px-1 py-1 flex items-end justify-around relative">
+            <div className="mx-3 mb-3 rounded-2xl bg-white/85 dark:bg-white/85 backdrop-blur-xl border border-white/60 dark:border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.14)] px-1 py-1 flex items-end justify-around relative">
                 {/* ── More Dropdown Menu ── */}
                 <AnimatePresence>
                     {showMoreMenu && (
@@ -83,7 +83,7 @@ function MobileBottomNav({ pathname, totalItems, user, onLogout }: MobileBottomN
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: 15, scale: 0.95 }}
                                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                                className="absolute bottom-[76px] left-1/2 -translate-x-1/2 z-50 w-44 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-white/60 dark:border-zinc-800 shadow-[0_8px_24px_rgba(0,0,0,0.12)] rounded-2xl p-2 flex flex-col gap-1"
+                                className="absolute bottom-[76px] left-1/2 -translate-x-1/2 z-50 w-44 bg-white/95 dark:bg-white/95 backdrop-blur-xl border border-white/60 dark:border-white/60 shadow-[0_8px_24px_rgba(0,0,0,0.12)] rounded-2xl p-2 flex flex-col gap-1"
                             >
                                 <Link
                                     href="/about"
@@ -91,11 +91,11 @@ function MobileBottomNav({ pathname, totalItems, user, onLogout }: MobileBottomN
                                     className={cn(
                                         "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
                                         pathname === "/about"
-                                            ? "bg-[#AD343E]/10 text-[#AD343E] dark:bg-[#AD343E]/20 dark:text-[#f87171]"
-                                            : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-800"
+                                            ? "bg-[#AD343E]/10 text-[#AD343E] dark:bg-[#AD343E]/10 dark:text-[#AD343E]"
+                                            : "text-gray-700 dark:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-100"
                                     )}
                                 >
-                                    <Info size={18} className={pathname === "/about" ? "text-[#AD343E] dark:text-[#f87171]" : "text-gray-500 dark:text-gray-400"} />
+                                    <Info size={18} className={pathname === "/about" ? "text-[#AD343E] dark:text-[#AD343E]" : "text-gray-500 dark:text-gray-500"} />
                                     <span>About Us</span>
                                 </Link>
                                 <Link
@@ -104,11 +104,11 @@ function MobileBottomNav({ pathname, totalItems, user, onLogout }: MobileBottomN
                                     className={cn(
                                         "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
                                         pathname === "/contact"
-                                            ? "bg-[#AD343E]/10 text-[#AD343E] dark:bg-[#AD343E]/20 dark:text-[#f87171]"
-                                            : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-800"
+                                            ? "bg-[#AD343E]/10 text-[#AD343E] dark:bg-[#AD343E]/10 dark:text-[#AD343E]"
+                                            : "text-gray-700 dark:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-100"
                                     )}
                                 >
-                                    <Mail size={18} className={pathname === "/contact" ? "text-[#AD343E] dark:text-[#f87171]" : "text-gray-500 dark:text-gray-400"} />
+                                    <Mail size={18} className={pathname === "/contact" ? "text-[#AD343E] dark:text-[#AD343E]" : "text-gray-500 dark:text-gray-500"} />
                                     <span>Contact Us</span>
                                 </Link>
                             </motion.div>
