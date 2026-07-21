@@ -22,6 +22,7 @@ export default function Worker() {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const [workerStatus, setWorkerStatus] = useState("available");
+  const [workerRole, setWorkerRole] = useState<"worker" | "rider" | null>(null);
 
   // Payment verification queue
   const [verifyingOrders, setVerifyingOrders] = useState<any[]>([]);
@@ -49,6 +50,7 @@ export default function Worker() {
         const data = await res.json();
         if (res.ok) {
           setWorkerStatus(data.status || "available");
+          setWorkerRole(data.role || "worker");
         }
       } catch (err) {
         console.error("Error loading worker profile:", err);
@@ -344,7 +346,9 @@ export default function Worker() {
         <div className="container mx-auto max-w-4xl flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <span className="font-display text-2xl font-bold tracking-tight text-brand-dark">AM<span className="text-brand-primary">Stores</span></span>
-            <span className="bg-brand-dark text-white text-xs px-2 py-0.5 rounded-md font-medium tracking-wide">WORKER</span>
+            <span className="bg-brand-dark text-white text-xs px-2 py-0.5 rounded-md font-medium tracking-wide">
+              {workerRole === "rider" ? "RIDER" : "PICKUP STAFF"}
+            </span>
           </Link>
           <div className="flex items-center gap-4">
             {/* Payment Verification Badge */}
@@ -393,10 +397,42 @@ export default function Worker() {
       <main className="flex-1 container mx-auto max-w-2xl px-4 py-8 relative z-10 flex flex-col">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 font-display">My Tasks</h1>
-            <p className="text-gray-500">Active deliveries and pickups assigned to you.</p>
+            <h1 className="text-3xl font-bold text-gray-900 font-display">
+              {workerRole === "rider" ? "🚚 Delivery Orders" : "📦 Pickup Orders"}
+            </h1>
+            <p className="text-gray-500">
+              {workerRole === "rider"
+                ? "Active deliveries assigned to you."
+                : "Active in-store pickups assigned to you."}
+            </p>
           </div>
         </div>
+
+        {/* Role Stats Strip */}
+        {(() => {
+          const myOrders = orders.filter(o =>
+            workerRole === "rider" ? o.collectionMethod === "delivery" : o.collectionMethod === "pickup"
+          );
+          const pendingCount = myOrders.filter(o => !o.fulfilled && o.status !== "packing").length;
+          const packingCount = myOrders.filter(o => o.status === "packing").length;
+          const totalCount = myOrders.length;
+          return totalCount > 0 ? (
+            <div className={`grid grid-cols-3 gap-3 mb-6 p-4 rounded-2xl border ${
+              workerRole === "rider" ? "bg-blue-50 border-blue-100" : "bg-orange-50 border-orange-100"
+            }`}>
+              {[
+                { label: "Total", value: totalCount, color: workerRole === "rider" ? "text-blue-700" : "text-orange-700" },
+                { label: "Pending", value: pendingCount, color: "text-amber-700" },
+                { label: "Packing", value: packingCount, color: "text-emerald-700" },
+              ].map(s => (
+                <div key={s.label} className="text-center">
+                  <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
+                  <p className="text-xs text-gray-500 font-semibold mt-0.5">{s.label}</p>
+                </div>
+              ))}
+            </div>
+          ) : null;
+        })()}
 
         {/* Verifying Payments Banner */}
         {verifyingOrders.length > 0 && (
@@ -430,18 +466,23 @@ export default function Worker() {
           <div className="flex-1 flex items-center justify-center py-20">
             <Loader2 className="animate-spin text-brand-primary w-10 h-10" />
           </div>
-        ) : orders.length === 0 ? (
+        ) : (() => {
+          // Filter orders by this worker's role
+          const myOrders = orders.filter(o =>
+            workerRole === "rider" ? o.collectionMethod === "delivery" : o.collectionMethod === "pickup"
+          );
+          return myOrders.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-10 bg-white rounded-3xl border border-gray-100 shadow-sm">
             <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-4 text-green-500">
               <CheckCircle size={40} />
             </div>
             <h2 className="text-2xl font-bold text-gray-900">All Caught Up!</h2>
-            <p className="text-gray-500 mt-2">You have no active tasks at the moment.</p>
+            <p className="text-gray-500 mt-2">You have no active {workerRole === "rider" ? "delivery" : "pickup"} tasks at the moment.</p>
             <Button variant="ghost" className="mt-6 border border-gray-200" onClick={fetchOrders}>Refresh List</Button>
           </div>
         ) : (
           <div className="space-y-4">
-            {orders.map((order, idx) => (
+            {myOrders.map((order, idx) => (
               <motion.div
                 key={order._id}
                 initial={{ opacity: 0, y: 10 }}
@@ -611,7 +652,7 @@ export default function Worker() {
               </motion.div>
             ))}
           </div>
-        )}
+        )})()}
       </main>
 
       {/* PAYMENT VERIFICATION POPUP */}

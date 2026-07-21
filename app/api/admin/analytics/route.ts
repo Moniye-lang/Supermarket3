@@ -126,7 +126,13 @@ export async function GET(req: Request) {
       },
       trendData,
       topProducts,
-      lowStockProducts: lowStockProducts.map(p => ({ name: p.name, stock: p.stock, id: p._id }))
+      lowStockProducts: lowStockProducts.map(p => ({ name: p.name, stock: p.stock, id: p._id })),
+      orderDistribution: [
+        { name: "Fulfilled", value: await Order.countDocuments({ fulfilled: true }), fill: "#10b981" },
+        { name: "Pending", value: await Order.countDocuments({ fulfilled: false, paymentStatus: "pending" }), fill: "#f59e0b" },
+        { name: "Pickup", value: await Order.countDocuments({ collectionMethod: "pickup" }), fill: "#f97316" },
+        { name: "Delivery", value: await Order.countDocuments({ collectionMethod: "delivery" }), fill: "#6366f1" },
+      ],
     });
   } catch (err: any) {
     console.error("Analytics Error:", err);

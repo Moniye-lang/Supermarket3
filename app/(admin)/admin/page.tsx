@@ -2,7 +2,7 @@
 import { useState, useEffect, useContext } from "react";
 import { DollarSign, Package, ShoppingCart, Users, TrendingUp, TrendingDown, AlertTriangle, ChevronRight, BarChart3, UserCheck, UserX, Shield, Zap, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ComposedChart, AreaChart, Area, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from "recharts";
+import { ComposedChart, AreaChart, Area, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine, PieChart, Pie, Cell } from "recharts";
 import pusherClient from "@/lib/pusher-client";
 import { AuthContext } from "@/context/AuthContext";
 
@@ -451,6 +451,81 @@ export default function AdminDashboardHome() {
                                         <button className="mt-8 w-full py-4 rounded-2xl bg-gray-50 text-gray-900 font-bold text-sm hover:bg-gray-100 transition-colors flex items-center justify-center gap-2">
                                             View All Products <ChevronRight size={16} />
                                         </button>
+                                    </div>
+                                </div>
+
+                                {/* Order Distribution Pie Chart */}
+                                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+                                    <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
+                                        <div>
+                                            <h2 className="text-xl font-black text-gray-900">Order Distribution</h2>
+                                            <p className="text-sm text-gray-500 mt-0.5">Breakdown of orders by status &amp; type.</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col lg:flex-row items-center gap-10">
+                                        {/* Pie */}
+                                        <div className="w-full lg:w-[280px] h-[280px] flex-shrink-0">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <PieChart>
+                                                    <Pie
+                                                        data={analytics?.orderDistribution || []}
+                                                        cx="50%"
+                                                        cy="50%"
+                                                        innerRadius={72}
+                                                        outerRadius={110}
+                                                        paddingAngle={4}
+                                                        dataKey="value"
+                                                        animationBegin={0}
+                                                        animationDuration={900}
+                                                        stroke="none"
+                                                    >
+                                                        {(analytics?.orderDistribution || []).map((entry: any, idx: number) => (
+                                                            <Cell key={`cell-${idx}`} fill={entry.fill} />
+                                                        ))}
+                                                    </Pie>
+                                                    <Tooltip
+                                                        contentStyle={{
+                                                            borderRadius: "14px",
+                                                            border: "1px solid #f3f4f6",
+                                                            boxShadow: "0 12px 30px -4px rgb(0 0 0 / 0.1)",
+                                                            padding: "10px 14px",
+                                                        }}
+                                                        formatter={(value: any, name: string) => [value, name]}
+                                                    />
+                                                </PieChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                        {/* Legend + stats */}
+                                        <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-4 w-full">
+                                            {(analytics?.orderDistribution || []).map((entry: any) => {
+                                                const total = (analytics?.orderDistribution || []).reduce((s: number, e: any) => s + e.value, 0);
+                                                const pct = total > 0 ? Math.round((entry.value / total) * 100) : 0;
+                                                return (
+                                                    <div
+                                                        key={entry.name}
+                                                        className="p-5 rounded-2xl border-2 border-transparent hover:border-gray-100 transition-all"
+                                                        style={{ backgroundColor: entry.fill + "14" }}
+                                                    >
+                                                        <div className="flex items-center gap-2 mb-3">
+                                                            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.fill }} />
+                                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{entry.name}</span>
+                                                        </div>
+                                                        <p className="text-3xl font-black" style={{ color: entry.fill }}>{entry.value}</p>
+                                                        <div className="mt-3">
+                                                            <div className="flex items-center justify-between mb-1">
+                                                                <span className="text-xs text-gray-400 font-semibold">{pct}% of total</span>
+                                                            </div>
+                                                            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                                                <div
+                                                                    className="h-full rounded-full transition-all duration-700"
+                                                                    style={{ width: `${pct}%`, backgroundColor: entry.fill }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
                                 </div>
 
