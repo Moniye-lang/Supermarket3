@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight, ShoppingBag, Star, Zap, ShieldCheck } from "lucide-react";
@@ -43,30 +44,30 @@ export default function Hero() {
                         </span>
                     </h1>
 
-                    <p className="text-xl text-gray-600 max-w-lg leading-relaxed font-light">
+                    <p className="text-xl text-gray-700 max-w-lg leading-relaxed font-normal">
                         Skip the lines. We bring the finest, hand-picked essentials directly to your door in minutes. Quality you can taste, convenience you deserve.
                     </p>
 
                     <div className="flex flex-wrap gap-5 pt-4">
                         <Link href="/products">
-                            <Button size="lg" className="h-14 rounded-full px-8 text-lg hover:scale-105 transition-all duration-300 shadow-brand-primary/30 shadow-xl bg-gradient-to-r from-brand-primary to-red-600 border-none hover:shadow-2xl">
+                            <Button size="lg" aria-label="Shop Now" className="h-14 rounded-full px-8 text-lg hover:scale-105 transition-all duration-300 shadow-brand-primary/30 shadow-xl bg-gradient-to-r from-brand-primary to-red-600 border-none hover:shadow-2xl">
                                 Shop Now <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                             </Button>
                         </Link>
                         <Link href="/about">
-                            <Button variant="outline" size="lg" className="h-14 rounded-full px-8 text-lg border-2 border-gray-200 hover:border-brand-primary hover:bg-brand-primary/5 hover:text-brand-primary transition-all duration-300">
+                            <Button variant="outline" size="lg" aria-label="Learn More" className="h-14 rounded-full px-8 text-lg border-2 border-gray-300 text-gray-800 hover:border-brand-primary hover:bg-brand-primary/5 hover:text-brand-primary transition-all duration-300">
                                 Learn More
                             </Button>
                         </Link>
                     </div>
 
-                    <div className="pt-10 flex items-center gap-6 md:gap-10 text-sm font-medium text-gray-600">
+                    <div className="pt-10 flex items-center gap-6 md:gap-10 text-sm font-medium text-gray-700">
                         <div className="flex flex-col gap-1">
                             <div className="flex items-center gap-2">
                                 <Zap className="text-orange-500 w-5 h-5" />
                                 <span className="font-bold text-gray-900 text-lg">30 Min</span>
                             </div>
-                            <span className="text-xs text-gray-500">Fast Delivery</span>
+                            <span className="text-xs text-gray-600">Fast Delivery</span>
                         </div>
                         <div className="w-px h-10 bg-gray-200"></div>
                         <div className="flex flex-col gap-1">
@@ -74,7 +75,7 @@ export default function Hero() {
                                 <ShieldCheck className="text-green-500 w-5 h-5" />
                                 <span className="font-bold text-gray-900 text-lg">100%</span>
                             </div>
-                            <span className="text-xs text-gray-500">Quality Assured</span>
+                            <span className="text-xs text-gray-600">Quality Assured</span>
                         </div>
                         <div className="w-px h-10 bg-gray-200"></div>
                         <div className="flex flex-col gap-1">
@@ -82,7 +83,7 @@ export default function Hero() {
                                 <Star className="text-yellow-500 w-5 h-5 fill-yellow-500" />
                                 <span className="font-bold text-gray-900 text-lg">4.9/5</span>
                             </div>
-                            <span className="text-xs text-gray-500">Customer Rating</span>
+                            <span className="text-xs text-gray-600">Customer Rating</span>
                         </div>
                     </div>
                 </motion.div>
@@ -95,10 +96,13 @@ export default function Hero() {
                     className="lg:col-span-6 relative h-[650px] hidden lg:block"
                 >
                     <div className="absolute top-10 right-0 w-[85%] h-[85%] rounded-[3rem] overflow-hidden shadow-2xl border-8 border-white bg-gray-100 z-10">
-                        <img
+                        <Image
                             src="/AMstore1.jpg"
                             alt="Premium Groceries"
-                            className="w-full h-full object-cover hover:scale-110 transition-transform duration-[2000ms] ease-out"
+                            fill
+                            priority
+                            sizes="(max-width: 1024px) 100vw, 50vw"
+                            className="object-cover hover:scale-110 transition-transform duration-[2000ms] ease-out"
                         />
                         <div className="absolute inset-0 bg-gradient-to-tr from-brand-dark/40 to-transparent"></div>
                     </div>
@@ -109,10 +113,13 @@ export default function Hero() {
                         transition={{ delay: 0.8, duration: 0.8 }}
                         className="absolute bottom-0 left-0 w-64 h-80 rounded-[2.5rem] overflow-hidden shadow-2xl border-8 border-white bg-gray-100 z-20"
                     >
-                        <img
+                        <Image
                             src="/IMG_4525.JPG"
                             alt="Fresh Produce"
-                            className="w-full h-full object-cover"
+                            fill
+                            priority
+                            sizes="256px"
+                            className="object-cover"
                         />
                     </motion.div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { MapPin, Phone, Mail, ArrowRight } from "lucide-react";
 import { FaFacebookF, FaInstagram, FaTwitter, FaGithub } from "react-icons/fa";
 import { Button } from "./ui/Button";
@@ -104,18 +105,18 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Socials / Gallery Preview */}
+            {/* Socials / Gallery Preview */}
           <div className="lg:col-span-3">
             <h4 className="font-display text-lg font-semibold mb-6 text-white">Follow Us</h4>
             <div className="flex gap-3 mb-8">
               {[
-                <FaTwitter size={18} key="tw" />, 
-                <FaFacebookF size={18} key="fb" />, 
-                <FaInstagram size={18} key="ig" />, 
-                <FaGithub size={18} key="gh" />
-              ].map((icon, i) => (
-                <a key={i} href="#" className="w-10 h-10 rounded-lg bg-white/5 hover:bg-brand-primary hover:text-white flex items-center justify-center text-gray-400 transition-all hover:-translate-y-1">
-                  {icon}
+                { icon: <FaTwitter size={18} key="tw" />, label: "Twitter" }, 
+                { icon: <FaFacebookF size={18} key="fb" />, label: "Facebook" }, 
+                { icon: <FaInstagram size={18} key="ig" />, label: "Instagram" }, 
+                { icon: <FaGithub size={18} key="gh" />, label: "Github" }
+              ].map((item, i) => (
+                <a key={i} href="#" aria-label={item.label} className="w-10 h-10 rounded-lg bg-white/5 hover:bg-brand-primary hover:text-white flex items-center justify-center text-gray-300 transition-all hover:-translate-y-1">
+                  {item.icon}
                 </a>
               ))}
             </div>
@@ -124,7 +125,7 @@ export default function Footer() {
             <div className="grid grid-cols-3 gap-2">
               {fdata && fdata.slice(0, 3).map((item, i) => (
                 <div key={item.id || i} className="relative aspect-square rounded-md overflow-hidden group cursor-pointer">
-                  <img src={item.img} alt="Gallery" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  <Image src={item.img} alt="Gallery" fill sizes="100px" className="object-cover group-hover:scale-110 transition-transform duration-500" />
                   <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
                 </div>
               ))}
@@ -132,7 +133,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+        <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-400">
           <p>&copy; {new Date().getFullYear()} AMStores. All Rights Reserved.</p>
           <div className="flex gap-6">
             <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
@@ -143,3 +144,4 @@ export default function Footer() {
     </footer>
   );
 }
+

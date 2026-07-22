@@ -58,7 +58,7 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
                 </div>
 
                 {/* Wishlist Button */}
-                <button className="absolute top-3 right-3 p-2 rounded-full bg-white/80 hover:bg-white text-gray-500 hover:text-red-500 transition-colors shadow-sm opacity-0 group-hover:opacity-100 transform translate-x-4 group-hover:translate-x-0 duration-300">
+                <button aria-label="Add to wishlist" className="absolute top-3 right-3 p-2 rounded-full bg-white/80 hover:bg-white text-gray-700 hover:text-red-500 transition-colors shadow-sm opacity-0 group-hover:opacity-100 transform translate-x-4 group-hover:translate-x-0 duration-300">
                     <Heart size={18} />
                 </button>
 
@@ -68,6 +68,7 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
                         <Button
                             variant="glass"
                             size="icon"
+                            aria-label="View Details"
                             className="bg-white text-brand-dark hover:text-brand-primary rounded-full h-10 w-10"
                             onClick={() => onViewDetails && onViewDetails(product)}
                         >
@@ -76,6 +77,7 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
                         <Button
                             variant="primary"
                             size="icon"
+                            aria-label="Add to cart"
                             className="rounded-full h-10 w-10 shadow-lg shadow-brand-primary/30"
                             onClick={() => onAddToCart && onAddToCart(product)}
                         >
@@ -94,16 +96,16 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
                     >
                         {product.name || product.title}
                     </h3>
-                    <p className="text-gray-500 text-xs mb-3 line-clamp-2">{product.description || "Fresh quality product for your daily needs."}</p>
+                    <p className="text-gray-600 text-xs mb-3 line-clamp-2">{product.description || "Fresh quality product for your daily needs."}</p>
                 </div>
 
-                <div className="flex items-end justify-between mt-4 pt-4 border-t border-gray-50">
+                <div className="flex items-end justify-between mt-4 pt-4 border-t border-gray-100">
                     <div className="flex flex-col">
-                        <span className="text-xs text-gray-400 font-medium uppercase tracking-wider">Price</span>
+                        <span className="text-xs text-gray-600 font-medium uppercase tracking-wider">Price</span>
                         <div className="flex items-baseline gap-2">
                             <span className="text-xl font-bold text-brand-dark">₦{product.price?.toLocaleString()}</span>
                             {product.oldPrice && (
-                                <span className="text-sm text-gray-400 line-through">₦{product.oldPrice.toLocaleString()}</span>
+                                <span className="text-sm text-gray-500 line-through">₦{product.oldPrice.toLocaleString()}</span>
                             )}
                         </div>
                     </div>
@@ -112,7 +114,8 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
                         <Button
                             size="sm"
                             variant="outline"
-                            className="h-8 px-2 text-xs flex items-center gap-1 border border-brand-primary/30"
+                            aria-label={`Add ${product.name || product.title || "product"} to cart`}
+                            className="h-8 px-2 text-xs flex items-center gap-1 border border-brand-primary/30 text-gray-800"
                             onClick={() => onAddToCart && onAddToCart(product)}
                         >
                             <ShoppingCart size={14} /> Add
@@ -120,6 +123,7 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
                         <Button
                             size="sm"
                             variant="primary"
+                            aria-label={`Buy ${product.name || product.title || "product"} now`}
                             className="h-8 px-3 text-xs"
                             onClick={() => onBuyNow && onBuyNow(product)}
                         >

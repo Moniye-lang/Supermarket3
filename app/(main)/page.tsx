@@ -1,6 +1,7 @@
 "use client";
 import Hero from "@/components/Hero";
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect } from "react";
 import { ShoppingCart, Beef, Donut, Phone, Mail, MapPin, Clock, Tag, Truck, ArrowRight, ShieldCheck, Leaf } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -62,7 +63,7 @@ export default function Home() {
               <h2 className="text-4xl md:text-6xl font-display font-extrabold text-brand-dark mt-4">Shop By Category</h2>
             </div>
             <Link href="/products">
-              <Button variant="outline" className="rounded-full px-6 hover:bg-brand-dark hover:text-white transition-colors">
+              <Button variant="outline" aria-label="View All Categories" className="rounded-full px-6 hover:bg-brand-dark hover:text-white transition-colors border-gray-300 text-gray-800">
                 View All Categories <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </Link>
@@ -86,7 +87,7 @@ export default function Home() {
                       <item.Icon size={28} />
                     </div>
                     <h3 className="text-2xl font-bold text-brand-dark mb-3 font-display">{item.label}</h3>
-                    <p className="text-gray-500 mb-8 flex-grow text-sm leading-relaxed">{item.description}</p>
+                    <p className="text-gray-600 mb-8 flex-grow text-sm leading-relaxed">{item.description}</p>
 
                     <div className="flex items-center text-sm font-semibold text-brand-dark group-hover:text-brand-primary transition-colors mt-auto">
                       Explore <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-2 transition-transform" />
@@ -109,7 +110,13 @@ export default function Home() {
           <div className="relative h-[600px] flex items-center justify-center order-2 lg:order-1">
             <div className="absolute inset-0 bg-white/5 rounded-[3rem] -rotate-6 transform border border-white/10" />
             <div className="absolute inset-4 rounded-[2.5rem] overflow-hidden">
-              <img src="/IMG_4542.JPG" className="w-full h-full object-cover opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-700" alt="Delivery Box" />
+              <Image
+                src="/IMG_4542.JPG"
+                alt="Delivery Box"
+                fill
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                className="object-cover opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-700"
+              />
             </div>
 
             <motion.div
@@ -122,8 +129,8 @@ export default function Home() {
                 <Truck size={24} />
               </div>
               <div>
-                <p className="text-xs text-gray-500 font-medium">Status</p>
-                <p className="font-bold text-lg leading-tight">Arriving in 15m</p>
+                <p className="text-xs text-gray-600 font-medium">Status</p>
+                <p className="font-bold text-lg leading-tight text-gray-900">Arriving in 15m</p>
               </div>
             </motion.div>
           </div>
@@ -134,13 +141,13 @@ export default function Home() {
                 <span className="w-8 h-1 bg-brand-primary rounded-full"></span>
                 Logistics & Delivery
               </span>
-              <h2 className="text-5xl lg:text-7xl font-display font-bold leading-tight">
+              <h2 className="text-5xl lg:text-7xl font-display font-bold leading-tight text-white">
                 Premium Delivery <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-orange-500">Straight to You.</span>
               </h2>
             </div>
 
-            <p className="text-gray-400 text-lg leading-relaxed">
+            <p className="text-gray-300 text-lg leading-relaxed">
               We've optimized every step of the process. From our shelves to your doorstep, our dedicated riders ensure your order arrives fresh, fast, and exactly as you expected.
             </p>
 
@@ -179,20 +186,20 @@ export default function Home() {
                 </span>
                 <h2 className="text-4xl lg:text-5xl font-display font-extrabold text-brand-dark leading-tight">
                   More than a market, <br />
-                  <span className="text-gray-400 font-light">it's a lifestyle.</span>
+                  <span className="text-gray-500 font-light">it's a lifestyle.</span>
                 </h2>
-                <p className="text-lg text-gray-600 leading-relaxed font-light">
+                <p className="text-lg text-gray-700 leading-relaxed font-normal">
                   Our journey began with a simple mission: to revolutionize how you shop for essentials. We combine the warmth of local service with the efficiency of modern technology.
                 </p>
-                <p className="text-gray-600 leading-relaxed font-light">
+                <p className="text-gray-700 leading-relaxed font-normal">
                   At AMStores, we believe quality shouldn't be a luxury. From fresh produce to pantry staples, every item is hand-picked to ensure it meets our rigorous standards before it reaches your home.
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-6 pt-6">
                   <Link href="/about">
-                    <Button size="lg" className="rounded-full px-8 bg-brand-dark hover:bg-black text-white w-full sm:w-auto">Read Our Story</Button>
+                    <Button size="lg" aria-label="Read Our Story" className="rounded-full px-8 bg-brand-dark hover:bg-black text-white w-full sm:w-auto">Read Our Story</Button>
                   </Link>
-                  <div className="flex items-center gap-4 text-sm text-gray-600 font-medium">
+                  <div className="flex items-center gap-4 text-sm text-gray-700 font-medium">
                     <div className="w-12 h-12 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary">
                       <MapPin size={20} />
                     </div>
@@ -204,17 +211,19 @@ export default function Home() {
               {/* Gallery */}
               <div className="relative h-[500px]">
                 <div className="absolute inset-0 bg-brand-primary/5 rounded-[2rem] transform translate-x-4 translate-y-4"></div>
-                <img
+                <Image
                   src="/IMG_E4522.JPG"
                   alt="Our Store"
-                  className="relative z-10 w-full h-full object-cover rounded-[2rem] shadow-xl"
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="relative z-10 object-cover rounded-[2rem] shadow-xl"
                 />
                 <div className="absolute -bottom-6 -left-6 z-20 bg-white p-6 rounded-2xl shadow-xl max-w-[250px] border border-gray-100 hidden md:block">
                   <div className="flex items-center gap-3 mb-2">
                     <Phone className="text-brand-primary w-5 h-5" />
                     <span className="font-bold text-gray-900">Need Help?</span>
                   </div>
-                  <p className="text-sm text-gray-500 mb-2">Call our customer support for quick orders.</p>
+                  <p className="text-sm text-gray-600 mb-2">Call our customer support for quick orders.</p>
                   <p className="font-bold text-brand-primary text-lg">0802 343 4790</p>
                 </div>
               </div>
@@ -236,8 +245,9 @@ function FeatureItem({ icon: Icon, title, desc }: { icon: React.ElementType; tit
       </div>
       <div>
         <h4 className="font-bold text-xl mb-2 text-white/90">{title}</h4>
-        <p className="text-gray-400 text-sm leading-relaxed">{desc}</p>
+        <p className="text-gray-300 text-sm leading-relaxed">{desc}</p>
       </div>
     </div>
   );
 }
+
