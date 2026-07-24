@@ -9,7 +9,7 @@ import { motion } from "framer-motion";
 import { useGoogleLogin } from "@react-oauth/google";
 import { AuthContext } from "@/context/AuthContext";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://supermarket3.vercel.app/";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 export default function SignIn() {
   const router = useRouter();

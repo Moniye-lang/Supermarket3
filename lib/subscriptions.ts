@@ -11,7 +11,7 @@ if (!vapidPublic || !vapidPrivate) {
   console.warn("[Push] VAPID keys missing — push notifications will not work.");
 } else {
   webpush.setVapidDetails(
-    "mailto:davidadeniyi269@gmail.com",
+    `mailto:${process.env.EMAIL_USER || "admin@amstores.com"}`,
     vapidPublic,
     vapidPrivate
   );

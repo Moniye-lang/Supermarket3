@@ -7,6 +7,8 @@ console.log("Using env variables:");
 console.log("EMAIL_USER:", process.env.EMAIL_USER);
 console.log("EMAIL_PASS length:", process.env.EMAIL_PASS?.length);
 
-console.log("Sending test OTP email to davidadeniyi269@gmail.com...");
-const result = await sendOtpEmail("davidadeniyi269@gmail.com", "123456");
+const testEmail = process.env.EMAIL_USER;
+if (!testEmail) throw new Error("EMAIL_USER is not set in .env.local");
+console.log(`Sending test OTP email to ${testEmail}...`);
+const result = await sendOtpEmail(testEmail, "123456");
 console.log("Result:", result);

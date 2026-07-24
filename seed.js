@@ -1,8 +1,10 @@
 const mongoose = require("mongoose");
 const dns = require("dns");
+require("dotenv").config({ path: ".env.local" });
 dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
-const MONGO_URI = "mongodb+srv://davidadeniyi269:AbsJi834%5EeKGYU%40@cluster0.zwijmfw.mongodb.net/amstores?retryWrites=true&w=majority&appName=Cluster0";
+const MONGO_URI = process.env.MONGO_URI;
+if (!MONGO_URI) throw new Error("MONGO_URI is not set in .env.local");
 
 // Define a simple Product Schema
 const productSchema = new mongoose.Schema({

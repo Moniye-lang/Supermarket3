@@ -1,8 +1,10 @@
 const mongoose = require("mongoose");
-const uri = "mongodb+srv://davidadeniyi269:AbsJi834%5EeKGYU%40@cluster0.zwijmfw.mongodb.net/event1test?retryWrites=true&w=majority&appName=Cluster0";
-
 const dns = require("dns");
+require("dotenv").config({ path: ".env.local" });
 dns.setServers(["8.8.8.8", "8.8.4.4"]);
+
+const uri = process.env.MONGO_URI;
+if (!uri) throw new Error("MONGO_URI is not set in .env.local");
 
 async function run() {
   await mongoose.connect(uri);
