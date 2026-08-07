@@ -359,7 +359,14 @@ export default function Order() {
         setError("");
         const res = await fetch(`/api/orders/latest/${orderType}`, { headers: { Authorization: `Bearer ${token}` } });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Failed to fetch order");
+        if (!res.ok) {
+          if (res.status === 401) {
+            localStorage.removeItem("token");
+            router.push("/signin");
+            return;
+          }
+          throw new Error(data.error || "Failed to fetch order");
+        }
         setOrder(data);
       } catch (err: any) {
         setOrder(null);

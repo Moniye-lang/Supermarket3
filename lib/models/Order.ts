@@ -6,7 +6,7 @@ const orderSchema = new mongoose.Schema(
     pickupName: { type: String, required: true },
     items: [
       {
-        productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
+        productId: { type: mongoose.Schema.Types.Mixed, required: true },
         qty: { type: Number, required: true },
         price: { type: Number, required: true },
       },

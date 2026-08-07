@@ -10,13 +10,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ collecti
     // Verify authenticated user
     const authUser = await verifyAuth(req);
     if (!authUser) {
-      return NextResponse.json({ error: "You are not authenticated!" }, { status: 401 });
+      return NextResponse.json({ error: "You are not authenticated! Please log in to view your order status." }, { status: 401 });
     }
 
     const { collectionMethod } = await params;
     const order = await Order.findOne({ customerId: authUser.id, collectionMethod })
       .sort({ createdAt: -1 })
-      .populate("items.productId")
       .populate("assignedToWorkerId", "name role status phone");
 
     if (!order) {

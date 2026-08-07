@@ -10,12 +10,11 @@ export async function GET(req: Request) {
     // Verify authenticated user
     const authUser = await verifyAuth(req);
     if (!authUser) {
-      return NextResponse.json({ error: "You are not authenticated!" }, { status: 401 });
+      return NextResponse.json({ error: "You are not authenticated! Please log in." }, { status: 401 });
     }
 
     const orders = await Order.find({ customerId: authUser.id })
-      .sort({ createdAt: -1 })
-      .populate("items.productId", "name category image price");
+      .sort({ createdAt: -1 });
 
     return NextResponse.json(orders);
   } catch (err: any) {

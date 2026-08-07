@@ -100,19 +100,17 @@ export async function POST(req: Request) {
     const detailed = [];
 
     for (const it of rawItems) {
-      let p = null;
-      if (mongoose.Types.ObjectId.isValid(it.productId)) {
-        p = await Product.findById(it.productId);
-      }
-      if (!p) {
-        p = await Product.findOne({});
-      }
-      if (!p) {
-        return NextResponse.json({ error: `Product ${it.productId} not found` }, { status: 404 });
+      const pId = it.productId || it._id || it.id;
+      let itemPrice = typeof it.price === "number" ? it.price : 0;
+
+      if (!itemPrice && mongoose.Types.ObjectId.isValid(pId)) {
+        const p = await Product.findById(pId);
+        if (p) itemPrice = p.price;
       }
 
-      detailed.push({ productId: p._id, qty: it.qty, price: p.price });
-      amount += p.price * it.qty;
+      const itemQty = Number(it.qty || it.quantity) || 1;
+      detailed.push({ productId: pId, qty: itemQty, price: itemPrice });
+      amount += itemPrice * itemQty;
     }
 
     const order = new Order({
