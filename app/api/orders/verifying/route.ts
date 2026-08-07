@@ -18,8 +18,7 @@ export async function GET(req: Request) {
     }
 
     const orders = await Order.find({ paymentStatus: "verifying" })
-      .sort({ createdAt: -1 })
-      .populate("items.productId");
+      .sort({ createdAt: -1 });
 
     return NextResponse.json(orders);
   } catch (err: any) {

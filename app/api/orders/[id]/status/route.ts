@@ -54,7 +54,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     });
 
     const updatedOrder = await Order.findById(order._id)
-      .populate('items.productId')
       .populate('assignedToWorkerId', 'name role status phone')
       .populate('reassignmentHistory.assignedWorkerId', 'name role')
       .populate('reassignmentHistory.assignedBy', 'name role');

@@ -101,7 +101,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       if (io) {
         // Populate and emit update
         const updated = await Order.findById(order._id)
-          .populate("items.productId")
           .populate("assignedToWorkerId", "name role status phone");
         io.emit("orderUpdated", updated);
         io.emit("orderCreated", updated); // Emitting to update worker order views as well
@@ -110,7 +109,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
       try {
         const updated = await Order.findById(order._id)
-          .populate("items.productId")
           .populate("assignedToWorkerId", "name role status phone");
         // Update other workers/admins
         await pusher.trigger("admin-orders", "orderUpdated", updated);
@@ -137,13 +135,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       await sendPushToUser(order.customerId.toString(), customerPayload.title, customerPayload.body, customerPayload.url).catch(() => {});
 
       if (io) {
-        const updated = await Order.findById(order._id).populate("items.productId");
+        const updated = await Order.findById(order._id);
         io.emit("orderUpdated", updated);
         io.emit("order:status", { orderId: order._id.toString(), status: "payment_declined" });
       }
 
       try {
-        const updated = await Order.findById(order._id).populate("items.productId");
+        const updated = await Order.findById(order._id);
         await pusher.trigger("admin-orders", "orderUpdated", updated);
         await pusher.trigger("admin-orders", "order:status", { orderId: order._id.toString(), status: "payment_declined" });
         await pusher.trigger(`order-${order._id}`, "orderUpdated", updated);

@@ -40,7 +40,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const io = (global as any).io;
     if (io) {
       const updated = await Order.findById(order._id)
-        .populate("items.productId")
         .populate("assignedToWorkerId", "name role status phone");
       io.emit("orderUpdated", updated);
       io.emit("order:goods-status", { orderId: order._id.toString(), goodsStatus: order.goodsStatus });
@@ -48,7 +47,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     try {
       const updated = await Order.findById(order._id)
-        .populate("items.productId")
         .populate("assignedToWorkerId", "name role status phone");
       await pusher.trigger("admin-orders", "orderUpdated", updated);
       await pusher.trigger(`order-${order._id}`, "orderUpdated", updated);

@@ -78,7 +78,13 @@ export default function Checkout() {
           deliveryAddress: method === "delivery" ? address : `Pickup Station (Time: ${pickupDate}, ${pickupTime})`,
           customerPhone: method === "delivery" ? phoneNumber : undefined,
           paymentMethod: "manual_transfer",
-          items: items.map((i: any) => ({ productId: i.productId || i._id, qty: i.qty })),
+          items: items.map((i: any) => ({
+            productId: i.productId || i._id || i.id,
+            name: i.name || i.title || "Product",
+            image: i.image || (Array.isArray(i.images) ? i.images[0] : ""),
+            price: Number(i.price) || 0,
+            qty: Number(i.qty) || 1
+          })),
           latitude: method === "delivery" ? latitude : null,
           longitude: method === "delivery" ? longitude : null,
         }),

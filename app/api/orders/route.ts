@@ -25,7 +25,6 @@ export async function GET(req: Request) {
 
     const orders = await Order.find()
       .sort({ createdAt: -1 })
-      .populate("items.productId")
       .populate("assignedToWorkerId", "name role status phone")
       .populate("reassignmentHistory.assignedWorkerId", "name role")
       .populate("reassignmentHistory.assignedBy", "name role");
@@ -36,7 +35,7 @@ export async function GET(req: Request) {
   }
 }
 
-// POST: Create order (Auth optional / document-compliant format supported)
+// POST: Create order
 export async function POST(req: Request) {
   try {
     await dbConnect();
@@ -77,8 +76,10 @@ export async function POST(req: Request) {
       collectionMethod = body.pickup ? "pickup" : "delivery";
       rawItems = (body.items || []).map((it: any) => ({
         productId: it.productId,
+        name: it.name || it.title || "Product",
+        image: it.image || "",
         qty: it.quantity || it.qty || 1,
-        price: it.price
+        price: Number(it.price) || 0
       }));
     } else {
       customerName = body.customerName;
@@ -102,20 +103,32 @@ export async function POST(req: Request) {
     for (const it of rawItems) {
       const pId = it.productId || it._id || it.id;
       let itemPrice = typeof it.price === "number" ? it.price : 0;
+      let itemName = it.name || it.title || "Product";
+      let itemImage = typeof it.image === "string" ? it.image : (Array.isArray(it.images) ? it.images[0] : "");
 
-      if (!itemPrice && mongoose.Types.ObjectId.isValid(pId)) {
+      if ((!itemPrice || itemName === "Product") && mongoose.Types.ObjectId.isValid(pId)) {
         const p = await Product.findById(pId);
-        if (p) itemPrice = p.price;
+        if (p) {
+          itemPrice = itemPrice || p.price;
+          if (itemName === "Product") itemName = p.name;
+          if (!itemImage) itemImage = p.image;
+        }
       }
 
       const itemQty = Number(it.qty || it.quantity) || 1;
-      detailed.push({ productId: pId, qty: itemQty, price: itemPrice });
+      detailed.push({
+        productId: pId,
+        name: itemName,
+        image: itemImage,
+        qty: itemQty,
+        price: itemPrice
+      });
       amount += itemPrice * itemQty;
     }
 
     const order = new Order({
       customerId,
-      pickupName: customerName.trim(), // store customerName in DB as pickupName
+      pickupName: customerName.trim(),
       items: detailed,
       amount,
       deliveryAddress: deliveryAddress || "N/A",
@@ -166,7 +179,7 @@ export async function POST(req: Request) {
         orderId,
         message: "Order successfully created",
         total: amount,
-        estimatedDelivery: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString() // 2 hours from now
+        estimatedDelivery: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
       });
     }
 

@@ -296,12 +296,16 @@ function HistoryList({ token }: { token: string | null }) {
               >
                 <div className="px-5 pb-5 pt-2 bg-gray-50/50 border-t border-gray-100 space-y-4">
                   <div className="space-y-2.5">
-                    {order.items?.map((item: any, j: number) => (
-                      <div key={j} className="flex justify-between text-sm">
-                        <span className="text-brand-secondary font-medium">{item.qty} × {item.productId?.name || "Product"}</span>
-                        <span className="font-bold text-brand-dark">₦{((item.price || item.productId?.price || 0) * item.qty).toLocaleString()}</span>
-                      </div>
-                    ))}
+                    {order.items?.map((item: any, j: number) => {
+                      const itemName = item.name || (typeof item.productId === "object" ? item.productId?.name : undefined) || "Product";
+                      const itemPrice = typeof item.price === "number" && item.price > 0 ? item.price : (typeof item.productId === "object" ? item.productId?.price || 0 : 0);
+                      return (
+                        <div key={j} className="flex justify-between text-sm">
+                          <span className="text-brand-secondary font-medium">{item.qty} × {itemName}</span>
+                          <span className="font-bold text-brand-dark">₦{(itemPrice * item.qty).toLocaleString()}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                   <div className="border-t border-dashed border-gray-200 pt-3.5 grid grid-cols-2 gap-4 text-xs">
                     <div>
@@ -580,15 +584,19 @@ export default function Order() {
 
                         {/* Items listed */}
                         <div className="space-y-4 max-h-56 overflow-y-auto pr-1">
-                          {order.items.map((it: any, i: number) => (
-                            <div key={it.productId?._id || it._id || i} className="flex justify-between items-start text-sm gap-2">
-                              <div>
-                                <p className="font-semibold text-brand-dark">{it.productId?.name || it.name || "Product"}</p>
-                                <p className="text-xs text-brand-muted mt-0.5">Qty: {it.qty} × ₦{(it.productId?.price || it.price || 0).toLocaleString()}</p>
+                          {order.items.map((it: any, i: number) => {
+                            const itemName = it.name || (typeof it.productId === "object" ? it.productId?.name : undefined) || "Product";
+                            const itemPrice = typeof it.price === "number" && it.price > 0 ? it.price : (typeof it.productId === "object" ? it.productId?.price || 0 : 0);
+                            return (
+                              <div key={i} className="flex justify-between items-start text-sm gap-2">
+                                <div>
+                                  <p className="font-semibold text-brand-dark">{itemName}</p>
+                                  <p className="text-xs text-brand-muted mt-0.5">Qty: {it.qty} × ₦{itemPrice.toLocaleString()}</p>
+                                </div>
+                                <span className="font-bold text-brand-dark shrink-0">₦{(itemPrice * it.qty).toLocaleString()}</span>
                               </div>
-                              <span className="font-bold text-brand-dark shrink-0">₦{((it.productId?.price || it.price || 0) * it.qty).toLocaleString()}</span>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
 
                         <div className="border-t border-dashed border-gray-200 my-5" />

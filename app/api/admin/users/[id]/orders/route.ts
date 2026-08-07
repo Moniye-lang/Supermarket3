@@ -15,8 +15,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
     const { id } = await params;
     const orders = await Order.find({ customerId: id })
-      .sort({ createdAt: -1 })
-      .populate("items.productId", "name category image price");
+      .sort({ createdAt: -1 });
 
     return NextResponse.json(orders);
   } catch (err: any) {

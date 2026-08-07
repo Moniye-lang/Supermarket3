@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 import dbConnect from "@/lib/mongodb";
 import User from "@/lib/models/User";
 import Order from "@/lib/models/Order";
@@ -79,14 +80,28 @@ export async function GET(req: Request) {
       trendData.push({ name: dateStr, revenue: rev, orders: matchingOrders.length });
     }
 
-    // Top Products
-    const productStats: Record<string, { qty: number; revenue: number }> = {};
+    // Top Products & Category breakdown
+    const productStats: Record<string, { qty: number; revenue: number; name: string; image: string }> = {};
+    const categoryStats: Record<string, { revenue: number; qty: number }> = {};
+
     currentOrders.forEach(order => {
       order.items.forEach((item: any) => {
-        const pid = item.productId.toString();
-        if (!productStats[pid]) productStats[pid] = { qty: 0, revenue: 0 };
-        productStats[pid].qty += item.qty;
-        productStats[pid].revenue += (item.price * item.qty);
+        const pid = String(item.productId || item._id || "unknown");
+        const name = item.name || item.title || "Product";
+        const image = item.image || "";
+        const price = Number(item.price) || 0;
+        const qty = Number(item.qty) || 1;
+
+        if (!productStats[pid]) {
+          productStats[pid] = { qty: 0, revenue: 0, name, image };
+        }
+        productStats[pid].qty += qty;
+        productStats[pid].revenue += (price * qty);
+
+        const cat = item.category || "General";
+        if (!categoryStats[cat]) categoryStats[cat] = { revenue: 0, qty: 0 };
+        categoryStats[cat].revenue += (price * qty);
+        categoryStats[cat].qty += qty;
       });
     });
 
@@ -95,10 +110,13 @@ export async function GET(req: Request) {
       .slice(0, 5);
     
     const topProducts = await Promise.all(topProductIds.map(async id => {
-      const product = await Product.findById(id);
+      let product = null;
+      if (mongoose.Types.ObjectId.isValid(id)) {
+        product = await Product.findById(id);
+      }
       return {
-        name: product ? product.name : "Unknown",
-        image: product ? product.image : "",
+        name: product ? product.name : (productStats[id].name || `Product #${id}`),
+        image: product ? product.image : productStats[id].image,
         sales: productStats[id].qty,
         revenue: productStats[id].revenue
       };
@@ -117,18 +135,10 @@ export async function GET(req: Request) {
       "Frozen": "#60a5fa",
       "Household": "#a855f7",
       "Personal Care": "#ec4899",
+      "General": "#9ca3af",
       "Uncategorized": "#9ca3af",
     };
     const fallbackColors = ["#6366f1","#14b8a6","#f43f5e","#84cc16","#fb923c","#a78bfa"];
-
-    const categoryStats: Record<string, { revenue: number; qty: number }> = {};
-    await Promise.all(Object.keys(productStats).map(async pid => {
-      const product = await Product.findById(pid).select("category");
-      const cat = product?.category || "Uncategorized";
-      if (!categoryStats[cat]) categoryStats[cat] = { revenue: 0, qty: 0 };
-      categoryStats[cat].revenue += productStats[pid].revenue;
-      categoryStats[cat].qty += productStats[pid].qty;
-    }));
 
     const sortedCategories = Object.entries(categoryStats)
       .sort(([, a], [, b]) => b.revenue - a.revenue);

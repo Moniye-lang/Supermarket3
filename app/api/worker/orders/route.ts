@@ -21,8 +21,7 @@ export async function GET(req: Request) {
 
     const orders = await Order.find(query)
       .sort({ updatedAt: -1 })
-      .populate("customerId", "name phone") // get customer details
-      .populate("items.productId", "name image price");
+      .populate("customerId", "name phone");
 
     return NextResponse.json(orders);
   } catch (err: any) {

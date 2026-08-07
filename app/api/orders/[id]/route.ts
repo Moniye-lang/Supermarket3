@@ -41,7 +41,6 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     await sendPushToUser(order.customerId.toString(), statusPayload.title, statusPayload.body, statusPayload.url).catch(() => {});
 
     const updatedOrder = await Order.findById(order._id)
-      .populate("items.productId")
       .populate("assignedToWorkerId", "name role status phone")
       .populate("reassignmentHistory.assignedWorkerId", "name role")
       .populate("reassignmentHistory.assignedBy", "name role");
