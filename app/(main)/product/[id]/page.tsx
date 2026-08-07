@@ -7,8 +7,6 @@ import { Minus, Plus, ShoppingCart, Star, Truck, ShieldCheck, ArrowLeft, Share2 
 import { motion } from "framer-motion";
 import ProductCard from "@/components/ProductCard";
 
-// Relative paths — always hits this app's own API routes, backed by MongoDB
-
 export default function ProductDets() {
     const params = useParams();
     const id = params.id as string;
@@ -31,29 +29,33 @@ export default function ProductDets() {
                 setLoading(true);
 
                 const targetUrl = `/api/products/${id}`;
-                console.log("Fetching product from:", targetUrl);
-
                 const res = await fetch(targetUrl);
                 if (!res.ok) throw new Error(`Server responded with status: ${res.status}`);
 
                 const data = await res.json();
 
-                if (data) {
+                if (data && data._id) {
+                    const prodImages = Array.isArray(data.images) && data.images.length > 0 
+                        ? data.images 
+                        : (data.image ? [data.image] : []);
+
                     setProduct({
                         ...data,
-                        images: data.image ? [data.image] : [],
-                        stockStatus: data.stock > 0 ? "In Stock" : "Out of Stock"
+                        images: prodImages,
+                        stockStatus: data.stockStatus || (data.stock > 0 ? "In Stock" : "Out of Stock")
                     });
 
-                    // Fetch related products from own MongoDB-backed API
-                    const relatedRes = await fetch(`/api/products?category=${data.category}&limit=5`);
+                    // Fetch related products from own API
+                    if (data.category) {
+                        const relatedRes = await fetch(`/api/products?category=${encodeURIComponent(data.category)}&limit=5`);
 
-                    if (relatedRes.ok) {
-                        const relatedData = await relatedRes.json();
-                        const filtered = (relatedData.products || [])
-                            .filter((p: any) => p._id !== id)
-                            .slice(0, 4);
-                        setRelatedProducts(filtered);
+                        if (relatedRes.ok) {
+                            const relatedData = await relatedRes.json();
+                            const filtered = (relatedData.products || [])
+                                .filter((p: any) => String(p._id) !== String(id))
+                                .slice(0, 4);
+                            setRelatedProducts(filtered);
+                        }
                     }
                 } else {
                     setProduct(null);
@@ -124,7 +126,7 @@ export default function ProductDets() {
                         >
                             <img
                                 key={activeImage}
-                                src={product.images[activeImage] || "/placeholder-food.png"}
+                                src={product.images[activeImage] || product.image || "/placeholder-food.png"}
                                 onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder-food.png"; }}
                                 alt={product.name}
                                 className="w-full h-full object-contain hover:scale-110 transition-transform duration-500"
@@ -168,17 +170,31 @@ export default function ProductDets() {
                                 <span>(128 Reviews)</span>
                                 <span className="w-1 h-1 bg-gray-300 rounded-full" />
                                 <span className={`font-medium ${product.stock > 0 ? "text-green-600" : "text-red-600"}`}>
-                                    {product.stockStatus} ({product.stock} left)
+                                    {product.stockStatus} {product.stock ? `(${product.stock} available)` : ""}
                                 </span>
+                                {product.sku && (
+                                    <>
+                                        <span className="w-1 h-1 bg-gray-300 rounded-full" />
+                                        <span className="text-xs text-gray-400">SKU: {product.sku}</span>
+                                    </>
+                                )}
                             </div>
                         </div>
 
                         <div className="flex items-baseline gap-4 border-b border-gray-100 pb-8">
                             <span className="text-4xl font-bold text-brand-dark">₦{product.price?.toLocaleString()}</span>
+                            {product.oldPrice && (
+                                <span className="text-xl text-gray-400 line-through">₦{product.oldPrice.toLocaleString()}</span>
+                            )}
+                            {product.discount && (
+                                <span className="bg-red-100 text-red-600 text-xs font-bold px-2.5 py-1 rounded-full">
+                                    {product.discount}% OFF
+                                </span>
+                            )}
                         </div>
 
                         <p className="text-gray-600 leading-relaxed text-lg">
-                            {product.description}
+                            {product.description || "Fresh quality product available at AMStores."}
                         </p>
 
                         {/* Quantity & Actions */}
@@ -194,9 +210,9 @@ export default function ProductDets() {
                                     </button>
                                     <span className="w-10 text-center font-bold text-gray-900">{qty}</span>
                                     <button
-                                        onClick={() => setQty(Math.min(product.stock, qty + 1))}
+                                        onClick={() => setQty(Math.min(product.stock || 99, qty + 1))}
                                         className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-brand-primary transition-colors"
-                                        disabled={qty >= product.stock}
+                                        disabled={qty >= (product.stock || 99)}
                                     >
                                         <Plus size={18} />
                                     </button>
@@ -237,7 +253,7 @@ export default function ProductDets() {
                                 <ShieldCheck className="text-brand-primary shrink-0" />
                                 <div>
                                     <h5 className="font-bold text-sm">Quality Guarantee</h5>
-                                    <p className="text-xs text-gray-500 mt-1">Brand: {product.brand}</p>
+                                    <p className="text-xs text-gray-500 mt-1">Authentic Product</p>
                                 </div>
                             </div>
                         </div>

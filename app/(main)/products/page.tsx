@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useContext, useRef } from "react";
+import { useState, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { CartContext } from "@/context/CartContext";
 import ProductCard from "@/components/ProductCard";
@@ -8,8 +8,6 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-
-// Relative URL — always hits this app's own /api/products route, backed by MongoDB
 
 export default function Products() {
   const router = useRouter();
@@ -21,52 +19,58 @@ export default function Products() {
   const [showFilters, setShowFilters] = useState(false);
   const [sortOption, setSortOption] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(9);
-  const [totalPages, setTotalPages] = useState(1);
-  const [displayedProducts, setDisplayedProducts] = useState<any[]>([]);
-  const workerRef = useRef<Worker | null>(null);
+  const itemsPerPage = 9;
 
-  const { data: allProducts, isLoading, isError } = useQuery({
-    queryKey: ["products"],
+  // Fetch dynamic categories from WooCommerce
+  const { data: categoriesData } = useQuery({
+    queryKey: ["product-categories"],
     queryFn: async () => {
-      const res = await fetch("/api/products?limit=1000");
-      if (!res.ok) throw new Error("Failed to fetch products");
+      const res = await fetch("/api/products/categories");
+      if (!res.ok) return [];
       const data = await res.json();
-      return data.products || [];
+      return data.categories || [];
+    },
+    staleTime: 1000 * 60 * 15,
+  });
+
+  const categories = [
+    "All Departments",
+    ...(categoriesData && categoriesData.length > 0 
+      ? categoriesData.map((c: any) => c.name) 
+      : ["Charcuterie", "Sushi & Sashimi", "Fresh Juice", "Gourmet Seafood"])
+  ];
+
+  // Fetch WooCommerce products from our server API route with server-side pagination
+  const { data: queryData, isLoading, isError } = useQuery({
+    queryKey: ["products", currentPage, itemsPerPage, searchTerm, filterCategory, sortOption],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: String(currentPage),
+        limit: String(itemsPerPage),
+      });
+
+      if (searchTerm) params.set("q", searchTerm);
+      if (filterCategory && filterCategory !== "All Departments") {
+        const catObj = categoriesData?.find((c: any) => c.name === filterCategory);
+        params.set("category", catObj ? String(catObj.id) : filterCategory);
+      }
+      if (sortOption) params.set("sort", sortOption);
+
+      const res = await fetch(`/api/products?${params.toString()}`);
+      if (!res.ok) throw new Error("Failed to fetch products");
+      return await res.json();
     },
     staleTime: 1000 * 60 * 5,
   });
 
-  useEffect(() => {
-    workerRef.current = new Worker("/workers/productWorker.js");
-    workerRef.current.onmessage = (e) => {
-      const { paginatedItems, totalPages } = e.data;
-      setDisplayedProducts(paginatedItems);
-      setTotalPages(totalPages);
-    };
-    return () => {
-      workerRef.current?.terminate();
-    };
-  }, []);
+  const rawProducts = queryData?.products || [];
+  const totalPages = queryData?.pages || 1;
 
-  useEffect(() => {
-    if (allProducts && workerRef.current) {
-      workerRef.current.postMessage({
-        products: allProducts,
-        filterCategory,
-        searchTerm,
-        sortOption,
-        priceRange,
-        currentPage,
-        itemsPerPage,
-      });
-    }
-  }, [allProducts, filterCategory, searchTerm, sortOption, priceRange, currentPage, itemsPerPage]);
+  // Apply price range client-side filter
+  const displayedProducts = rawProducts.filter((p: any) => p.price <= priceRange);
 
   const handleAddToCart = (product: any) => addToCart(product);
   const handleBuyNow = (product: any) => { addToCart(product); router.push("/cart"); };
-
-  const categories = ["All Departments", "Charcuterie", "Sushi & Sashimi", "Fresh Juice", "Gourmet Seafood"];
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
@@ -127,7 +131,7 @@ export default function Products() {
               {/* Categories */}
               <div className="mb-8">
                 <h3 className="font-semibold text-gray-900 mb-4">Categories</h3>
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1 scrollbar-thin">
                   {categories.map((cat) => (
                     <label key={cat} className="flex items-center gap-3 cursor-pointer group">
                       <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${filterCategory === cat ? "bg-brand-primary border-brand-primary" : "border-gray-300 group-hover:border-gray-400"}`}>
@@ -159,7 +163,7 @@ export default function Products() {
                 <div className="relative">
                   <select
                     value={sortOption}
-                    onChange={(e) => setSortOption(e.target.value)}
+                    onChange={(e) => { setSortOption(e.target.value); setCurrentPage(1); }}
                     className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-3 px-4 pr-8 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary cursor-pointer"
                   >
                     <option value="newest">Newest Arrivals</option>

@@ -1,57 +1,45 @@
 import { NextResponse } from "next/server";
-import dbConnect from "@/lib/mongodb";
-import Product from "@/lib/models/Product";
-import { verifyAdmin } from "@/lib/authMiddleware";
+import { fetchWooProducts } from "@/lib/woocommerce";
 
-// GET all products (pagination & search)
+// GET products from WooCommerce REST API (supports pagination, search, category, sorting)
 export async function GET(req: Request) {
   try {
-    await dbConnect();
     const { searchParams } = new URL(req.url);
     const page = Number(searchParams.get("page")) || 1;
-    let limit = Number(searchParams.get("limit")) || 20;
-    if (limit > 1000) limit = 1000; // enforce maximum ceiling limit of 1000
-    const skip = (page - 1) * limit;
+    const limit = Number(searchParams.get("limit")) || 12;
+    const category = searchParams.get("category") || undefined;
+    const q = searchParams.get("q") || searchParams.get("search") || undefined;
+    const sort = searchParams.get("sort") || undefined;
 
-    const query: any = {};
-    const category = searchParams.get("category");
-    const q = searchParams.get("q");
+    let orderby: string | undefined = undefined;
+    let order: "asc" | "desc" | undefined = undefined;
 
-    if (category) query.category = category;
-    if (q) query.name = { $regex: q, $options: "i" };
-
-    const products = await Product.find(query)
-      .select("name price description image category stock")
-      .skip(skip)
-      .limit(limit);
-    const total = await Product.countDocuments(query);
-
-    return NextResponse.json({ products, total, page, pages: Math.ceil(total / limit) });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  }
-}
-
-// Admin POST: Add product
-export async function POST(req: Request) {
-  try {
-    await dbConnect();
-
-    // Verify Admin
-    const adminUser = await verifyAdmin(req);
-    if (!adminUser) {
-      return NextResponse.json({ error: "Admin access required!" }, { status: 403 });
+    if (sort === "price-low") {
+      orderby = "price";
+      order = "asc";
+    } else if (sort === "price-high") {
+      orderby = "price";
+      order = "desc";
+    } else if (sort === "newest") {
+      orderby = "date";
+      order = "desc";
     }
 
-    const { name, price, stock = 0, category = "Uncategorized", image = "", description = "" } = await req.json();
-    if (!name || price === undefined) {
-      return NextResponse.json({ error: "Name and price are required." }, { status: 400 });
-    }
+    const result = await fetchWooProducts({
+      page,
+      limit,
+      search: q,
+      category,
+      orderby,
+      order,
+    });
 
-    const p = new Product({ name, price, stock, category, image, description });
-    await p.save();
-    return NextResponse.json(p, { status: 201 });
+    return NextResponse.json(result);
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 400 });
+    console.error("Error in GET /api/products:", err);
+    return NextResponse.json(
+      { error: "Failed to fetch products from WooCommerce", products: [], total: 0, pages: 1, page: 1 },
+      { status: 500 }
+    );
   }
 }
