@@ -10,19 +10,19 @@ import { Input } from "./ui/Input";
 const fdata = [
     {
         id: 1,
-        img: '/pexels-steve-3789885 1.png'
+        img: '/IMG_4525.JPG'
     },
     {
         id: 2,
-        img: '/eiliv-aceron-d5PbKQJ0Lu8-unsplash 1.png'
+        img: '/IMG_4534.JPG'
     },
     {
         id: 3,
-        img: '/pexels-ella-olsson-1640772 1.png'
+        img: '/IMG_4530.JPG'
     },
     {
         id: 4,
-        img: '/pexels-ash-376464 1.png'
+        img: '/IMG_4527.JPG'
     }
 ];
 
