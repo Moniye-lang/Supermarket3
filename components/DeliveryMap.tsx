@@ -87,32 +87,49 @@ export default function DeliveryMap({
     }
   }, [onChange]);
 
-  // Nominatim autocomplete
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Search autocomplete via backend proxy bounded to Ibadan
   const handleSearch = useCallback((q: string) => {
     setSearchQuery(q);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
-    if (q.length < 3) { setSuggestions([]); setShowSuggestions(false); return; }
+    if (q.trim().length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
     searchTimeout.current = setTimeout(async () => {
       setSearching(true);
       try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + " Ibadan Nigeria")}&format=json&limit=5`
-        );
+        const res = await fetch(`/api/map/search?q=${encodeURIComponent(q)}`);
         const data = await res.json();
-        setSuggestions(data);
-        setShowSuggestions(true);
+        const results = data.results || [];
+        setSuggestions(results);
+        setShowSuggestions(results.length > 0);
       } catch {
         setSuggestions([]);
+        setShowSuggestions(false);
       } finally {
         setSearching(false);
       }
-    }, 450);
+    }, 350);
   }, []);
 
   function pickSuggestion(s: any) {
-    const lat = parseFloat(s.lat);
-    const lng = parseFloat(s.lon);
-    setSearchQuery(s.display_name);
+    const lat = Number(s.lat);
+    const lng = Number(s.lng);
+    setSearchQuery(s.title ? `${s.title}, ${s.subtitle}` : s.display_name);
     setSuggestions([]);
     setShowSuggestions(false);
     updatePosition(lat, lng);
@@ -135,12 +152,12 @@ export default function DeliveryMap({
   return (
     <div className="space-y-3">
       {/* Search bar */}
-      <div className="relative">
+      <div className="relative" ref={searchContainerRef}>
         <div className="flex items-center gap-2 bg-white border-2 border-gray-200 focus-within:border-brand-primary rounded-2xl px-4 py-3 shadow-sm transition-colors">
           <Search size={18} className="text-gray-400 shrink-0" />
           <input
             type="text"
-            placeholder="Search your delivery address..."
+            placeholder="Search location in Ibadan (e.g. Bodija, Akobo, Challenge)..."
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
             onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
@@ -159,16 +176,21 @@ export default function DeliveryMap({
 
         {/* Suggestions dropdown */}
         {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+          <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden divide-y divide-gray-50 max-h-64 overflow-y-auto">
             {suggestions.map((s, i) => (
               <button
-                key={i}
+                key={s.place_id || i}
                 type="button"
                 onClick={() => pickSuggestion(s)}
-                className="w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
+                className="w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-violet-50/50 transition-colors"
               >
-                <MapPin size={14} className="text-brand-primary mt-0.5 shrink-0" />
-                <span className="text-sm text-gray-700 line-clamp-2">{s.display_name}</span>
+                <div className="w-7 h-7 rounded-lg bg-violet-100 text-violet-700 flex items-center justify-center shrink-0 mt-0.5 font-bold text-xs">
+                  📍
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 line-clamp-1">{s.title || s.display_name}</p>
+                  <p className="text-xs text-gray-500 line-clamp-1">{s.subtitle || "Ibadan, Oyo State"}</p>
+                </div>
               </button>
             ))}
           </div>
