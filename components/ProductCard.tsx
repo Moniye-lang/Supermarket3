@@ -15,7 +15,8 @@ interface Product {
     category?: string;
     discount?: number;
     description?: string;
-    stock?: number;
+    stock?: number;        // -1 = in stock but not tracked, 0+ = real count
+    stockTracked?: boolean; // true = real WooCommerce quantity
     stockStatus?: string;
 }
 
@@ -65,11 +66,11 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
                         <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
                             Out of Stock
                         </span>
-                    ) : product.stock !== undefined && product.stock <= 10 ? (
+                    ) : product.stockTracked && product.stock !== undefined && product.stock > 0 && product.stock <= 10 ? (
                         <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
-                            Only {product.stock} left
+                            Only {product.stock} left!
                         </span>
-                    ) : product.stock !== undefined && product.stock <= 50 ? (
+                    ) : product.stockTracked && product.stock !== undefined && product.stock > 10 && product.stock <= 50 ? (
                         <span className="bg-amber-400 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
                             {product.stock} in stock
                         </span>

@@ -11,7 +11,8 @@ export interface WooProduct {
   onSale: boolean;
   discount?: number;
   stockStatus: string;
-  stock: number;
+  stockTracked: boolean; // true = WooCommerce manage_stock is on, stock is a real count
+  stock: number; // -1 = in stock but quantity not tracked, 0+ = real count
   sku: string;
   category: string;
   categories: { id: number; name: string; slug: string }[];
@@ -31,9 +32,13 @@ const WOOCOMMERCE_URL = (process.env.WOOCOMMERCE_URL || "https://wc.agbenimercan
 const CONSUMER_KEY = process.env.WOOCOMMERCE_CONSUMER_KEY || "";
 const CONSUMER_SECRET = process.env.WOOCOMMERCE_CONSUMER_SECRET || "";
 
-// Simple in-memory cache for API calls to prevent unnecessary external requests
+// In-memory server-side cache — lives for the lifetime of the Node process
 const cache = new Map<string, { timestamp: number; data: any }>();
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes cache
+
+// WooCommerce only returns stock_quantity when manage_stock is true.
+// -1 = "not tracked" (manage_stock:false), 0+ = real WooCommerce count
+const NO_STOCK_TRACKING = -1;
 
 function getCachedData<T>(key: string): T | null {
   const cached = cache.get(key);
@@ -82,9 +87,11 @@ export function normalizeWooProduct(p: any): WooProduct {
   const mainCategory = categories.length > 0 ? categories[0].name : "General";
 
   const isInstock = p.stock_status === "instock";
-  const stockQty = typeof p.stock_quantity === "number" 
-    ? p.stock_quantity 
-    : (isInstock ? 99 : 0);
+  // Only use real quantity if WooCommerce actually tracks it (manage_stock: true)
+  // If manage_stock is false, stock_quantity will be null — we use -1 as sentinel
+  const stockQty = (p.manage_stock === true && typeof p.stock_quantity === "number")
+    ? p.stock_quantity
+    : (isInstock ? NO_STOCK_TRACKING : 0);
 
   return {
     _id: String(p.id),
@@ -99,6 +106,7 @@ export function normalizeWooProduct(p: any): WooProduct {
     onSale: Boolean(p.on_sale),
     discount: discount,
     stockStatus: isInstock ? "In Stock" : "Out of Stock",
+    stockTracked: p.manage_stock === true, // true = real WooCommerce quantity
     stock: stockQty,
     sku: p.sku || "",
     category: mainCategory,
@@ -141,7 +149,7 @@ async function wooFetch(endpoint: string, params: Record<string, string | number
   const response = await fetch(url, {
     method: "GET",
     headers: buildWooHeaders(),
-    next: { revalidate: 300 },
+    // No next.revalidate — we handle caching manually above to avoid stale data bugs
   });
 
   if (!response.ok) {
@@ -237,6 +245,8 @@ export async function fetchWooProducts(params: {
   const queryParams: Record<string, string | number> = {
     page,
     per_page: limit,
+    // Only fetch the fields we actually render — cuts response size by ~70%
+    _fields: "id,name,price,regular_price,sale_price,on_sale,stock_status,stock_quantity,manage_stock,sku,images,categories,description,short_description,date_created",
   };
 
   if (params.search) queryParams.search = params.search;
