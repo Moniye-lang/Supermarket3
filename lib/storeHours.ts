@@ -25,9 +25,12 @@ export const ALL_PICKUP_SLOTS: PickupSlot[] = [
 
 /** Returns the current time as a Date object in WAT (UTC+1). */
 export function getNowWAT(): Date {
-  // WAT is UTC+1. We shift the UTC time by +1h.
   const now = new Date();
-  return new Date(now.getTime() + (1 * 60 * 60 * 1000 - now.getTimezoneOffset() * 60 * 1000));
+  // Step 1: strip local timezone to get true UTC ms
+  // getTimezoneOffset() = minutes UTC is AHEAD of local (negative for UTC+X zones)
+  const utcMs = now.getTime() + now.getTimezoneOffset() * 60_000;
+  // Step 2: add WAT offset (+1 hour)
+  return new Date(utcMs + 60 * 60_000);
 }
 
 /** Returns true if the store is currently open. */
