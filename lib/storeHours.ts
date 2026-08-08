@@ -7,6 +7,31 @@ export interface PickupSlot {
   endHour: number;   // 24h
 }
 
+// ─── Store coordinates & delivery fee calculations ───────────────────────────
+export const STORE_LAT = 7.3775;
+export const STORE_LNG = 3.9470;
+export const DELIVERY_BASE_FEE = 500;     // ₦ flat fee up to 2 km
+export const DELIVERY_PER_KM = 200;       // ₦ per km after 2 km
+
+/** Haversine distance in km between two lat/lng pairs */
+export function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/** Calculate delivery fee from distance */
+export function calcDeliveryFee(distanceKm: number): number {
+  if (distanceKm <= 2) return DELIVERY_BASE_FEE;
+  return DELIVERY_BASE_FEE + Math.ceil(distanceKm - 2) * DELIVERY_PER_KM;
+}
+
 // Business hours: Monday–Saturday, 8 AM – 7 PM WAT
 export const STORE_OPEN_HOUR  = 8;   // 8:00 AM
 export const STORE_CLOSE_HOUR = 19;  // 7:00 PM

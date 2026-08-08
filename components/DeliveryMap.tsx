@@ -7,56 +7,27 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Search, Navigation, MapPin, Loader2 } from "lucide-react";
 
-// ─── Store location (AGBENi Mercantile) ──────────────────────────────────────
-export const STORE_LAT = 7.3775;
-export const STORE_LNG = 3.9470;
-export const DELIVERY_BASE_FEE = 500;     // ₦ flat fee up to 2 km
-export const DELIVERY_PER_KM = 200;       // ₦ per km after 2 km
-export const FREE_DELIVERY_THRESHOLD = 0; // set > 0 to offer free delivery above X amount
+import {
+  STORE_LAT, STORE_LNG, haversineKm, calcDeliveryFee
+} from "@/lib/storeHours";
 
-/** Haversine distance in km between two lat/lng pairs */
-export function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+export { STORE_LAT, STORE_LNG, haversineKm, calcDeliveryFee };
+
+// Helper to safely create DivIcon on the client
+function createCustomIcon(bgColor: string, emoji: string) {
+  if (typeof window === "undefined" || !L) return undefined as any;
+  return new L.DivIcon({
+    className: "",
+    html: `<div style="
+      width:36px;height:36px;background:${bgColor};border-radius:50% 50% 50% 0;
+      transform:rotate(-45deg);border:3px solid white;box-shadow:0 3px 10px rgba(0,0,0,0.3);
+      display:flex;align-items:center;justify-content:center;">
+      <span style="transform:rotate(45deg);font-size:14px;">${emoji}</span>
+    </div>`,
+    iconSize: [36, 36],
+    iconAnchor: [18, 36],
+  });
 }
-
-/** Calculate delivery fee from distance */
-export function calcDeliveryFee(distanceKm: number): number {
-  if (distanceKm <= 2) return DELIVERY_BASE_FEE;
-  return DELIVERY_BASE_FEE + Math.ceil(distanceKm - 2) * DELIVERY_PER_KM;
-}
-
-// ─── Custom icons ─────────────────────────────────────────────────────────────
-const storeIcon = new L.DivIcon({
-  className: "",
-  html: `<div style="
-    width:36px;height:36px;background:#b91c1c;border-radius:50% 50% 50% 0;
-    transform:rotate(-45deg);border:3px solid white;box-shadow:0 3px 10px rgba(0,0,0,0.3);
-    display:flex;align-items:center;justify-content:center;">
-    <span style="transform:rotate(45deg);font-size:14px;">🏪</span>
-  </div>`,
-  iconSize: [36, 36],
-  iconAnchor: [18, 36],
-});
-
-const customerIcon = new L.DivIcon({
-  className: "",
-  html: `<div style="
-    width:36px;height:36px;background:#7c3aed;border-radius:50% 50% 50% 0;
-    transform:rotate(-45deg);border:3px solid white;box-shadow:0 3px 10px rgba(0,0,0,0.3);
-    display:flex;align-items:center;justify-content:center;">
-    <span style="transform:rotate(45deg);font-size:14px;">📍</span>
-  </div>`,
-  iconSize: [36, 36],
-  iconAnchor: [18, 36],
-});
 
 // ─── Inner map subcomponents ───────────────────────────────────────────────────
 function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
@@ -95,6 +66,9 @@ export default function DeliveryMap({
   const [geocoding, setGeocoding] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const storeIcon = React.useMemo(() => createCustomIcon("#b91c1c", "🏪"), []);
+  const customerIcon = React.useMemo(() => createCustomIcon("#7c3aed", "📍"), []);
 
   const updatePosition = useCallback(async (lat: number, lng: number) => {
     setPosition([lat, lng]);

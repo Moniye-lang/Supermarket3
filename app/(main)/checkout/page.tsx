@@ -13,11 +13,9 @@ import { AuthContext } from "@/context/AuthContext";
 import dynamic from "next/dynamic";
 import {
   isStoreOpen, nextOpeningMessage, getTodaySlots,
-  ALL_PICKUP_SLOTS, getNowWAT,
+  ALL_PICKUP_SLOTS, getNowWAT, STORE_LAT, STORE_LNG,
+  haversineKm, calcDeliveryFee,
 } from "@/lib/storeHours";
-import {
-  STORE_LAT, STORE_LNG, haversineKm, calcDeliveryFee,
-} from "@/components/DeliveryMap";
 
 // Load map only client-side — Leaflet needs the browser
 const DeliveryMap = dynamic(() => import("@/components/DeliveryMap"), {
