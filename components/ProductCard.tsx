@@ -1,6 +1,6 @@
 "use client";
 import { motion } from "framer-motion";
-import { ShoppingCart, Eye, Heart } from "lucide-react";
+import { ShoppingCart, Eye, Heart, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/Button";
 
@@ -15,6 +15,8 @@ interface Product {
     category?: string;
     discount?: number;
     description?: string;
+    stock?: number;
+    stockStatus?: string;
 }
 
 interface ProductCardProps {
@@ -55,6 +57,23 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
                             -{product.discount}%
                         </span>
                     )}
+                </div>
+
+                {/* Stock Badge – bottom-left corner */}
+                <div className="absolute bottom-3 left-3">
+                    {product.stockStatus === "Out of Stock" || product.stock === 0 ? (
+                        <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
+                            Out of Stock
+                        </span>
+                    ) : product.stock !== undefined && product.stock <= 10 ? (
+                        <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
+                            Only {product.stock} left
+                        </span>
+                    ) : product.stock !== undefined && product.stock <= 50 ? (
+                        <span className="bg-amber-400 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
+                            {product.stock} in stock
+                        </span>
+                    ) : null}
                 </div>
 
                 {/* Wishlist Button */}
@@ -116,6 +135,7 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
                             variant="outline"
                             aria-label={`Add ${product.name || product.title || "product"} to cart`}
                             className="h-8 px-2 text-xs flex items-center gap-1 border border-brand-primary/30 text-gray-800"
+                            disabled={product.stockStatus === "Out of Stock" || product.stock === 0}
                             onClick={() => onAddToCart && onAddToCart(product)}
                         >
                             <ShoppingCart size={14} /> Add
@@ -125,6 +145,7 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
                             variant="primary"
                             aria-label={`Buy ${product.name || product.title || "product"} now`}
                             className="h-8 px-3 text-xs"
+                            disabled={product.stockStatus === "Out of Stock" || product.stock === 0}
                             onClick={() => onBuyNow && onBuyNow(product)}
                         >
                             Buy Now

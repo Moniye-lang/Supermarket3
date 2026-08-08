@@ -169,8 +169,26 @@ export default function ProductDets() {
                                 </div>
                                 <span>(128 Reviews)</span>
                                 <span className="w-1 h-1 bg-gray-300 rounded-full" />
-                                <span className={`font-medium ${product.stock > 0 ? "text-green-600" : "text-red-600"}`}>
-                                    {product.stockStatus} {product.stock ? `(${product.stock} available)` : ""}
+                                <span className={`inline-flex items-center gap-1.5 font-semibold text-sm px-3 py-1 rounded-full border ${
+                                    product.stock === 0 || product.stockStatus === "Out of Stock"
+                                        ? "bg-red-50 text-red-700 border-red-200"
+                                        : product.stock <= 10
+                                        ? "bg-orange-50 text-orange-700 border-orange-200"
+                                        : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                }`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${
+                                        product.stock === 0 || product.stockStatus === "Out of Stock"
+                                            ? "bg-red-500"
+                                            : product.stock <= 10
+                                            ? "bg-orange-500"
+                                            : "bg-emerald-500"
+                                    }`} />
+                                    {product.stock === 0 || product.stockStatus === "Out of Stock"
+                                        ? "Out of Stock"
+                                        : product.stock <= 10
+                                        ? `Only ${product.stock} left!`
+                                        : `${product.stock} in stock`
+                                    }
                                 </span>
                                 {product.sku && (
                                     <>

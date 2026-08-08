@@ -47,6 +47,14 @@ function setCachedData(key: string, data: any): void {
   cache.set(key, { timestamp: Date.now(), data });
 }
 
+export function invalidateCache(key?: string): void {
+  if (key) {
+    cache.delete(key);
+  } else {
+    cache.clear();
+  }
+}
+
 function stripHtml(html: string): string {
   if (!html) return "";
   return html.replace(/<[^>]*>?/gm, "").trim();
@@ -101,33 +109,39 @@ export function normalizeWooProduct(p: any): WooProduct {
   };
 }
 
-async function wooFetch(endpoint: string, params: Record<string, string | number> = {}): Promise<{ data: any; headers: Headers }> {
+// Build auth headers for WooCommerce REST API
+function buildWooHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+    "User-Agent": "AMStores-NextJS/1.0",
+  };
+  if (CONSUMER_KEY && CONSUMER_SECRET) {
+    const authString = Buffer.from(`${CONSUMER_KEY}:${CONSUMER_SECRET}`).toString("base64");
+    headers["Authorization"] = `Basic ${authString}`;
+  }
+  return headers;
+}
+
+function buildWooUrl(endpoint: string, params: Record<string, string | number> = {}): string {
   const url = new URL(`${WOOCOMMERCE_URL}/wp-json/wc/v3${endpoint}`);
-  
-  // Attach credentials as query params & authorization header for server compatibility
   if (CONSUMER_KEY) url.searchParams.set("consumer_key", CONSUMER_KEY);
   if (CONSUMER_SECRET) url.searchParams.set("consumer_secret", CONSUMER_SECRET);
-
   Object.entries(params).forEach(([key, val]) => {
     if (val !== undefined && val !== null && val !== "") {
       url.searchParams.set(key, String(val));
     }
   });
+  return url.toString();
+}
 
-  const headers: Record<string, string> = {
-    "Accept": "application/json",
-    "User-Agent": "AMStores-NextJS/1.0",
-  };
+async function wooFetch(endpoint: string, params: Record<string, string | number> = {}): Promise<{ data: any; headers: Headers }> {
+  const url = buildWooUrl(endpoint, params);
 
-  if (CONSUMER_KEY && CONSUMER_SECRET) {
-    const authString = Buffer.from(`${CONSUMER_KEY}:${CONSUMER_SECRET}`).toString("base64");
-    headers["Authorization"] = `Basic ${authString}`;
-  }
-
-  const response = await fetch(url.toString(), {
+  const response = await fetch(url, {
     method: "GET",
-    headers,
-    next: { revalidate: 300 }, // 5 min revalidation for Next.js fetch cache
+    headers: buildWooHeaders(),
+    next: { revalidate: 300 },
   });
 
   if (!response.ok) {
@@ -138,6 +152,71 @@ async function wooFetch(endpoint: string, params: Record<string, string | number
 
   const data = await response.json();
   return { data, headers: response.headers };
+}
+
+// ─── CRUD Functions ───────────────────────────────────────────────────────────
+
+export async function createWooProduct(payload: {
+  name: string;
+  description?: string;
+  regular_price: string;
+  sale_price?: string;
+  stock_quantity?: number;
+  manage_stock?: boolean;
+  stock_status?: string;
+  sku?: string;
+  categories?: { id: number }[];
+  images?: { src: string }[];
+}): Promise<WooProduct> {
+  const url = buildWooUrl("/products");
+  const res = await fetch(url, {
+    method: "POST",
+    headers: buildWooHeaders(),
+    body: JSON.stringify({
+      ...payload,
+      status: "publish",
+      manage_stock: payload.manage_stock ?? (payload.stock_quantity !== undefined),
+      stock_status: payload.stock_status ?? "instock",
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`WooCommerce create product failed: ${err}`);
+  }
+  const data = await res.json();
+  invalidateCache(); // bust all product caches
+  return normalizeWooProduct(data);
+}
+
+export async function updateWooProduct(id: number | string, payload: Record<string, any>): Promise<WooProduct> {
+  const url = buildWooUrl(`/products/${id}`);
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: buildWooHeaders(),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`WooCommerce update product failed: ${err}`);
+  }
+  const data = await res.json();
+  invalidateCache(`product_${id}`);
+  invalidateCache(); // bust listing caches too
+  return normalizeWooProduct(data);
+}
+
+export async function deleteWooProduct(id: number | string): Promise<void> {
+  const url = buildWooUrl(`/products/${id}`, { force: 1 });
+  const res = await fetch(url, {
+    method: "DELETE",
+    headers: buildWooHeaders(),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`WooCommerce delete product failed: ${err}`);
+  }
+  invalidateCache(`product_${id}`);
+  invalidateCache();
 }
 
 export async function fetchWooProducts(params: {
@@ -162,7 +241,6 @@ export async function fetchWooProducts(params: {
 
   if (params.search) queryParams.search = params.search;
   if (params.category && params.category !== "All Departments") {
-    // If category is a number string (category ID), use category param
     if (!isNaN(Number(params.category))) {
       queryParams.category = params.category;
     }
@@ -178,7 +256,6 @@ export async function fetchWooProducts(params: {
 
     const products = Array.isArray(data) ? data.map(normalizeWooProduct) : [];
     
-    // If category was specified by name instead of ID, filter client-side if needed
     let filteredProducts = products;
     if (params.category && params.category !== "All Departments" && isNaN(Number(params.category))) {
       const lowerCat = params.category.toLowerCase();
