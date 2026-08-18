@@ -15,8 +15,6 @@ import {
     Menu,
     Info,
     Mail,
-    Moon,
-    Sun,
 } from "lucide-react";
 import { CartContext } from "@/context/CartContext";
 import { AuthContext } from "@/context/AuthContext";
@@ -260,35 +258,16 @@ export default function Navbar() {
     const { user, logout } = useContext(AuthContext);
     const pathname = usePathname();
 
-    const [darkMode, setDarkMode] = useState(false);
-
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20);
         window.addEventListener("scroll", handleScroll);
         
-        // Initialize dark theme state (default to light mode unless explicitly dark)
-        const isDark = localStorage.getItem("theme") === "dark";
-        setDarkMode(isDark);
-        if (isDark) {
-            document.documentElement.classList.add("dark");
-        } else {
-            document.documentElement.classList.remove("dark");
-        }
+        // Ensure default light mode
+        document.documentElement.classList.remove("dark");
+        localStorage.removeItem("theme");
         
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
-
-    const toggleDarkMode = () => {
-        const nextDark = !darkMode;
-        setDarkMode(nextDark);
-        if (nextDark) {
-            document.documentElement.classList.add("dark");
-            localStorage.setItem("theme", "dark");
-        } else {
-            document.documentElement.classList.remove("dark");
-            localStorage.setItem("theme", "light");
-        }
-    };
 
     const handleLogout = () => {
         logout();
@@ -365,14 +344,7 @@ export default function Navbar() {
                                 <Search size={20} />
                             </button>
 
-                            {/* Dark Mode Toggle */}
-                            <button
-                                onClick={toggleDarkMode}
-                                className="p-2 text-gray-600 hover:text-brand-primary hover:bg-white/50 rounded-full transition-all"
-                                aria-label="Toggle Dark Mode"
-                            >
-                                {darkMode ? <Sun size={20} className="text-amber-500" /> : <Moon size={20} className="text-gray-700" />}
-                            </button>
+
 
                             {/* Cart — visible on both mobile and desktop */}
                             <Link href="/cart" className="relative p-2 hover:bg-white/50 rounded-full transition-all group">
