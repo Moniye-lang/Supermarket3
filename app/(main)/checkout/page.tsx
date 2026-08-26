@@ -13,7 +13,7 @@ import { AuthContext } from "@/context/AuthContext";
 import dynamic from "next/dynamic";
 import {
   isStoreOpen, nextOpeningMessage, getTodaySlots,
-  ALL_PICKUP_SLOTS, getNowWAT, STORE_LAT, STORE_LNG,
+  getAllSlotsForToday, getNowWAT, STORE_LAT, STORE_LNG,
   haversineKm, calcDeliveryFee,
 } from "@/lib/storeHours";
 
@@ -253,7 +253,7 @@ export default function Checkout() {
                       </p>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {ALL_PICKUP_SLOTS.map((slot) => {
+                      {getAllSlotsForToday(now).map((slot) => {
                         const available = todaySlots.some((s) => s.label === slot.label);
                         return (
                           <button

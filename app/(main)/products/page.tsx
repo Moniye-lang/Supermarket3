@@ -1,6 +1,6 @@
 "use client";
-import { useState, useContext } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useContext, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CartContext } from "@/context/CartContext";
 import ProductCard from "@/components/ProductCard";
 import { Search, SlidersHorizontal, ChevronDown, ChevronLeft, ChevronRight, Filter } from "lucide-react";
@@ -9,17 +9,29 @@ import { Input } from "@/components/ui/Input";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 
-export default function Products() {
+function ProductsContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { addToCart } = useContext(CartContext);
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterCategory, setFilterCategory] = useState("All Departments");
+  const initialCat = searchParams.get("category") || "All Departments";
+  const initialQ = searchParams.get("q") || "";
+
+  const [searchTerm, setSearchTerm] = useState(initialQ);
+  const [filterCategory, setFilterCategory] = useState(initialCat);
   const [priceRange, setPriceRange] = useState(200000);
   const [showFilters, setShowFilters] = useState(false);
   const [sortOption, setSortOption] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 9;
+  const itemsPerPage = 12;
+
+  // Sync state if URL search parameters change
+  useEffect(() => {
+    const cat = searchParams.get("category");
+    const q = searchParams.get("q");
+    if (cat) setFilterCategory(cat);
+    if (q) setSearchTerm(q);
+  }, [searchParams]);
 
   // Fetch dynamic categories from WooCommerce
   const { data: categoriesData } = useQuery({
@@ -51,7 +63,11 @@ export default function Products() {
 
       if (searchTerm) params.set("q", searchTerm);
       if (filterCategory && filterCategory !== "All Departments") {
-        const catObj = categoriesData?.find((c: any) => c.name === filterCategory);
+        const catObj = categoriesData?.find(
+          (c: any) => c.name.toLowerCase() === filterCategory.toLowerCase() ||
+                      c.slug.toLowerCase() === filterCategory.toLowerCase() ||
+                      filterCategory.toLowerCase().includes(c.name.toLowerCase())
+        );
         params.set("category", catObj ? String(catObj.id) : filterCategory);
       }
       if (sortOption) params.set("sort", sortOption);
@@ -60,6 +76,7 @@ export default function Products() {
       if (!res.ok) throw new Error("Failed to fetch products");
       return await res.json();
     },
+    placeholderData: (previousData) => previousData,
     staleTime: 1000 * 60 * 5,
   });
 
@@ -251,5 +268,17 @@ export default function Products() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Products() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-brand-light pt-24 pb-20 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-primary"></div>
+      </div>
+    }>
+      <ProductsContent />
+    </Suspense>
   );
 }

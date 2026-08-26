@@ -32,21 +32,35 @@ export function calcDeliveryFee(distanceKm: number): number {
   return DELIVERY_BASE_FEE + Math.ceil(distanceKm - 2) * DELIVERY_PER_KM;
 }
 
-// Business hours: Monday–Saturday, 8 AM – 7 PM WAT
-export const STORE_OPEN_HOUR  = 8;   // 8:00 AM
-export const STORE_CLOSE_HOUR = 19;  // 7:00 PM
-export const STORE_OPEN_DAYS  = [1, 2, 3, 4, 5, 6]; // Mon=1 … Sat=6 (0=Sun)
+// Business hours:
+// Monday–Saturday: 8:00 AM – 8:00 PM WAT
+// Sunday: 1:00 PM – 8:00 PM WAT
+export const STORE_WEEKDAY_OPEN_HOUR  = 8;   // 8:00 AM
+export const STORE_SUNDAY_OPEN_HOUR   = 13;  // 1:00 PM
+export const STORE_CLOSE_HOUR         = 20;  // 8:00 PM
+export const STORE_OPEN_DAYS          = [0, 1, 2, 3, 4, 5, 6]; // Sunday=0, Monday=1 … Saturday=6
 
 // Must order at least 30 min before slot ends
 const SLOT_CUTOFF_MINUTES = 30;
 
-export const ALL_PICKUP_SLOTS: PickupSlot[] = [
+export const WEEKDAY_PICKUP_SLOTS: PickupSlot[] = [
   { label: "09:00 AM – 11:00 AM", startHour: 9,  endHour: 11 },
   { label: "11:00 AM – 01:00 PM", startHour: 11, endHour: 13 },
   { label: "01:00 PM – 03:00 PM", startHour: 13, endHour: 15 },
   { label: "03:00 PM – 05:00 PM", startHour: 15, endHour: 17 },
   { label: "05:00 PM – 07:00 PM", startHour: 17, endHour: 19 },
+  { label: "07:00 PM – 08:00 PM", startHour: 19, endHour: 20 },
 ];
+
+export const SUNDAY_PICKUP_SLOTS: PickupSlot[] = [
+  { label: "01:00 PM – 03:00 PM", startHour: 13, endHour: 15 },
+  { label: "03:00 PM – 05:00 PM", startHour: 15, endHour: 17 },
+  { label: "05:00 PM – 07:00 PM", startHour: 17, endHour: 19 },
+  { label: "07:00 PM – 08:00 PM", startHour: 19, endHour: 20 },
+];
+
+// Fallback / legacy export
+export const ALL_PICKUP_SLOTS = WEEKDAY_PICKUP_SLOTS;
 
 /** Returns the current time as a Date in WAT (UTC+1). */
 export function getNowWAT(): Date {
@@ -56,16 +70,22 @@ export function getNowWAT(): Date {
   return new Date(utcMs + 60 * 60_000);
 }
 
+/** Get store open and close hour for a given date */
+export function getStoreHoursForDay(date?: Date): { openHour: number; closeHour: number } {
+  const t = date ?? getNowWAT();
+  const isSunday = t.getDay() === 0;
+  return {
+    openHour: isSunday ? STORE_SUNDAY_OPEN_HOUR : STORE_WEEKDAY_OPEN_HOUR,
+    closeHour: STORE_CLOSE_HOUR,
+  };
+}
+
 /** Is the store open right now? */
 export function isStoreOpen(now?: Date): boolean {
   const t = now ?? getNowWAT();
-  const day = t.getDay();
+  const { openHour, closeHour } = getStoreHoursForDay(t);
   const mins = t.getHours() * 60 + t.getMinutes();
-  return (
-    STORE_OPEN_DAYS.includes(day) &&
-    mins >= STORE_OPEN_HOUR * 60 &&
-    mins < STORE_CLOSE_HOUR * 60
-  );
+  return mins >= openHour * 60 && mins < closeHour * 60;
 }
 
 /** Human-readable message for when store is closed. */
@@ -73,12 +93,32 @@ export function nextOpeningMessage(now?: Date): string {
   const t = now ?? getNowWAT();
   const day = t.getDay();
   const hour = t.getHours();
-  if (day === 0) return "Opens Monday at 8:00 AM";
-  if (day === 6 && hour >= STORE_CLOSE_HOUR) return "Opens Monday at 8:00 AM";
-  if (hour < STORE_OPEN_HOUR) return "Opens today at 8:00 AM";
-  const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-  const next = day === 6 ? 1 : day + 1;
-  return `Opens ${days[next]} at 8:00 AM`;
+
+  if (day === 0) {
+    if (hour < STORE_SUNDAY_OPEN_HOUR) return "Opens today at 1:00 PM";
+    return "Opens Monday at 8:00 AM";
+  }
+
+  if (day === 6) {
+    if (hour < STORE_WEEKDAY_OPEN_HOUR) return "Opens today at 8:00 AM";
+    if (hour >= STORE_CLOSE_HOUR) return "Opens Sunday at 1:00 PM";
+  }
+
+  if (hour < STORE_WEEKDAY_OPEN_HOUR) return "Opens today at 8:00 AM";
+  if (hour >= STORE_CLOSE_HOUR) {
+    const nextDay = day + 1;
+    if (nextDay === 0) return "Opens Sunday at 1:00 PM";
+    const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    return `Opens ${days[nextDay]} at 8:00 AM`;
+  }
+
+  return "Closed right now";
+}
+
+/** Get all defined slots for today (day-aware: Sunday vs Mon-Sat) */
+export function getAllSlotsForToday(now?: Date): PickupSlot[] {
+  const t = now ?? getNowWAT();
+  return t.getDay() === 0 ? SUNDAY_PICKUP_SLOTS : WEEKDAY_PICKUP_SLOTS;
 }
 
 /**
@@ -89,7 +129,9 @@ export function getTodaySlots(now?: Date): PickupSlot[] {
   const t = now ?? getNowWAT();
   if (!isStoreOpen(t)) return [];
   const currentMins = t.getHours() * 60 + t.getMinutes();
-  return ALL_PICKUP_SLOTS.filter(
+  const allSlots = getAllSlotsForToday(t);
+  return allSlots.filter(
     (s) => s.endHour * 60 - SLOT_CUTOFF_MINUTES > currentMins
   );
 }
+

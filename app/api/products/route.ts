@@ -27,7 +27,11 @@ export async function GET(req: Request) {
     }
 
     const result = await fetchWooProducts({ page, limit, search: q, category, orderby, order });
-    return NextResponse.json(result);
+    return NextResponse.json(result, {
+      headers: {
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+      },
+    });
   } catch (err: any) {
     console.error("Error in GET /api/products:", err);
     return NextResponse.json(

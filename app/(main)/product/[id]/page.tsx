@@ -172,23 +172,15 @@ export default function ProductDets() {
                                 <span className={`inline-flex items-center gap-1.5 font-semibold text-sm px-3 py-1 rounded-full border ${
                                     product.stock === 0 || product.stockStatus === "Out of Stock"
                                         ? "bg-red-50 text-red-700 border-red-200"
-                                        : product.stockTracked && product.stock > 0 && product.stock <= 10
-                                        ? "bg-orange-50 text-orange-700 border-orange-200"
                                         : "bg-emerald-50 text-emerald-700 border-emerald-200"
                                 }`}>
                                     <span className={`w-1.5 h-1.5 rounded-full ${
                                         product.stock === 0 || product.stockStatus === "Out of Stock"
                                             ? "bg-red-500"
-                                            : product.stockTracked && product.stock > 0 && product.stock <= 10
-                                            ? "bg-orange-500"
                                             : "bg-emerald-500"
                                     }`} />
                                     {product.stock === 0 || product.stockStatus === "Out of Stock"
                                         ? "Out of Stock"
-                                        : product.stockTracked && product.stock > 0 && product.stock <= 10
-                                        ? `Only ${product.stock} left!`
-                                        : product.stockTracked && product.stock > 0
-                                        ? `${product.stock} in stock`
                                         : "In Stock"
                                     }
                                 </span>

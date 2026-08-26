@@ -79,21 +79,23 @@ export default function Home() {
                 transition={{ delay: index * 0.1, duration: 0.6 }}
                 whileHover={{ y: -10 }}
               >
-                <Card className="h-full border border-gray-100 shadow-lg hover:shadow-2xl hover:shadow-brand-primary/10 transition-all duration-300 rounded-[2rem] overflow-hidden bg-white group cursor-pointer">
-                  <CardContent className="p-8 flex flex-col h-full relative z-10">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-gray-50 to-transparent rounded-bl-full -z-10 group-hover:from-brand-primary/5 transition-colors"></div>
+                <Link href={`/products?category=${encodeURIComponent(item.label)}`} className="block h-full">
+                  <Card className="h-full border border-gray-100 shadow-lg hover:shadow-2xl hover:shadow-brand-primary/10 transition-all duration-300 rounded-[2rem] overflow-hidden bg-white group cursor-pointer">
+                    <CardContent className="p-8 flex flex-col h-full relative z-10">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-gray-50 to-transparent rounded-bl-full -z-10 group-hover:from-brand-primary/5 transition-colors"></div>
 
-                    <div className={`w-16 h-16 ${item.bg} ${item.color} rounded-2xl flex items-center justify-center mb-6 shadow-sm group-hover:scale-110 transition-transform duration-300`}>
-                      <item.Icon size={28} />
-                    </div>
-                    <h3 className="text-2xl font-bold text-brand-dark mb-3 font-display">{item.label}</h3>
-                    <p className="text-gray-600 mb-8 flex-grow text-sm leading-relaxed">{item.description}</p>
+                      <div className={`w-16 h-16 ${item.bg} ${item.color} rounded-2xl flex items-center justify-center mb-6 shadow-sm group-hover:scale-110 transition-transform duration-300`}>
+                        <item.Icon size={28} />
+                      </div>
+                      <h3 className="text-2xl font-bold text-brand-dark mb-3 font-display">{item.label}</h3>
+                      <p className="text-gray-600 mb-8 flex-grow text-sm leading-relaxed">{item.description}</p>
 
-                    <div className="flex items-center text-sm font-semibold text-brand-dark group-hover:text-brand-primary transition-colors mt-auto">
-                      Explore <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-2 transition-transform" />
-                    </div>
-                  </CardContent>
-                </Card>
+                      <div className="flex items-center text-sm font-semibold text-brand-dark group-hover:text-brand-primary transition-colors mt-auto">
+                        Explore <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-2 transition-transform" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
               </motion.div>
             ))}
           </div>

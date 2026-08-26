@@ -97,8 +97,8 @@ export function normalizeWooProduct(p: any): WooProduct {
     _id: String(p.id),
     id: p.id,
     name: p.name || "",
-    description: stripHtml(p.description || p.short_description || ""),
-    shortDescription: stripHtml(p.short_description || ""),
+    description: stripHtml(p.short_description || p.description || ""),
+    shortDescription: stripHtml(p.short_description || p.description || ""),
     price: price,
     regularPrice: regularPrice,
     salePrice: salePrice,
@@ -245,8 +245,8 @@ export async function fetchWooProducts(params: {
   const queryParams: Record<string, string | number> = {
     page,
     per_page: limit,
-    // Only fetch the fields we actually render — cuts response size by ~70%
-    _fields: "id,name,price,regular_price,sale_price,on_sale,stock_status,stock_quantity,manage_stock,sku,images,categories,description,short_description,date_created",
+    // Only fetch the fields we actually render — cuts response size drastically
+    _fields: "id,name,price,regular_price,sale_price,on_sale,stock_status,stock_quantity,manage_stock,sku,images,categories,short_description,date_created",
   };
 
   if (params.search) queryParams.search = params.search;

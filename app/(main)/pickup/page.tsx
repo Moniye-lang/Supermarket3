@@ -44,7 +44,7 @@ export default function Pickup() {
   const [error, setError] = useState("");
 
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  const { countdown, isOpen } = useStoreCountdown("08:00", "20:00");
+  const { countdown, isOpen } = useStoreCountdown();
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });

@@ -43,6 +43,8 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
                     src={product.image || "/placeholder-food.png"}
                     onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder-food.png"; }}
                     alt={product.name || product.title}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
                 />
 
@@ -65,14 +67,6 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
                     {product.stockStatus === "Out of Stock" || product.stock === 0 ? (
                         <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
                             Out of Stock
-                        </span>
-                    ) : product.stockTracked && product.stock !== undefined && product.stock > 0 && product.stock <= 10 ? (
-                        <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
-                            Only {product.stock} left!
-                        </span>
-                    ) : product.stockTracked && product.stock !== undefined && product.stock > 10 && product.stock <= 50 ? (
-                        <span className="bg-amber-400 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
-                            {product.stock} in stock
                         </span>
                     ) : null}
                 </div>
