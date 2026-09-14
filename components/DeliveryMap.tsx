@@ -363,6 +363,11 @@ export default function DeliveryMap({
                     Google
                   </span>
                 )}
+                {s.source === "locationiq" && (
+                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full shrink-0">
+                    LocationIQ
+                  </span>
+                )}
               </button>
             ))}
           </div>

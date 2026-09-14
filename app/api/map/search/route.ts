@@ -19,7 +19,58 @@ export async function GET(req: Request) {
       process.env.GOOGLE_MAPS_API_KEY ||
       process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-    // ── Tier 1: Google Places TextSearch (if API key configured) ──────
+    const locationiqKey =
+      process.env.LOCATIONIQ_API_KEY ||
+      process.env.NEXT_PUBLIC_LOCATIONIQ_API_KEY;
+
+    // ── Tier 1: LocationIQ Search / Autocomplete (if key configured) ──
+    if (locationiqKey && locationiqKey !== "your_locationiq_api_key_here") {
+      try {
+        const liqUrl = `https://us1.locationiq.com/v1/autocomplete?key=${locationiqKey}&q=${encodeURIComponent(
+          trimmedQuery
+        )}&viewbox=${IBADAN_VIEWBOX}&countrycodes=ng&limit=8&format=json`;
+
+        const liqRes = await fetch(liqUrl, {
+          signal: AbortSignal.timeout(4000),
+          next: { revalidate: 3600 },
+        });
+
+        if (liqRes.ok && liqRes.headers.get("content-type")?.includes("json")) {
+          const liqData = await liqRes.json();
+          if (Array.isArray(liqData) && liqData.length > 0) {
+            const results = liqData.map((item: any) => {
+              const addr = item.address || {};
+              const mainTitle =
+                item.display_place ||
+                addr.name ||
+                addr.road ||
+                item.display_name?.split(",")[0] ||
+                trimmedQuery;
+              const subtitle =
+                item.display_address ||
+                [addr.suburb, addr.city || "Ibadan", addr.state || "Oyo"]
+                  .filter(Boolean)
+                  .join(", ");
+
+              return {
+                place_id: item.place_id || item.osm_id?.toString() || Math.random().toString(),
+                display_name: item.display_name,
+                title: mainTitle,
+                subtitle: subtitle || "Ibadan, Nigeria",
+                lat: parseFloat(item.lat),
+                lng: parseFloat(item.lon),
+                source: "locationiq",
+              };
+            });
+            return NextResponse.json({ results, provider: "locationiq" });
+          }
+        }
+      } catch (liqErr: any) {
+        console.warn("[Map Search] LocationIQ error, falling back:", liqErr.message);
+      }
+    }
+
+    // ── Tier 2: Google Places TextSearch (if API key configured) ──────
     if (googleKey && googleKey !== "your_google_maps_api_key_here") {
       try {
         const searchQuery = trimmedQuery.toLowerCase().includes("ibadan")

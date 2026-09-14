@@ -19,7 +19,58 @@ export async function GET(req: Request) {
       process.env.GOOGLE_MAPS_API_KEY ||
       process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-    // ── Tier 1: Google Reverse Geocoding (if key is set) ──────────────
+    const locationiqKey =
+      process.env.LOCATIONIQ_API_KEY ||
+      process.env.NEXT_PUBLIC_LOCATIONIQ_API_KEY;
+
+    // ── Tier 1: LocationIQ Reverse Geocoding (if key configured) ──────
+    if (locationiqKey && locationiqKey !== "your_locationiq_api_key_here") {
+      try {
+        const liqUrl = `https://us1.locationiq.com/v1/reverse?key=${locationiqKey}&lat=${nLat}&lon=${nLng}&format=json&addressdetails=1`;
+        const liqRes = await fetch(liqUrl, {
+          signal: AbortSignal.timeout(4000),
+          headers: { "User-Agent": USER_AGENT },
+          next: { revalidate: 3600 },
+        });
+
+        if (liqRes.ok && liqRes.headers.get("content-type")?.includes("json")) {
+          const data = await liqRes.json();
+          const addr = data.address || {};
+          const street = addr.road || addr.street || addr.pedestrian || "";
+          const place =
+            addr.amenity ||
+            addr.building ||
+            addr.shop ||
+            addr.suburb ||
+            addr.neighbourhood ||
+            "";
+          const district = addr.city_district || addr.district || addr.suburb || "";
+          const city = addr.city || "Ibadan";
+
+          const parts = [
+            place !== street ? place : null,
+            street,
+            district,
+            city,
+          ].filter(Boolean);
+
+          const cleanAddress =
+            parts.length > 0 ? parts.join(", ") : data.display_name;
+
+          return NextResponse.json({
+            display_name: cleanAddress || data.display_name,
+            address: addr,
+            lat: nLat,
+            lng: nLng,
+            provider: "locationiq",
+          });
+        }
+      } catch (liqErr: any) {
+        console.warn("[Map Reverse] LocationIQ error, falling back:", liqErr.message);
+      }
+    }
+
+    // ── Tier 2: Google Reverse Geocoding (if key is set) ──────────────
     if (googleKey && googleKey !== "your_google_maps_api_key_here") {
       try {
         const googleUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${nLat},${nLng}&key=${googleKey}`;
