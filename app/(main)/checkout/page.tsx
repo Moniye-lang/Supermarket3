@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import {
   Truck, CreditCard, CheckCircle, User, ShieldCheck,
-  Phone, X, AlertCircle, Clock, Store, Lock,
+  Phone, X, AlertCircle, Clock, Store, Lock, MapPin,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CartContext } from "@/context/CartContext";
@@ -36,6 +36,7 @@ export default function Checkout() {
   // Delivery state
   const [method, setMethod] = useState("delivery");
   const [address, setAddress] = useState("");
+  const [additionalInfo, setAdditionalInfo] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [latitude, setLatitude]   = useState(7.3775);
@@ -116,6 +117,10 @@ export default function Checkout() {
     setLoading(true);
 
     try {
+      const fullAddress = additionalInfo.trim()
+        ? `${additionalInfo.trim()} — ${address}`
+        : address;
+
       const res = await fetch(`${API_URL}/api/orders`, {
         method: "POST",
         headers: {
@@ -125,7 +130,7 @@ export default function Checkout() {
         body: JSON.stringify({
           customerName,
           collectionMethod: method,
-          deliveryAddress: method === "delivery" ? address : `Store Pickup — Today, ${pickupSlot}`,
+          deliveryAddress: method === "delivery" ? fullAddress : `Store Pickup — Today, ${pickupSlot}`,
           customerPhone: phoneNumber || undefined,
           paymentMethod: "manual_transfer",
           deliveryFee: method === "delivery" ? deliveryFee : 0,
@@ -320,9 +325,40 @@ export default function Checkout() {
                         longitude={longitude}
                         deliveryFee={deliveryFee}
                         distanceKm={distanceKm}
+                        initialAddress={address}
                         onChange={handleMapChange}
                       />
                     </div>
+
+                    {/* Pinpointed Address & Landmark Details */}
+                    {address && (
+                      <div className="bg-brand-primary/5 border border-brand-primary/20 rounded-2xl p-4 space-y-3">
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-brand-primary/10 text-brand-primary flex items-center justify-center shrink-0 mt-0.5 font-bold">
+                            <MapPin size={16} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[11px] font-bold text-brand-primary uppercase tracking-wider">
+                              Pinpointed Delivery Location
+                            </p>
+                            <p className="text-sm font-semibold text-gray-900 break-words mt-0.5">
+                              {address}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Flat / House No. / Landmark / Gate notes <span className="text-gray-400 font-normal">(Optional)</span>
+                          </label>
+                          <Input
+                            placeholder="e.g. Flat 3B, White gate beside the pharmacy"
+                            value={additionalInfo}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAdditionalInfo(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </motion.div>
                 )}
 
@@ -485,8 +521,15 @@ export default function Checkout() {
               </p>
 
               {method === "delivery" && (
-                <div className="bg-violet-50 border border-violet-100 rounded-xl p-3 mb-4 text-xs text-violet-800 text-center">
-                  🛵 Delivery fee of <strong>₦{deliveryFee.toLocaleString()}</strong> is included in the total
+                <div className="bg-violet-50 border border-violet-100 rounded-xl p-3 mb-4 text-xs text-violet-800 space-y-1">
+                  <div>
+                    🛵 Delivery fee of <strong>₦{deliveryFee.toLocaleString()}</strong> is included in total
+                  </div>
+                  {address && (
+                    <div className="text-[11px] text-violet-700 truncate pt-1 border-t border-violet-200/50">
+                      📍 <strong>To:</strong> {additionalInfo ? `${additionalInfo} — ${address}` : address}
+                    </div>
+                  )}
                 </div>
               )}
 
