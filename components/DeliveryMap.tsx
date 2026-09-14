@@ -279,6 +279,21 @@ export default function DeliveryMap({
     [updatePosition]
   );
 
+  const liqKey = process.env.NEXT_PUBLIC_LOCATIONIQ_API_KEY;
+  const isLiqConfigured = Boolean(liqKey && liqKey.startsWith("pk."));
+
+  const tileUrl = isLiqConfigured
+    ? `https://{s}-tiles.locationiq.com/v3/${theme === "dark" ? "dark" : "streets"}/r/{z}/{x}/{y}.png?key=${liqKey}`
+    : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+  const tileSubdomains = isLiqConfigured
+    ? ["tiles1", "tiles2", "tiles3", "tiles4"]
+    : ["a", "b", "c"];
+
+  const tileAttribution = isLiqConfigured
+    ? '© <a href="https://locationiq.com" target="_blank" rel="noopener">LocationIQ</a> © OpenStreetMap'
+    : '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
+
   const routeLine: [number, number][] = [
     [STORE_LAT, STORE_LNG],
     [position[0], position[1]],
@@ -386,13 +401,10 @@ export default function DeliveryMap({
           zoomControl={true}
         >
           <TileLayer
-            key={theme}
-            url={
-              theme === "dark"
-                ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-            }
-            attribution="© OpenStreetMap © CartoDB"
+            key={`${theme}-${isLiqConfigured}`}
+            url={tileUrl}
+            subdomains={tileSubdomains}
+            attribution={tileAttribution}
           />
 
           {/* Route path from Store to Customer Pin */}

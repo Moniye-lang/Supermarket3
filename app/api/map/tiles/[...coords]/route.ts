@@ -18,14 +18,22 @@ export async function GET(
     const { searchParams } = new URL(req.url);
     const theme = searchParams.get("theme") || "light";
 
-    // Pick a subdomain randomly (a, b, c, d)
-    const subdomains = ["a", "b", "c", "d"];
-    const sub = subdomains[Math.floor(Math.random() * subdomains.length)];
-    
-    // Use CartoDB voyager style for light (similar to Google Maps/Chowdeck) and dark_all for dark
-    const tileUrl = theme === "dark"
-      ? `https://${sub}.basemaps.cartocdn.com/dark_all/${z}/${x}/${y}.png`
-      : `https://${sub}.basemaps.cartocdn.com/rastertiles/voyager/${z}/${x}/${y}.png`;
+    const liqKey =
+      process.env.LOCATIONIQ_API_KEY ||
+      process.env.NEXT_PUBLIC_LOCATIONIQ_API_KEY;
+
+    let tileUrl = "";
+
+    if (liqKey && liqKey.startsWith("pk.")) {
+      const liqSubdomains = ["tiles1", "tiles2", "tiles3", "tiles4"];
+      const sub = liqSubdomains[Math.floor(Math.random() * liqSubdomains.length)];
+      const style = theme === "dark" ? "dark" : "streets";
+      tileUrl = `https://${sub}-tiles.locationiq.com/v3/${style}/r/${z}/${x}/${y}.png?key=${liqKey}`;
+    } else {
+      const osmSubdomains = ["a", "b", "c"];
+      const sub = osmSubdomains[Math.floor(Math.random() * osmSubdomains.length)];
+      tileUrl = `https://${sub}.tile.openstreetmap.org/${z}/${x}/${y}.png`;
+    }
 
     const response = await fetch(tileUrl, {
       headers: {
