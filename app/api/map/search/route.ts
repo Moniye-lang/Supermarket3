@@ -23,7 +23,7 @@ export async function GET(req: Request) {
       process.env.LOCATIONIQ_API_KEY ||
       process.env.NEXT_PUBLIC_LOCATIONIQ_API_KEY;
 
-    // ── Tier 1: LocationIQ Search / Autocomplete (if key configured) ──
+    // ── Tier 1: LocationIQ Autocomplete (Fastest & Rich details) ─────
     if (locationiqKey && locationiqKey !== "your_locationiq_api_key_here") {
       try {
         const liqUrl = `https://us1.locationiq.com/v1/autocomplete?key=${locationiqKey}&q=${encodeURIComponent(
@@ -31,7 +31,7 @@ export async function GET(req: Request) {
         )}&viewbox=${IBADAN_VIEWBOX}&countrycodes=ng&limit=8&format=json`;
 
         const liqRes = await fetch(liqUrl, {
-          signal: AbortSignal.timeout(4000),
+          signal: AbortSignal.timeout(2000),
           next: { revalidate: 3600 },
         });
 
@@ -70,50 +70,14 @@ export async function GET(req: Request) {
       }
     }
 
-    // ── Tier 2: Google Places TextSearch (if API key configured) ──────
-    if (googleKey && googleKey !== "your_google_maps_api_key_here") {
-      try {
-        const searchQuery = trimmedQuery.toLowerCase().includes("ibadan")
-          ? trimmedQuery
-          : `${trimmedQuery}, Ibadan, Nigeria`;
-
-        const googleUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(
-          searchQuery
-        )}&location=${IBADAN_CENTER.lat},${IBADAN_CENTER.lng}&radius=25000&region=ng&key=${googleKey}`;
-
-        const gRes = await fetch(googleUrl, {
-          signal: AbortSignal.timeout(4000),
-          next: { revalidate: 3600 },
-        });
-
-        if (gRes.ok && gRes.headers.get("content-type")?.includes("json")) {
-          const gData = await gRes.json();
-          if (Array.isArray(gData.results) && gData.results.length > 0) {
-            const results = gData.results.slice(0, 8).map((item: any) => ({
-              place_id: item.place_id || item.id,
-              display_name: item.formatted_address || item.name,
-              title: item.name || trimmedQuery,
-              subtitle: item.formatted_address || "Ibadan, Oyo State",
-              lat: item.geometry?.location?.lat,
-              lng: item.geometry?.location?.lng,
-              source: "google",
-            }));
-            return NextResponse.json({ results, provider: "google" });
-          }
-        }
-      } catch (gErr: any) {
-        console.warn("[Map Search] Google API error, falling back:", gErr.message);
-      }
-    }
-
-    // ── Tier 2: Photon Search (Ultra-fast, accurate Nigerian streets/estates) ──
+    // ── Tier 2: Photon Search (Instant fallback for Nigerian streets/estates) ──
     try {
       const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(
         trimmedQuery
       )}&lat=${IBADAN_CENTER.lat}&lon=${IBADAN_CENTER.lng}&limit=8`;
 
       const pRes = await fetch(photonUrl, {
-        signal: AbortSignal.timeout(3500),
+        signal: AbortSignal.timeout(2500),
         headers: { "User-Agent": USER_AGENT },
         next: { revalidate: 3600 },
       });
@@ -153,7 +117,43 @@ export async function GET(req: Request) {
       console.warn("[Map Search] Photon error, falling back:", pErr.message);
     }
 
-    // ── Tier 3: Nominatim Search (Fallback) ───────────────────────────
+    // ── Tier 3: Google Places TextSearch (if API key configured without IP/referer restriction) ─
+    if (googleKey && googleKey !== "your_google_maps_api_key_here") {
+      try {
+        const searchQuery = trimmedQuery.toLowerCase().includes("ibadan")
+          ? trimmedQuery
+          : `${trimmedQuery}, Ibadan, Nigeria`;
+
+        const googleUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(
+          searchQuery
+        )}&location=${IBADAN_CENTER.lat},${IBADAN_CENTER.lng}&radius=25000&region=ng&key=${googleKey}`;
+
+        const gRes = await fetch(googleUrl, {
+          signal: AbortSignal.timeout(2500),
+          next: { revalidate: 3600 },
+        });
+
+        if (gRes.ok && gRes.headers.get("content-type")?.includes("json")) {
+          const gData = await gRes.json();
+          if (gData.status === "OK" && Array.isArray(gData.results) && gData.results.length > 0) {
+            const results = gData.results.slice(0, 8).map((item: any) => ({
+              place_id: item.place_id || item.id,
+              display_name: item.formatted_address || item.name,
+              title: item.name || trimmedQuery,
+              subtitle: item.formatted_address || "Ibadan, Oyo State",
+              lat: item.geometry?.location?.lat,
+              lng: item.geometry?.location?.lng,
+              source: "google",
+            }));
+            return NextResponse.json({ results, provider: "google" });
+          }
+        }
+      } catch (gErr: any) {
+        console.warn("[Map Search] Google API error, falling back:", gErr.message);
+      }
+    }
+
+    // ── Tier 4: Nominatim Search (Fallback) ───────────────────────────
     try {
       const searchQuery = trimmedQuery.toLowerCase().includes("ibadan")
         ? trimmedQuery

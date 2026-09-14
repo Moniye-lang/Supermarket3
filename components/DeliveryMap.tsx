@@ -207,33 +207,52 @@ export default function DeliveryMap({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Search autocomplete
-  const handleSearch = useCallback((q: string) => {
-    setSearchQuery(q);
-    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-    if (q.trim().length < 2) {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
+  const fetchSuggestions = useCallback(async (q: string) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
     }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
-    searchTimeout.current = setTimeout(async () => {
-      setSearching(true);
-      try {
-        const res = await fetch(`/api/map/search?q=${encodeURIComponent(q)}`);
-        const data = await res.json();
-        const results = data.results || [];
-        setSuggestions(results);
-        setShowSuggestions(results.length > 0);
-      } catch {
+    setSearching(true);
+    try {
+      const res = await fetch(`/api/map/search?q=${encodeURIComponent(q.trim())}`, {
+        signal: controller.signal,
+      });
+      const data = await res.json();
+      const results = data.results || [];
+      setSuggestions(results);
+      setShowSuggestions(results.length > 0);
+    } catch (err: any) {
+      if (err.name !== "AbortError") {
         setSuggestions([]);
         setShowSuggestions(false);
-      } finally {
-        setSearching(false);
       }
-    }, 300);
+    } finally {
+      setSearching(false);
+    }
   }, []);
+
+  // Search autocomplete
+  const handleSearch = useCallback(
+    (q: string) => {
+      setSearchQuery(q);
+      if (searchTimeout.current) clearTimeout(searchTimeout.current);
+
+      if (q.trim().length < 2) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
+
+      searchTimeout.current = setTimeout(() => {
+        fetchSuggestions(q);
+      }, 350);
+    },
+    [fetchSuggestions]
+  );
 
   function pickSuggestion(s: any) {
     const lat = Number(s.lat);
@@ -283,12 +302,8 @@ export default function DeliveryMap({
   const isLiqConfigured = Boolean(liqKey && liqKey.startsWith("pk."));
 
   const tileUrl = isLiqConfigured
-    ? `https://{s}-tiles.locationiq.com/v3/${theme === "dark" ? "dark" : "streets"}/r/{z}/{x}/{y}.png?key=${liqKey}`
-    : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-
-  const tileSubdomains = isLiqConfigured
-    ? ["tiles1", "tiles2", "tiles3", "tiles4"]
-    : ["a", "b", "c"];
+    ? `https://tiles.locationiq.com/v3/${theme === "dark" ? "dark" : "streets"}/r/{z}/{x}/{y}.png?key=${liqKey}`
+    : "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 
   const tileAttribution = isLiqConfigured
     ? '© <a href="https://locationiq.com" target="_blank" rel="noopener">LocationIQ</a> © OpenStreetMap'
@@ -310,7 +325,15 @@ export default function DeliveryMap({
             placeholder="Search address or area in Ibadan (e.g. Bodija, UI, Ring Road)..."
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
-            onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+            onFocus={() => {
+              if (searchQuery.trim().length >= 2) {
+                if (suggestions.length > 0) {
+                  setShowSuggestions(true);
+                } else {
+                  fetchSuggestions(searchQuery);
+                }
+              }
+            }}
             className="flex-1 bg-transparent outline-none text-sm text-gray-800 placeholder:text-gray-400 min-w-0"
           />
 
@@ -403,7 +426,6 @@ export default function DeliveryMap({
           <TileLayer
             key={`${theme}-${isLiqConfigured}`}
             url={tileUrl}
-            subdomains={tileSubdomains}
             attribution={tileAttribution}
           />
 
