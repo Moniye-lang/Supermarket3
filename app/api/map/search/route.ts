@@ -5,6 +5,10 @@ const IBADAN_VIEWBOX = "3.7500,7.5500,4.0800,7.2000";
 const IBADAN_CENTER = { lat: 7.3775, lng: 3.947 };
 const USER_AGENT = "AMstores/1.0 (contact: davidadeniyi269@gmail.com)";
 
+// In-memory cache for blazing fast repeat queries (<1ms response)
+const searchCache = new Map<string, { results: any[]; timestamp: number }>();
+const CACHE_TTL_MS = 1000 * 60 * 60; // 1 hour
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -15,30 +19,36 @@ export async function GET(req: Request) {
     }
 
     const trimmedQuery = q.trim();
-    const googleKey =
-      process.env.GOOGLE_MAPS_API_KEY ||
-      process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    const cacheKey = trimmedQuery.toLowerCase();
+
+    const cached = searchCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      return NextResponse.json({ results: cached.results, cached: true });
+    }
 
     const locationiqKey =
       process.env.LOCATIONIQ_API_KEY ||
       process.env.NEXT_PUBLIC_LOCATIONIQ_API_KEY;
 
-    // ── Tier 1: LocationIQ Autocomplete (Fastest & Rich details) ─────
-    if (locationiqKey && locationiqKey !== "your_locationiq_api_key_here") {
+    // Helper: LocationIQ fetcher
+    const fetchLocationIQ = async () => {
+      if (!locationiqKey || locationiqKey === "your_locationiq_api_key_here") {
+        return [];
+      }
       try {
         const liqUrl = `https://us1.locationiq.com/v1/autocomplete?key=${locationiqKey}&q=${encodeURIComponent(
           trimmedQuery
-        )}&viewbox=${IBADAN_VIEWBOX}&countrycodes=ng&limit=8&format=json`;
+        )}&viewbox=${IBADAN_VIEWBOX}&countrycodes=ng&limit=6&format=json`;
 
-        const liqRes = await fetch(liqUrl, {
+        const res = await fetch(liqUrl, {
           signal: AbortSignal.timeout(2000),
           next: { revalidate: 3600 },
         });
 
-        if (liqRes.ok && liqRes.headers.get("content-type")?.includes("json")) {
-          const liqData = await liqRes.json();
-          if (Array.isArray(liqData) && liqData.length > 0) {
-            const results = liqData.map((item: any) => {
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            return data.map((item: any) => {
               const addr = item.address || {};
               const mainTitle =
                 item.display_place ||
@@ -62,156 +72,88 @@ export async function GET(req: Request) {
                 source: "locationiq",
               };
             });
-            return NextResponse.json({ results, provider: "locationiq" });
           }
         }
-      } catch (liqErr: any) {
-        console.warn("[Map Search] LocationIQ error, falling back:", liqErr.message);
+      } catch (err: any) {
+        console.warn("[Map Search] LocationIQ parallel error:", err.message);
       }
-    }
+      return [];
+    };
 
-    // ── Tier 2: Photon Search (Instant fallback for Nigerian streets/estates) ──
-    try {
-      const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(
-        trimmedQuery
-      )}&lat=${IBADAN_CENTER.lat}&lon=${IBADAN_CENTER.lng}&limit=8`;
-
-      const pRes = await fetch(photonUrl, {
-        signal: AbortSignal.timeout(2500),
-        headers: { "User-Agent": USER_AGENT },
-        next: { revalidate: 3600 },
-      });
-
-      if (pRes.ok && pRes.headers.get("content-type")?.includes("json")) {
-        const pData = await pRes.json();
-        if (Array.isArray(pData.features) && pData.features.length > 0) {
-          const photonResults = pData.features.map((feat: any) => {
-            const props = feat.properties || {};
-            const coords = feat.geometry?.coordinates || [IBADAN_CENTER.lng, IBADAN_CENTER.lat];
-            const title = props.name || props.street || trimmedQuery;
-            const subtitle = [
-              props.locality || props.district,
-              props.city || props.county || "Ibadan",
-              props.state || "Oyo",
-            ]
-              .filter(Boolean)
-              .join(", ");
-
-            return {
-              place_id: props.osm_id?.toString() || Math.random().toString(),
-              display_name: [title, subtitle].filter(Boolean).join(", "),
-              title,
-              subtitle: subtitle || "Ibadan, Nigeria",
-              lat: coords[1],
-              lng: coords[0],
-              source: "photon",
-            };
-          });
-
-          if (photonResults.length > 0) {
-            return NextResponse.json({ results: photonResults, provider: "photon" });
-          }
-        }
-      }
-    } catch (pErr: any) {
-      console.warn("[Map Search] Photon error, falling back:", pErr.message);
-    }
-
-    // ── Tier 3: Google Places TextSearch (if API key configured without IP/referer restriction) ─
-    if (googleKey && googleKey !== "your_google_maps_api_key_here") {
+    // Helper: Photon fetcher
+    const fetchPhoton = async () => {
       try {
-        const searchQuery = trimmedQuery.toLowerCase().includes("ibadan")
-          ? trimmedQuery
-          : `${trimmedQuery}, Ibadan, Nigeria`;
+        const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(
+          trimmedQuery
+        )}&lat=${IBADAN_CENTER.lat}&lon=${IBADAN_CENTER.lng}&limit=6`;
 
-        const googleUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(
-          searchQuery
-        )}&location=${IBADAN_CENTER.lat},${IBADAN_CENTER.lng}&radius=25000&region=ng&key=${googleKey}`;
-
-        const gRes = await fetch(googleUrl, {
-          signal: AbortSignal.timeout(2500),
+        const res = await fetch(photonUrl, {
+          signal: AbortSignal.timeout(2000),
+          headers: { "User-Agent": USER_AGENT },
           next: { revalidate: 3600 },
         });
 
-        if (gRes.ok && gRes.headers.get("content-type")?.includes("json")) {
-          const gData = await gRes.json();
-          if (gData.status === "OK" && Array.isArray(gData.results) && gData.results.length > 0) {
-            const results = gData.results.slice(0, 8).map((item: any) => ({
-              place_id: item.place_id || item.id,
-              display_name: item.formatted_address || item.name,
-              title: item.name || trimmedQuery,
-              subtitle: item.formatted_address || "Ibadan, Oyo State",
-              lat: item.geometry?.location?.lat,
-              lng: item.geometry?.location?.lng,
-              source: "google",
-            }));
-            return NextResponse.json({ results, provider: "google" });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.features)) {
+            return data.features.map((feat: any) => {
+              const props = feat.properties || {};
+              const coords = feat.geometry?.coordinates || [IBADAN_CENTER.lng, IBADAN_CENTER.lat];
+              const title = props.name || props.street || trimmedQuery;
+              const subtitle = [
+                props.locality || props.district,
+                props.city || props.county || "Ibadan",
+                props.state || "Oyo",
+              ]
+                .filter(Boolean)
+                .join(", ");
+
+              return {
+                place_id: props.osm_id?.toString() || Math.random().toString(),
+                display_name: [title, subtitle].filter(Boolean).join(", "),
+                title,
+                subtitle: subtitle || "Ibadan, Nigeria",
+                lat: coords[1],
+                lng: coords[0],
+                source: "photon",
+              };
+            });
           }
         }
-      } catch (gErr: any) {
-        console.warn("[Map Search] Google API error, falling back:", gErr.message);
+      } catch (err: any) {
+        console.warn("[Map Search] Photon parallel error:", err.message);
+      }
+      return [];
+    };
+
+    // Run both LocationIQ and Photon in parallel for maximum speed & completeness
+    const [liqResults, photonResults] = await Promise.all([
+      fetchLocationIQ(),
+      fetchPhoton(),
+    ]);
+
+    // Merge and deduplicate by title / coordinates
+    const combined: any[] = [];
+    const seenTitles = new Set<string>();
+
+    for (const item of [...liqResults, ...photonResults]) {
+      const normalizedTitle = (item.title || "").toLowerCase().trim();
+      if (!seenTitles.has(normalizedTitle) && item.lat && item.lng) {
+        seenTitles.add(normalizedTitle);
+        combined.push(item);
       }
     }
 
-    // ── Tier 4: Nominatim Search (Fallback) ───────────────────────────
-    try {
-      const searchQuery = trimmedQuery.toLowerCase().includes("ibadan")
-        ? trimmedQuery
-        : `${trimmedQuery}, Ibadan`;
-
-      const nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
-        searchQuery
-      )}&format=json&addressdetails=1&limit=8&viewbox=${IBADAN_VIEWBOX}&bounded=0&countrycodes=ng`;
-
-      const response = await fetch(nominatimUrl, {
-        signal: AbortSignal.timeout(3000),
-        headers: {
-          "User-Agent": USER_AGENT,
-          "Accept-Language": "en",
-        },
-        next: { revalidate: 3600 },
+    // Cache the top 8 results
+    const finalResults = combined.slice(0, 8);
+    if (finalResults.length > 0) {
+      searchCache.set(cacheKey, {
+        results: finalResults,
+        timestamp: Date.now(),
       });
-
-      if (response.ok && response.headers.get("content-type")?.includes("json")) {
-        const data = await response.json();
-        if (Array.isArray(data) && data.length > 0) {
-          const results = data.map((item: any) => {
-            const addr = item.address || {};
-            const mainName =
-              addr.amenity ||
-              addr.building ||
-              addr.shop ||
-              addr.road ||
-              addr.suburb ||
-              item.name ||
-              trimmedQuery;
-
-            const area = [
-              addr.suburb || addr.neighbourhood || addr.city_district,
-              addr.city || "Ibadan",
-            ]
-              .filter(Boolean)
-              .join(", ");
-
-            return {
-              place_id: item.place_id,
-              display_name: item.display_name,
-              title: mainName,
-              subtitle: area || "Ibadan, Oyo State",
-              lat: parseFloat(item.lat),
-              lng: parseFloat(item.lon),
-              source: "osm",
-            };
-          });
-
-          return NextResponse.json({ results, provider: "osm" });
-        }
-      }
-    } catch (nErr: any) {
-      console.warn("[Map Search] Nominatim error:", nErr.message);
     }
 
-    return NextResponse.json({ results: [] });
+    return NextResponse.json({ results: finalResults });
   } catch (error: any) {
     console.error("[Map Search API Error]:", error.message);
     return NextResponse.json({ results: [], error: error.message }, { status: 500 });
