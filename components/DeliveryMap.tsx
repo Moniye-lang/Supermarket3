@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 import { Search, Navigation, MapPin, Loader2, X, Compass, Layers } from "lucide-react";
 
 import {
@@ -42,27 +43,126 @@ export default function DeliveryMap({
   const [geocoding, setGeocoding] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [locatingGps, setLocatingGps] = useState(false);
+  const [theme, setTheme] = useState("light");
+  const [routeDistanceKm, setRouteDistanceKm] = useState<number | null>(null);
+  const [routeDurationMins, setRouteDurationMins] = useState<number | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [mapError, setMapError] = useState<string | null>(null);
-  const [mapType, setMapType] = useState<"roadmap" | "hybrid">("roadmap");
-  const [routeDuration, setRouteDuration] = useState<string | null>(null);
-  const [drivingDistanceKm, setDrivingDistanceKm] = useState<number | null>(null);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const customerMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const storeMarkerRef = useRef<mapboxgl.Marker | null>(null);
+
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const googleMapRef = useRef<google.maps.Map | null>(null);
-  const customerMarkerRef = useRef<google.maps.Marker | null>(null);
-  const storeMarkerRef = useRef<google.maps.Marker | null>(null);
-  const directionsRendererRef = useRef<google.maps.DirectionsRenderer | null>(null);
-  const directionsServiceRef = useRef<google.maps.DirectionsService | null>(null);
+  const liqKey =
+    process.env.NEXT_PUBLIC_LOCATIONIQ_API_KEY ||
+    process.env.LOCATIONIQ_API_KEY ||
+    "pk.b7b8fe4d83aeeede8f82ee02201b9597";
 
-  const googleKey =
-    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
-    process.env.GOOGLE_MAPS_API_KEY ||
-    "";
+  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
+
+  // Theme observer for dark/light map styling
+  useEffect(() => {
+    const isDark = document.documentElement.classList.contains("dark");
+    setTheme(isDark ? "dark" : "light");
+
+    const observer = new MutationObserver(() => {
+      const isCurrentlyDark = document.documentElement.classList.contains("dark");
+      setTheme(isCurrentlyDark ? "dark" : "light");
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  // Update driving road polyline on Mapbox canvas
+  const updateRouteLineOnMap = useCallback(
+    (coords: [number, number][]) => {
+      if (!mapRef.current) return;
+      const map = mapRef.current;
+
+      const geojsonData: GeoJSON.Feature<GeoJSON.LineString> = {
+        type: "Feature",
+        properties: {},
+        geometry: {
+          type: "LineString",
+          coordinates: coords.map(([lat, lng]) => [lng, lat]), // Mapbox expects [lng, lat]
+        },
+      };
+
+      const source = map.getSource("driving-route") as mapboxgl.GeoJSONSource | undefined;
+      if (source) {
+        source.setData(geojsonData);
+      } else if (map.isStyleLoaded()) {
+        map.addSource("driving-route", {
+          type: "geojson",
+          data: geojsonData,
+        });
+
+        map.addLayer({
+          id: "driving-route-glow",
+          type: "line",
+          source: "driving-route",
+          layout: {
+            "line-join": "round",
+            "line-cap": "round",
+          },
+          paint: {
+            "line-color": "#c084fc",
+            "line-width": 8,
+            "line-opacity": 0.35,
+            "line-blur": 3,
+          },
+        });
+
+        map.addLayer({
+          id: "driving-route-line",
+          type: "line",
+          source: "driving-route",
+          layout: {
+            "line-join": "round",
+            "line-cap": "round",
+          },
+          paint: {
+            "line-color": "#7c3aed",
+            "line-width": 4.5,
+            "line-opacity": 0.9,
+          },
+        });
+      }
+    },
+    []
+  );
+
+  // Fetch real road route geometry
+  const fetchRoadRoute = useCallback(
+    async (lat: number, lng: number) => {
+      try {
+        const res = await fetch(
+          `/api/map/directions?fromLat=${STORE_LAT}&fromLng=${STORE_LNG}&toLat=${lat}&toLng=${lng}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.coordinates) && data.coordinates.length > 0) {
+            updateRouteLineOnMap(data.coordinates);
+            if (data.distanceKm) setRouteDistanceKm(data.distanceKm);
+            if (data.durationMins) setRouteDurationMins(data.durationMins);
+            return;
+          }
+        }
+        updateRouteLineOnMap([]);
+      } catch {
+        updateRouteLineOnMap([]);
+      }
+    },
+    [updateRouteLineOnMap]
+  );
 
   // Reverse geocode and update coordinates
   const updatePosition = useCallback(
@@ -70,47 +170,20 @@ export default function DeliveryMap({
       setPosition([lat, lng]);
       setGeocoding(true);
 
-      // Pan map smoothly to new position
-      if (googleMapRef.current) {
-        googleMapRef.current.panTo({ lat, lng });
+      if (mapRef.current) {
+        mapRef.current.easeTo({
+          center: [lng, lat],
+          duration: 800,
+        });
       }
 
-      // Update customer marker position
       if (customerMarkerRef.current) {
-        customerMarkerRef.current.setPosition({ lat, lng });
+        customerMarkerRef.current.setLngLat([lng, lat]);
       }
 
+      fetchRoadRoute(lat, lng);
       const km = haversineKm(STORE_LAT, STORE_LNG, lat, lng);
       const fee = calcDeliveryFee(km);
-
-      // Calculate real road driving route on Google Maps
-      if (directionsServiceRef.current && directionsRendererRef.current) {
-        directionsServiceRef.current.route(
-          {
-            origin: { lat: STORE_LAT, lng: STORE_LNG },
-            destination: { lat, lng },
-            travelMode: google.maps.TravelMode.DRIVING,
-          },
-          (result: any, status: any) => {
-            if (status === "OK" && result) {
-              directionsRendererRef.current?.setDirections(result);
-              const leg = result.routes?.[0]?.legs?.[0];
-              if (leg) {
-                if (leg.distance?.value) {
-                  setDrivingDistanceKm(leg.distance.value / 1000);
-                }
-                if (leg.duration?.text) {
-                  setRouteDuration(leg.duration.text);
-                }
-              }
-            } else {
-              // Clear route if no driving path available
-              directionsRendererRef.current?.setDirections({ routes: [] } as any);
-              setRouteDuration(null);
-            }
-          }
-        );
-      }
 
       if (manualAddress) {
         setSearchQuery(manualAddress);
@@ -137,175 +210,107 @@ export default function DeliveryMap({
         setGeocoding(false);
       }
     },
-    [onChange]
+    [onChange, fetchRoadRoute]
   );
 
-  // Initialize Google Maps
-  useEffect(() => {
-    if (!mapContainerRef.current || googleMapRef.current) return;
+  // Helper to create HTML marker elements
+  const createMarkerElement = (bgColor: string, emoji: string, isDraggable: boolean) => {
+    const el = document.createElement("div");
+    el.className = "mapbox-custom-pin";
+    el.style.cssText = `
+      position: relative;
+      width: 38px;
+      height: 38px;
+      background: ${bgColor};
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      border: 3px solid #FFFFFF;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: ${isDraggable ? "grab" : "pointer"};
+      transition: transform 0.15s ease;
+    `;
 
-    if (!googleKey) {
-      setMapError("No Google Maps API key provided in .env.local");
-      return;
+    const span = document.createElement("span");
+    span.style.cssText = "transform: rotate(45deg); font-size: 16px; user-select: none;";
+    span.innerText = emoji;
+    el.appendChild(span);
+
+    return el;
+  };
+
+  // Initialize Mapbox GL
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+
+    if (mapboxToken) {
+      mapboxgl.accessToken = mapboxToken;
     }
 
-    setOptions({
-      key: googleKey,
-      v: "weekly",
+    // Determine style: Mapbox standard or LocationIQ Vector (no token required)
+    const styleUrl = mapboxToken
+      ? theme === "dark"
+        ? "mapbox://styles/mapbox/dark-v11"
+        : "mapbox://styles/mapbox/streets-v12"
+      : `https://tiles.locationiq.com/v3/${theme === "dark" ? "dark" : "streets"}/vector.json?key=${liqKey}`;
+
+    const map = new mapboxgl.Map({
+      container: mapContainerRef.current,
+      style: styleUrl,
+      center: [position[1], position[0]], // [lng, lat]
+      zoom: 14.5,
+      pitch: 25,
+      attributionControl: false,
     });
 
-    Promise.all([
-      importLibrary("maps"),
-      importLibrary("marker"),
-      importLibrary("routes"),
-    ])
-      .then(async () => {
-        if (!mapContainerRef.current) return;
+    // Add navigation controls (zoom & rotate)
+    map.addControl(new mapboxgl.NavigationControl({ showCompass: true }), "top-right");
 
-        const isDark = document.documentElement.classList.contains("dark");
+    // Add Store Marker
+    const storeEl = createMarkerElement("#DC2626", "🏪", false);
+    const storeMarker = new mapboxgl.Marker({ element: storeEl, anchor: "bottom" })
+      .setLngLat([STORE_LNG, STORE_LAT])
+      .addTo(map);
+    storeMarkerRef.current = storeMarker;
 
-        const map = new google.maps.Map(mapContainerRef.current, {
-          center: { lat: position[0], lng: position[1] },
-          zoom: 15,
-          mapTypeId: mapType === "hybrid" ? google.maps.MapTypeId.HYBRID : google.maps.MapTypeId.ROADMAP,
-          disableDefaultUI: true,
-          zoomControl: true,
-          fullscreenControl: false,
-          streetViewControl: false,
-          gestureHandling: "greedy",
-          styles: isDark
-            ? [
-                { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
-                { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
-                { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
-                {
-                  featureType: "administrative.locality",
-                  elementType: "labels.text.fill",
-                  stylers: [{ color: "#d59563" }],
-                },
-                {
-                  featureType: "road",
-                  elementType: "geometry",
-                  stylers: [{ color: "#38414e" }],
-                },
-                {
-                  featureType: "road",
-                  elementType: "geometry.stroke",
-                  stylers: [{ color: "#212a37" }],
-                },
-                {
-                  featureType: "road",
-                  elementType: "labels.text.fill",
-                  stylers: [{ color: "#9ca5b3" }],
-                },
-                {
-                  featureType: "water",
-                  elementType: "geometry",
-                  stylers: [{ color: "#17263c" }],
-                },
-              ]
-            : undefined,
-        });
+    // Add Draggable Customer Pin
+    const customerEl = createMarkerElement("#7C3AED", "📍", true);
+    const customerMarker = new mapboxgl.Marker({
+      element: customerEl,
+      draggable: true,
+      anchor: "bottom",
+    })
+      .setLngLat([position[1], position[0]])
+      .addTo(map);
 
-        googleMapRef.current = map;
+    customerMarker.on("dragend", () => {
+      const lngLat = customerMarker.getLngLat();
+      updatePosition(lngLat.lat, lngLat.lng);
+    });
 
-        // Store Pin (Red Marker)
-        const storeMarker = new google.maps.Marker({
-          position: { lat: STORE_LAT, lng: STORE_LNG },
-          map,
-          title: "AMstores Hub",
-          icon: {
-            url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 38 48" width="38" height="48">
-                <path d="M19 0C8.5 0 0 8.5 0 19C0 33 19 48 19 48S38 33 38 19C38 8.5 29.5 0 19 0Z" fill="#DC2626"/>
-                <circle cx="19" cy="19" r="14" fill="#FFFFFF"/>
-                <text x="19" y="24" font-size="14" text-anchor="middle">🏪</text>
-              </svg>
-            `),
-            scaledSize: new google.maps.Size(38, 48),
-            anchor: new google.maps.Point(19, 48),
-          },
-        });
-        storeMarkerRef.current = storeMarker;
+    customerMarkerRef.current = customerMarker;
 
-        // Customer Delivery Pin (Purple Draggable Marker)
-        const customerMarker = new google.maps.Marker({
-          position: { lat: position[0], lng: position[1] },
-          map,
-          draggable: true,
-          title: "Your Delivery Pin (Drag to relocate)",
-          animation: google.maps.Animation.DROP,
-          icon: {
-            url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42 52" width="42" height="52">
-                <path d="M21 0C9.4 0 0 9.4 0 21C0 36 21 52 21 52S42 36 42 21C42 9.4 32.6 0 21 0Z" fill="#7C3AED"/>
-                <circle cx="21" cy="21" r="16" fill="#FFFFFF"/>
-                <text x="21" y="27" font-size="16" text-anchor="middle">📍</text>
-              </svg>
-            `),
-            scaledSize: new google.maps.Size(42, 52),
-            anchor: new google.maps.Point(21, 52),
-          },
-        });
-        customerMarkerRef.current = customerMarker;
+    // Map click reposition
+    map.on("click", (e) => {
+      updatePosition(e.lngLat.lat, e.lngLat.lng);
+    });
 
-        // Marker drag end listener
-        customerMarker.addListener("dragend", (e: google.maps.MapMouseEvent) => {
-          if (e.latLng) {
-            updatePosition(e.latLng.lat(), e.latLng.lng());
-          }
-        });
+    map.on("load", () => {
+      setMapLoaded(true);
+      fetchRoadRoute(position[0], position[1]);
+    });
 
-        // Click map to reposition pin
-        map.addListener("click", (e: google.maps.MapMouseEvent) => {
-          if (e.latLng) {
-            updatePosition(e.latLng.lat(), e.latLng.lng());
-          }
-        });
+    mapRef.current = map;
 
-        // Directions renderer for real road routing
-        const dirService = new google.maps.DirectionsService();
-        const dirRenderer = new google.maps.DirectionsRenderer({
-          map,
-          suppressMarkers: true,
-          polylineOptions: {
-            strokeColor: "#7c3aed",
-            strokeWeight: 5,
-            strokeOpacity: 0.85,
-          },
-        });
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+  }, []);
 
-        directionsServiceRef.current = dirService;
-        directionsRendererRef.current = dirRenderer;
-
-        // Initial route draw
-        dirService.route(
-          {
-            origin: { lat: STORE_LAT, lng: STORE_LNG },
-            destination: { lat: position[0], lng: position[1] },
-            travelMode: google.maps.TravelMode.DRIVING,
-          },
-          (res: any, status: any) => {
-            if (status === "OK" && res) {
-              dirRenderer.setDirections(res);
-              const leg = res.routes?.[0]?.legs?.[0];
-              if (leg) {
-                if (leg.distance?.value) setDrivingDistanceKm(leg.distance.value / 1000);
-                if (leg.duration?.text) setRouteDuration(leg.duration.text);
-              }
-            }
-          }
-        );
-
-        setMapLoaded(true);
-      })
-      .catch((err: any) => {
-        console.error("Google Maps load error:", err);
-        setMapError(err.message || "Could not load Google Maps");
-      });
-  }, [googleKey, mapType, position, updatePosition]);
-
-  // Handle external lat/lng prop updates
+  // Sync external coordinates
   useEffect(() => {
     if (
       Math.abs(latitude - position[0]) > 0.0001 ||
@@ -313,13 +318,14 @@ export default function DeliveryMap({
     ) {
       setPosition([latitude, longitude]);
       if (customerMarkerRef.current) {
-        customerMarkerRef.current.setPosition({ lat: latitude, lng: longitude });
+        customerMarkerRef.current.setLngLat([longitude, latitude]);
       }
-      if (googleMapRef.current) {
-        googleMapRef.current.panTo({ lat: latitude, lng: longitude });
+      if (mapRef.current) {
+        mapRef.current.easeTo({ center: [longitude, latitude], duration: 800 });
       }
+      fetchRoadRoute(latitude, longitude);
     }
-  }, [latitude, longitude, position]);
+  }, [latitude, longitude, position, fetchRoadRoute]);
 
   // Autocomplete suggestions fetcher
   const fetchSuggestions = useCallback(async (q: string) => {
@@ -388,7 +394,7 @@ export default function DeliveryMap({
       (err) => {
         setLocatingGps(false);
         console.warn("Geolocation denied:", err.message);
-        alert("Could not fetch GPS location. Please drag the pin on Google Maps.");
+        alert("Could not fetch GPS location. Please drag the pin on the map.");
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -472,7 +478,7 @@ export default function DeliveryMap({
         {/* ── Suggestions Dropdown ────────────────────────────────────────────── */}
         {showSuggestions && suggestions.length > 0 && (
           <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden divide-y divide-gray-50 max-h-64 overflow-y-auto">
-            {suggestions.map((s, i) => (
+            {suggestions.map((s: any, i: number) => (
               <button
                 key={s.place_id || i}
                 type="button"
@@ -506,57 +512,31 @@ export default function DeliveryMap({
         )}
       </div>
 
-      {/* ── Google Maps Canvas ─────────────────────────────────────────────── */}
+      {/* ── Mapbox GL Canvas ────────────────────────────────────────────────── */}
       <div
         className="relative rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-gray-100"
         style={{ height: 340 }}
       >
         <div ref={mapContainerRef} className="w-full h-full" />
 
-        {!mapLoaded && !mapError && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+        {!mapLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-50/90 backdrop-blur-xs">
             <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
               <Loader2 size={18} className="animate-spin text-brand-primary" />
-              <span>Loading Google Maps...</span>
+              <span>Loading 3D vector map...</span>
             </div>
           </div>
         )}
 
-        {mapError && (
-          <div className="absolute inset-0 flex items-center justify-center bg-red-50 p-4 text-center">
-            <p className="text-xs text-red-600">{mapError}</p>
-          </div>
-        )}
-
-        {/* ── Map Controls: Satellite Toggle & Recenter ────────────────────────── */}
-        <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              const nextType = mapType === "roadmap" ? "hybrid" : "roadmap";
-              setMapType(nextType);
-              if (googleMapRef.current) {
-                googleMapRef.current.setMapTypeId(
-                  nextType === "hybrid" ? google.maps.MapTypeId.HYBRID : google.maps.MapTypeId.ROADMAP
-                );
-              }
-            }}
-            className="bg-white/95 backdrop-blur-md text-gray-700 hover:text-brand-primary px-3 py-2 rounded-xl shadow-md border border-gray-100 text-xs font-semibold flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95"
-            title="Toggle Satellite / Normal view"
-          >
-            <Layers size={14} />
-            <span>{mapType === "hybrid" ? "Map" : "Satellite"}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => updatePosition(position[0], position[1])}
-            className="bg-white/95 backdrop-blur-md text-gray-700 hover:text-brand-primary p-2.5 rounded-xl shadow-md border border-gray-100 transition-all hover:scale-105 active:scale-95"
-            title="Recenter on delivery pin"
-          >
-            <Compass size={16} />
-          </button>
-        </div>
+        {/* ── Recenter Pin Button ───────────────────────────────────────────── */}
+        <button
+          type="button"
+          onClick={() => updatePosition(position[0], position[1])}
+          className="absolute top-3 right-14 z-10 bg-white/95 backdrop-blur-md text-gray-700 hover:text-brand-primary p-2.5 rounded-xl shadow-md border border-gray-100 transition-all hover:scale-105 active:scale-95"
+          title="Recenter on delivery pin"
+        >
+          <Compass size={16} />
+        </button>
 
         {/* ── Map Legend Overlay ────────────────────────────────────────────── */}
         <div className="absolute bottom-3 left-3 z-10 bg-white/95 backdrop-blur-md rounded-xl shadow-md border border-gray-100 px-3 py-2 flex flex-col gap-1.5 text-xs font-medium text-gray-700 pointer-events-none">
@@ -587,11 +567,11 @@ export default function DeliveryMap({
           <span className="text-xl">🛵</span>
           <div>
             <p className="font-semibold text-gray-900 leading-tight">
-              {(drivingDistanceKm || distanceKm).toFixed(1)} km from store
+              {(routeDistanceKm || distanceKm).toFixed(1)} km from store
             </p>
             <p className="text-xs text-gray-500">
-              {routeDuration
-                ? `Google estimated drive: ~${routeDuration}`
+              {routeDurationMins
+                ? `Estimated drive: ~${routeDurationMins} mins`
                 : "Estimated delivery: 25–40 mins"}
             </p>
           </div>
@@ -608,7 +588,7 @@ export default function DeliveryMap({
       <p className="text-xs text-gray-500 flex items-center gap-1.5 px-1">
         <MapPin size={13} className="text-violet-600 shrink-0" />
         <span>
-          <strong>Tip:</strong> Drag the purple pin or tap anywhere on Google Maps to pinpoint your exact gate or street.
+          <strong>Tip:</strong> Drag the purple pin or tap anywhere on the map to pinpoint your exact gate or street.
         </span>
       </p>
     </div>

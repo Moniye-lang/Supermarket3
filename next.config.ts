@@ -10,6 +10,20 @@ const nextConfig: NextConfig = {
   },
   compress: true,
   reactStrictMode: true,
+  env: {
+    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:
+      process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
+      process.env.GOOGLE_MAPS_API_KEY ||
+      "",
+    NEXT_PUBLIC_LOCATIONIQ_API_KEY:
+      process.env.NEXT_PUBLIC_LOCATIONIQ_API_KEY ||
+      process.env.LOCATIONIQ_API_KEY ||
+      "",
+    NEXT_PUBLIC_MAPBOX_TOKEN:
+      process.env.NEXT_PUBLIC_MAPBOX_TOKEN ||
+      process.env.MAPBOX_ACCESS_TOKEN ||
+      "",
+  },
   outputFileTracingRoot: path.resolve(__dirname),
   turbopack: {
     root: path.resolve(__dirname),
