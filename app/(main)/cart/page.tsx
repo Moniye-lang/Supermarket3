@@ -128,7 +128,7 @@ export default function Cart() {
                     <span className="font-semibold text-gray-900">₦{totalPrice.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
-                    <span>Delivery</span>
+                    <span>Store Pickup</span>
                     <span className="text-green-600 font-medium">Free</span>
                   </div>
                   <div className="flex justify-between text-gray-600">

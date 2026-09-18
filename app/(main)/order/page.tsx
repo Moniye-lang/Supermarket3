@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle, Clock, XCircle, Package, Truck, ShoppingBag,
   MapPin, ChevronRight, ChevronDown, PackageOpen,
-  Calendar, User, Hash, History, Loader2, ReceiptText, Phone
+  Calendar, User, Hash, History, Loader2, ReceiptText, Phone, Store, PhoneCall
 } from "lucide-react";
 import dynamic from "next/dynamic";
 
@@ -207,11 +207,13 @@ function InfoGrid({ order, orderType }: { order: any; orderType: string }) {
 
 // History badge helper
 const HIST_STATUS: Record<string, { bg: string; color: string; label: string }> = {
-  delivered:  { bg: "bg-green-50",  color: "text-green-700",  label: "Delivered"  },
+  delivered:  { bg: "bg-green-50",  color: "text-green-700",  label: "Picked Up"  },
   picked_up:  { bg: "bg-green-50",  color: "text-green-700",  label: "Picked Up"  },
   completed:  { bg: "bg-green-50",  color: "text-green-700",  label: "Completed"  },
   cancelled:  { bg: "bg-red-50",    color: "text-red-700",    label: "Cancelled"  },
-  packing:    { bg: "bg-orange-50", color: "text-orange-700", label: "Packing"    },
+  ready_for_pickup: { bg: "bg-emerald-50", color: "text-emerald-700", label: "Ready for Pickup" },
+  ready:      { bg: "bg-emerald-50", color: "text-emerald-700", label: "Ready for Pickup" },
+  packing:    { bg: "bg-orange-50", color: "text-orange-700", label: "Preparing"  },
   pending:    { bg: "bg-amber-50",  color: "text-amber-700",  label: "Pending"    },
 };
 
@@ -269,13 +271,22 @@ function HistoryList({ token }: { token: string | null }) {
             onClick={() => setExpanded(prev => prev === order._id ? null : order._id)}
           >
             <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${order.collectionMethod === "delivery" ? "bg-blue-50 border-blue-100 text-blue-500" : "bg-orange-50 border-orange-100 text-orange-500"}`}>
-                {order.collectionMethod === "delivery" ? <Truck size={20} /> : <MapPin size={20} />}
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border bg-emerald-50 border-emerald-100 text-emerald-600">
+                <Store size={20} />
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-extrabold text-brand-dark truncate">{order.collectionMethod === "pickup" ? "Store Pickup" : "Home Delivery"} — #{order.pickupCode || order._id?.slice(-6)}</p>
+                <p className="text-sm font-extrabold text-brand-dark truncate">Store Pickup — #{order.pickupCode || order._id?.slice(-6)?.toUpperCase()}</p>
                 <p className="text-xs text-brand-muted mt-1 flex items-center gap-1"><Calendar size={12} /> {new Date(order.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</p>
-                <div className="mt-2"><HistoryBadge status={order.status || (order.fulfilled ? "completed" : "pending")} /></div>
+                <div className="mt-2 flex items-center gap-2">
+                  <HistoryBadge status={order.status || (order.fulfilled ? "completed" : "pending")} />
+                  <a
+                    href="tel:08023434790"
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full transition-colors"
+                  >
+                    <PhoneCall size={10} /> Call Store
+                  </a>
+                </div>
               </div>
             </div>
             <div className="flex flex-col items-end gap-1 shrink-0 ml-4">
@@ -314,19 +325,19 @@ function HistoryList({ token }: { token: string | null }) {
                       {order.customerPhone && <p className="text-brand-muted mt-0.5">{order.customerPhone}</p>}
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider">{order.collectionMethod === "delivery" ? "Delivery Destination" : "Pickup Details"}</p>
-                      {order.collectionMethod === "delivery" ? (
-                        <p className="font-bold text-brand-dark mt-0.5">{order.deliveryAddress || "—"}</p>
-                      ) : (
-                        <div className="space-y-0.5 mt-0.5">
-                          <p className="font-bold text-brand-dark">Code: {order.pickupCode}</p>
-                          {order.deliveryAddress && order.deliveryAddress.includes("Pickup Station (Time:") && (
-                            <p className="font-semibold text-brand-primary text-[10px]">
-                              Time: {order.deliveryAddress.replace("Pickup Station (Time: ", "").replace(")", "")}
-                            </p>
-                          )}
+                      <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider">Pickup Details</p>
+                      <div className="space-y-0.5 mt-0.5">
+                        <p className="font-bold text-emerald-800">Code: <span className="font-mono bg-emerald-100 px-1.5 py-0.5 rounded text-[11px]">{order.pickupCode || order.code || "PENDING"}</span></p>
+                        <p className="text-[11px] text-gray-600">AMStores — General Gas Rd, Akobo</p>
+                        <div className="mt-2">
+                          <a
+                            href="tel:08023434790"
+                            className="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-sm transition-colors"
+                          >
+                            <PhoneCall size={11} /> Call Store (08023434790)
+                          </a>
                         </div>
-                      )}
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { motion } from "framer-motion";
-import { Clock, MapPin, Truck, CheckCircle, CreditCard, ShoppingBag, ChevronRight, PackageOpen } from "lucide-react";
+import { Clock, MapPin, Store, CheckCircle, CreditCard, ShoppingBag, ChevronRight, PackageOpen, PhoneCall } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
@@ -65,15 +65,18 @@ export default function History() {
     return { monthly: monthlyArr.reverse(), categories: categoriesArr, totalSpend: total };
   }, [orders]);
 
-  const getStatusBadge = (status: string, method: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending": return <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 w-fit"><Clock size={12} /> Pending</span>;
-      case "processing": return <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 w-fit"><Truck size={12} /> Processing</span>;
+      case "processing":
+      case "packing": return <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 w-fit"><Store size={12} /> Preparing Order</span>;
+      case "ready":
+      case "ready_for_pickup": return <span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 w-fit"><CheckCircle size={12} /> Ready for Pickup</span>;
       case "picked_up":
       case "delivered":
-      case "completed": return <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 w-fit"><CheckCircle size={12} /> {method === "pickup" ? "Picked Up" : "Delivered"}</span>;
+      case "completed": return <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 w-fit"><CheckCircle size={12} /> Picked Up</span>;
       case "cancelled": return <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold w-fit">Cancelled</span>;
-      default: return <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-bold w-fit capitalize">{status}</span>;
+      default: return <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-bold w-fit capitalize">{status?.replace(/_/g, " ")}</span>;
     }
   };
 
@@ -184,13 +187,23 @@ export default function History() {
                   <div key={order._id} className="group rounded-2xl border border-gray-100 hover:border-brand-primary/20 hover:shadow-md transition-all bg-white overflow-hidden">
                     <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer" onClick={() => setExpandedOrderId(prev => prev === order._id ? null : order._id)}>
                       <div className="flex items-start gap-4">
-                        <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shrink-0", order.collectionMethod === "delivery" ? "bg-blue-50 text-blue-500" : "bg-orange-50 text-orange-500")}>
-                          {order.collectionMethod === "delivery" ? <Truck size={24} /> : <MapPin size={24} />}
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-emerald-50 text-emerald-600 border border-emerald-100">
+                          <Store size={24} />
                         </div>
                         <div>
-                          <p className="font-bold text-gray-900">{order.collectionMethod === "pickup" ? "Pickup" : "Delivery"} Order #{order.code || order.pickupCode}</p>
+                          <p className="font-bold text-gray-900">Store Pickup Order #{order.pickupCode || order.code || (order._id ? order._id.slice(-6).toUpperCase() : "")}</p>
                           <p className="text-xs text-gray-500 mt-1">{new Date(order.createdAt).toLocaleString()}</p>
-                          <div className="mt-2">{getStatusBadge(order.status || (order.fulfilled ? "completed" : "pending"), order.collectionMethod)}</div>
+                          <div className="mt-2 flex items-center gap-2 flex-wrap">
+                            {getStatusBadge(order.status || (order.fulfilled ? "completed" : "pending"))}
+                            <a
+                              href="tel:08023434790"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-full transition-colors"
+                              title="Call AMStores for pickup"
+                            >
+                              <PhoneCall size={11} /> Call Store
+                            </a>
+                          </div>
                         </div>
                       </div>
                       <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 pt-4 sm:pt-0 mt-2 sm:mt-0 border-gray-100">
@@ -220,8 +233,22 @@ export default function History() {
                             <p className="text-sm text-gray-600">{order.customerPhone || "No phone provided"}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-gray-500 mb-1">{order.collectionMethod === "delivery" ? "Delivery Address" : "Pickup Code"}</p>
-                            <p className="text-sm font-medium text-gray-800">{order.collectionMethod === "delivery" ? order.deliveryAddress : order.pickupCode}</p>
+                            <p className="text-xs text-gray-500 mb-1">Pickup Station Details</p>
+                            <p className="text-sm font-bold text-emerald-800 flex items-center gap-1.5">
+                              Pickup Code: <span className="font-mono bg-emerald-100 px-2 py-0.5 rounded text-xs">{order.pickupCode || order.code || "PENDING"}</span>
+                            </p>
+                            <p className="text-xs text-gray-600 mt-1 flex items-center gap-1">
+                              <MapPin size={12} className="text-emerald-600 shrink-0" />
+                              AMStores — General Gas Rd, Akobo, Ibadan
+                            </p>
+                            <div className="mt-3">
+                              <a
+                                href="tel:08023434790"
+                                className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm transition-colors"
+                              >
+                                <PhoneCall size={12} /> Call Store on Arrival (08023434790)
+                              </a>
+                            </div>
                           </div>
                         </div>
                       </div>
