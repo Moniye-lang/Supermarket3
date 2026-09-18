@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import pusherClient from "@/lib/pusher-client";
 import useStoreCountdown from "@/hooks/useStoreCountdown";
 import { motion } from "framer-motion";
+import { PhoneCall, MapPin, Store } from "lucide-react";
 
 function FulfillmentProgressBar({ status }: { status: string }) {
   let percentage = 0;
@@ -155,10 +156,22 @@ export default function Pickup() {
             Store is {isOpen ? "OPEN" : "CLOSED"}
           </p>
           <p className="text-gray-500 mt-2 text-sm">Supermarket closes in <span className="font-medium text-gray-800">{countdown}</span></p>
+          {/* 1-Click Call on Arrival Button */}
+          <div className="w-full mt-4">
+            <a
+              href="tel:08023434790"
+              className="w-full flex items-center justify-center gap-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold py-3.5 px-6 rounded-2xl shadow-lg shadow-emerald-600/20 transition-all text-sm group"
+              title="Click to call AMStores immediately"
+            >
+              <PhoneCall size={18} className="group-hover:rotate-12 transition-transform" />
+              <span>Call Store on Arrival (08023434790)</span>
+            </a>
+          </div>
+
           {order.status !== "payment_pending" && order.status !== "payment_declined" && order.status !== "packing" && order.status !== "cancelled" && (
-            <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-xl border border-red-100 text-sm w-full">
-              <p className="font-semibold mb-1">Arrived for Pickup?</p>
-              <p>Please call us at <span className="font-bold">08023434790</span> so we can bring your order to you.</p>
+            <div className="mt-3 p-3.5 bg-emerald-50 text-emerald-800 rounded-2xl border border-emerald-200/60 text-xs w-full text-center">
+              <p className="font-bold mb-1">Outside AMStores Now?</p>
+              <p className="text-emerald-700">Tap the green button above or call <a href="tel:08023434790" className="font-bold underline">08023434790</a> so staff can bring your package out immediately.</p>
             </div>
           )}
         </div>

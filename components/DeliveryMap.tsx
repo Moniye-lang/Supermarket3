@@ -3,15 +3,18 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { Search, Navigation, MapPin, Loader2, X, Compass, Layers } from "lucide-react";
+import { setOptions as setGoogleMapsOptions, importLibrary as importGoogleMapsLibrary } from "@googlemaps/js-api-loader";
 
 import {
+  STORE_NAME,
+  STORE_ADDRESS,
   STORE_LAT,
   STORE_LNG,
   haversineKm,
   calcDeliveryFee,
 } from "@/lib/storeHours";
 
-export { STORE_LAT, STORE_LNG, haversineKm, calcDeliveryFee };
+export { STORE_NAME, STORE_ADDRESS, STORE_LAT, STORE_LNG, haversineKm, calcDeliveryFee };
 
 interface DeliveryMapProps {
   latitude: number;
@@ -47,6 +50,7 @@ export default function DeliveryMap({
   const [routeDistanceKm, setRouteDistanceKm] = useState<number | null>(null);
   const [routeDurationMins, setRouteDurationMins] = useState<number | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [googleLoaded, setGoogleLoaded] = useState(false);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -57,12 +61,69 @@ export default function DeliveryMap({
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  const googleAutocompleteRef = useRef<any>(null);
+  const googlePlacesRef = useRef<any>(null);
+  const googleGeocoderRef = useRef<any>(null);
+  const sessionTokenRef = useRef<any>(null);
+
   const liqKey =
     process.env.NEXT_PUBLIC_LOCATIONIQ_API_KEY ||
     process.env.LOCATIONIQ_API_KEY ||
     "pk.b7b8fe4d83aeeede8f82ee02201b9597";
 
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
+
+  // Initialize Google Maps Places API for smart autocomplete
+  useEffect(() => {
+    let isMounted = true;
+
+    async function initGooglePlaces() {
+      try {
+        let key =
+          process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
+          process.env.GOOGLE_MAPS_API_KEY ||
+          "";
+        if (!key) {
+          try {
+            const cfgRes = await fetch("/api/map/config");
+            const cfg = await cfgRes.json();
+            key = cfg.googleKey || "";
+          } catch {}
+        }
+        if (!key || !isMounted) return;
+
+        setGoogleMapsOptions({
+          key,
+          v: "weekly",
+        });
+
+        await importGoogleMapsLibrary("places");
+        if (!isMounted) return;
+
+        const winGoogle = (window as any).google;
+        if (winGoogle?.maps?.places) {
+          googleAutocompleteRef.current = new winGoogle.maps.places.AutocompleteService();
+          googlePlacesRef.current = new winGoogle.maps.places.PlacesService(
+            document.createElement("div")
+          );
+          if (winGoogle.maps.places.AutocompleteSessionToken) {
+            sessionTokenRef.current = new winGoogle.maps.places.AutocompleteSessionToken();
+          }
+        }
+        if (winGoogle?.maps?.Geocoder) {
+          googleGeocoderRef.current = new winGoogle.maps.Geocoder();
+        }
+        setGoogleLoaded(true);
+      } catch (err: any) {
+        console.warn("[DeliveryMap] Google Maps Places loader:", err.message);
+      }
+    }
+
+    initGooglePlaces();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Theme observer for dark/light map styling
   useEffect(() => {
@@ -192,6 +253,33 @@ export default function DeliveryMap({
         return;
       }
 
+      // Try Google Geocoder first
+      if (googleGeocoderRef.current) {
+        try {
+          const googleAddr = await new Promise<string | null>((resolve) => {
+            googleGeocoderRef.current.geocode(
+              { location: { lat, lng } },
+              (results: any, status: string) => {
+                if (status === "OK" && results?.[0]?.formatted_address) {
+                  resolve(results[0].formatted_address);
+                } else {
+                  resolve(null);
+                }
+              }
+            );
+          });
+
+          if (googleAddr) {
+            setSearchQuery(googleAddr);
+            onChange(lat, lng, googleAddr, fee, km);
+            setGeocoding(false);
+            return;
+          }
+        } catch {
+          // fallback to LocationIQ reverse geocode
+        }
+      }
+
       try {
         const res = await fetch(`/api/map/reverse?lat=${lat}&lng=${lng}`);
         const data = await res.json();
@@ -270,8 +358,15 @@ export default function DeliveryMap({
 
     // Add Store Marker
     const storeEl = createMarkerElement("#DC2626", "🏪", false);
+    const storePopup = new mapboxgl.Popup({ offset: 25, closeButton: false }).setHTML(
+      `<div style="font-family: system-ui, -apple-system, sans-serif; padding: 4px 6px;">
+        <strong style="color: #dc2626; font-size: 13px; display: block;">🏪 ${STORE_NAME}</strong>
+        <p style="margin: 2px 0 0 0; font-size: 11px; color: #4b5563;">${STORE_ADDRESS}</p>
+      </div>`
+    );
     const storeMarker = new mapboxgl.Marker({ element: storeEl, anchor: "bottom" })
       .setLngLat([STORE_LNG, STORE_LAT])
+      .setPopup(storePopup)
       .addTo(map);
     storeMarkerRef.current = storeMarker;
 
@@ -327,13 +422,12 @@ export default function DeliveryMap({
     }
   }, [latitude, longitude, position, fetchRoadRoute]);
 
-  // Autocomplete suggestions fetcher
-  const fetchSuggestions = useCallback(async (q: string) => {
+  // Fallback search fetcher (LocationIQ / Photon)
+  const fetchFallbackSuggestions = useCallback(async (q: string) => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    setSearching(true);
     try {
       const res = await fetch(`/api/map/search?q=${encodeURIComponent(q.trim())}`, {
         signal: controller.signal,
@@ -352,6 +446,67 @@ export default function DeliveryMap({
     }
   }, []);
 
+  // Autocomplete suggestions fetcher - Powered by Google Places Autocomplete
+  const fetchSuggestions = useCallback(
+    async (q: string) => {
+      const trimmed = q.trim();
+      if (trimmed.length < 2) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
+
+      setSearching(true);
+
+      // Primary: Google Places Autocomplete in the browser
+      if (googleAutocompleteRef.current) {
+        try {
+          const winGoogle = (window as any).google;
+          const req: any = {
+            input: trimmed,
+            componentRestrictions: { country: "ng" },
+            locationBias: winGoogle?.maps?.Circle
+              ? new winGoogle.maps.Circle({
+                  center: { lat: STORE_LAT, lng: STORE_LNG },
+                  radius: 40000,
+                })
+              : undefined,
+            sessionToken: sessionTokenRef.current || undefined,
+          };
+
+          googleAutocompleteRef.current.getPlacePredictions(
+            req,
+            (predictions: any[], status: string) => {
+              if (status === "OK" && predictions && predictions.length > 0) {
+                const mapped = predictions.map((p) => ({
+                  place_id: p.place_id,
+                  display_name: p.description,
+                  title: p.structured_formatting?.main_text || p.description.split(",")[0],
+                  subtitle: p.structured_formatting?.secondary_text || "Ibadan, Nigeria",
+                  source: "google",
+                }));
+                setSuggestions(mapped);
+                setShowSuggestions(true);
+                setSearching(false);
+                return;
+              }
+
+              // Fallback to server parallel search if zero predictions or query issue
+              fetchFallbackSuggestions(trimmed);
+            }
+          );
+          return;
+        } catch (err) {
+          console.warn("[DeliveryMap] Google autocomplete error:", err);
+        }
+      }
+
+      // Secondary Fallback: Parallel LocationIQ + Photon
+      fetchFallbackSuggestions(trimmed);
+    },
+    [fetchFallbackSuggestions]
+  );
+
   const handleSearch = useCallback(
     (q: string) => {
       setSearchQuery(q);
@@ -365,12 +520,78 @@ export default function DeliveryMap({
 
       searchTimeout.current = setTimeout(() => {
         fetchSuggestions(q);
-      }, 350);
+      }, 300);
     },
     [fetchSuggestions]
   );
 
   function pickSuggestion(s: any) {
+    if (s.source === "google" && s.place_id) {
+      setGeocoding(true);
+      setSuggestions([]);
+      setShowSuggestions(false);
+
+      const winGoogle = (window as any).google;
+      const onCoordinatesFound = (lat: number, lng: number, addr: string) => {
+        if (winGoogle?.maps?.places?.AutocompleteSessionToken) {
+          sessionTokenRef.current = new winGoogle.maps.places.AutocompleteSessionToken();
+        }
+        updatePosition(lat, lng, addr);
+      };
+
+      if (googlePlacesRef.current) {
+        googlePlacesRef.current.getDetails(
+          {
+            placeId: s.place_id,
+            fields: ["geometry", "formatted_address", "name"],
+            sessionToken: sessionTokenRef.current || undefined,
+          },
+          (place: any, status: string) => {
+            if (status === "OK" && place?.geometry?.location) {
+              const lat = place.geometry.location.lat();
+              const lng = place.geometry.location.lng();
+              const addr = place.formatted_address || s.display_name;
+              onCoordinatesFound(lat, lng, addr);
+            } else if (googleGeocoderRef.current) {
+              googleGeocoderRef.current.geocode(
+                { placeId: s.place_id },
+                (geoRes: any, geoStatus: string) => {
+                  if (geoStatus === "OK" && geoRes?.[0]?.geometry?.location) {
+                    const lat = geoRes[0].geometry.location.lat();
+                    const lng = geoRes[0].geometry.location.lng();
+                    const addr = geoRes[0].formatted_address || s.display_name;
+                    onCoordinatesFound(lat, lng, addr);
+                  } else {
+                    setGeocoding(false);
+                  }
+                }
+              );
+            } else {
+              setGeocoding(false);
+            }
+          }
+        );
+        return;
+      }
+
+      if (googleGeocoderRef.current) {
+        googleGeocoderRef.current.geocode(
+          { placeId: s.place_id },
+          (geoRes: any, geoStatus: string) => {
+            if (geoStatus === "OK" && geoRes?.[0]?.geometry?.location) {
+              const lat = geoRes[0].geometry.location.lat();
+              const lng = geoRes[0].geometry.location.lng();
+              const addr = geoRes[0].formatted_address || s.display_name;
+              onCoordinatesFound(lat, lng, addr);
+            } else {
+              setGeocoding(false);
+            }
+          }
+        );
+        return;
+      }
+    }
+
     const lat = Number(s.lat);
     const lng = Number(s.lng);
     const fullAddr = s.title ? `${s.title}, ${s.subtitle}` : s.display_name;
@@ -422,7 +643,7 @@ export default function DeliveryMap({
           <Search size={18} className="text-gray-400 shrink-0" />
           <input
             type="text"
-            placeholder="Search address or area in Ibadan (e.g. Bodija, UI, Ring Road)..."
+            placeholder="Search address, landmark or area (e.g. Bodija, UI, Akobo, Ring Road)..."
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
             onFocus={() => {
@@ -542,7 +763,7 @@ export default function DeliveryMap({
         <div className="absolute bottom-3 left-3 z-10 bg-white/95 backdrop-blur-md rounded-xl shadow-md border border-gray-100 px-3 py-2 flex flex-col gap-1.5 text-xs font-medium text-gray-700 pointer-events-none">
           <div className="flex items-center gap-2">
             <div className="w-2.5 h-2.5 bg-red-600 rounded-full" />
-            <span>AMstores Hub</span>
+            <span>AMStores (Store Hub)</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-2.5 h-2.5 bg-violet-600 rounded-full animate-pulse" />

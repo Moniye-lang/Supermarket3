@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Order from "@/lib/models/Order";
+import User from "@/lib/models/User";
 import { verifyAdmin } from "@/lib/authMiddleware";
 import { sendPushToUser } from "@/lib/subscriptions";
+import { sendOrderReadyEmail } from "@/lib/email";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -39,6 +41,16 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       url: `${clientUrl}/orders/${order._id}`
     };
     await sendPushToUser(order.customerId.toString(), statusPayload.title, statusPayload.body, statusPayload.url).catch(() => {});
+
+    // Send Email Update: Order Ready
+    if (status === "ready_for_pickup" || status === "ready") {
+      const customerUser = await User.findById(order.customerId);
+      if (customerUser?.email) {
+        sendOrderReadyEmail(customerUser.email, order, customerUser.name || order.pickupName).catch((emailErr: any) => {
+          console.error("[Email] sendOrderReadyEmail error:", emailErr.message);
+        });
+      }
+    }
 
     const updatedOrder = await Order.findById(order._id)
       .populate("assignedToWorkerId", "name role status phone")

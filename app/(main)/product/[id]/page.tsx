@@ -3,7 +3,7 @@ import { useEffect, useState, useContext } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { CartContext } from "@/context/CartContext";
 import { Button } from "@/components/ui/Button";
-import { Minus, Plus, ShoppingCart, Star, Truck, ShieldCheck, ArrowLeft, Share2 } from "lucide-react";
+import { Minus, Plus, ShoppingCart, Star, Store, ShieldCheck, ArrowLeft, Share2 } from "lucide-react";
 import { motion } from "framer-motion";
 import ProductCard from "@/components/ProductCard";
 
@@ -255,10 +255,10 @@ export default function ProductDets() {
                         {/* Benefits */}
                         <div className="grid grid-cols-2 gap-4 pt-8">
                             <div className="flex gap-3 items-start p-4 rounded-xl bg-white border border-gray-100">
-                                <Truck className="text-brand-primary shrink-0" />
+                                <Store className="text-brand-primary shrink-0" />
                                 <div>
-                                    <h5 className="font-bold text-sm">Fast Delivery</h5>
-                                    <p className="text-xs text-gray-500 mt-1">Within 30mins in Ibadan</p>
+                                    <h5 className="font-bold text-sm">Store Pickup</h5>
+                                    <p className="text-xs text-gray-500 mt-1">Ready on arrival at AMStores</p>
                                 </div>
                             </div>
                             <div className="flex gap-3 items-start p-4 rounded-xl bg-white border border-gray-100">

@@ -8,6 +8,8 @@ export interface PickupSlot {
 }
 
 // ─── Store coordinates & delivery fee calculations ───────────────────────────
+export const STORE_NAME = "AMStores";
+export const STORE_ADDRESS = "General Gas Road, Akobo, Ibadan, Oyo State";
 export const STORE_LAT = 7.3775;
 export const STORE_LNG = 3.9470;
 export const DELIVERY_BASE_FEE = 500;     // ₦ flat fee up to 2 km

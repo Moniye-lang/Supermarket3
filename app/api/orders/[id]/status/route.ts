@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Order from "@/lib/models/Order";
+import User from "@/lib/models/User";
 import { verifyAuth } from "@/lib/authMiddleware";
 import { sendPushToUser } from "@/lib/subscriptions";
 import pusher from "@/lib/pusher";
+import { sendOrderReadyEmail } from "@/lib/email";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -52,6 +54,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     await sendPushToUser(order.customerId.toString(), title, body, `${clientUrl}/order`).catch((e) => {
       console.error("[Push] sendPushToUser failed:", e?.message || e);
     });
+
+    // Send Email Update: Order Ready for Pickup
+    if (status === "ready_for_pickup" || status === "ready") {
+      const customerUser = await User.findById(order.customerId);
+      if (customerUser?.email) {
+        sendOrderReadyEmail(customerUser.email, order, customerUser.name || order.pickupName).catch((emailErr: any) => {
+          console.error("[Email] sendOrderReadyEmail error:", emailErr.message);
+        });
+      }
+    }
 
     const updatedOrder = await Order.findById(order._id)
       .populate('assignedToWorkerId', 'name role status phone')

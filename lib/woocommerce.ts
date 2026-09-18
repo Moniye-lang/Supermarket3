@@ -28,9 +28,19 @@ export interface WooCategory {
   count: number;
 }
 
-const WOOCOMMERCE_URL = (process.env.WOOCOMMERCE_URL || "https://wc.agbenimercantilestores.com").replace(/\/$/, "");
-const CONSUMER_KEY = process.env.WOOCOMMERCE_CONSUMER_KEY || "";
-const CONSUMER_SECRET = process.env.WOOCOMMERCE_CONSUMER_SECRET || "";
+export function isWooConfigured(): boolean {
+  const url = (process.env.WOOCOMMERCE_URL || "").trim();
+  const key = (process.env.WOOCOMMERCE_CONSUMER_KEY || "").trim();
+  const secret = (process.env.WOOCOMMERCE_CONSUMER_SECRET || "").trim();
+  return Boolean(url && key && secret);
+}
+
+export function getWooConfig() {
+  const url = (process.env.WOOCOMMERCE_URL || "").trim().replace(/\/$/, "");
+  const key = (process.env.WOOCOMMERCE_CONSUMER_KEY || "").trim();
+  const secret = (process.env.WOOCOMMERCE_CONSUMER_SECRET || "").trim();
+  return { url, key, secret };
+}
 
 // In-memory server-side cache — lives for the lifetime of the Node process
 const cache = new Map<string, { timestamp: number; data: any }>();
@@ -119,25 +129,30 @@ export function normalizeWooProduct(p: any): WooProduct {
 
 // Build auth headers for WooCommerce REST API
 function buildWooHeaders(): Record<string, string> {
+  const { key, secret } = getWooConfig();
   const headers: Record<string, string> = {
     "Accept": "application/json",
     "Content-Type": "application/json",
     "User-Agent": "AMStores-NextJS/1.0",
   };
-  if (CONSUMER_KEY && CONSUMER_SECRET) {
-    const authString = Buffer.from(`${CONSUMER_KEY}:${CONSUMER_SECRET}`).toString("base64");
+  if (key && secret) {
+    const authString = Buffer.from(`${key}:${secret}`).toString("base64");
     headers["Authorization"] = `Basic ${authString}`;
   }
   return headers;
 }
 
 function buildWooUrl(endpoint: string, params: Record<string, string | number> = {}): string {
-  const url = new URL(`${WOOCOMMERCE_URL}/wp-json/wc/v3${endpoint}`);
-  if (CONSUMER_KEY) url.searchParams.set("consumer_key", CONSUMER_KEY);
-  if (CONSUMER_SECRET) url.searchParams.set("consumer_secret", CONSUMER_SECRET);
-  Object.entries(params).forEach(([key, val]) => {
+  const { url: wooUrl, key, secret } = getWooConfig();
+  if (!wooUrl) {
+    throw new Error("WooCommerce URL is not configured in .env");
+  }
+  const url = new URL(`${wooUrl}/wp-json/wc/v3${endpoint}`);
+  if (key) url.searchParams.set("consumer_key", key);
+  if (secret) url.searchParams.set("consumer_secret", secret);
+  Object.entries(params).forEach(([paramKey, val]) => {
     if (val !== undefined && val !== null && val !== "") {
-      url.searchParams.set(key, String(val));
+      url.searchParams.set(paramKey, String(val));
     }
   });
   return url.toString();
@@ -235,6 +250,10 @@ export async function fetchWooProducts(params: {
   order?: "asc" | "desc";
   orderby?: string;
 }): Promise<{ products: WooProduct[]; total: number; pages: number; page: number }> {
+  if (!isWooConfigured()) {
+    throw new Error("WooCommerce API credentials not configured in .env");
+  }
+
   const page = params.page || 1;
   const limit = params.limit || 12;
   const cacheKey = `products_${page}_${limit}_${params.search || ""}_${params.category || ""}_${params.orderby || ""}_${params.order || ""}`;

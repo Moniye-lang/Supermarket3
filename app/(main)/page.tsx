@@ -3,7 +3,7 @@ import Hero from "@/components/Hero";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect } from "react";
-import { ShoppingCart, Beef, Donut, Phone, Mail, MapPin, Clock, Tag, Truck, ArrowRight, ShieldCheck, Leaf } from "lucide-react";
+import { ShoppingCart, Beef, Donut, Phone, Mail, MapPin, Clock, Tag, Truck, ArrowRight, ShieldCheck, Leaf, Store, PhoneCall, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { motion } from "framer-motion";
@@ -102,7 +102,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* PREMIUM DELIVERY SECTION */}
+      {/* STORE PICKUP SECTION */}
       <section className="py-32 bg-brand-dark text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-brand-primary/20 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-orange-500/10 rounded-full blur-[100px] pointer-events-none" />
@@ -114,7 +114,7 @@ export default function Home() {
             <div className="absolute inset-4 rounded-[2.5rem] overflow-hidden">
               <Image
                 src="/IMG_4542.JPG"
-                alt="Delivery Box"
+                alt="Store Pickup"
                 fill
                 sizes="(max-width: 1024px) 100vw, 50vw"
                 className="object-cover opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-700"
@@ -128,11 +128,11 @@ export default function Home() {
               className="absolute -right-8 top-1/3 bg-white text-brand-dark p-4 rounded-2xl shadow-2xl flex items-center gap-4"
             >
               <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center">
-                <Truck size={24} />
+                <Store size={24} />
               </div>
               <div>
                 <p className="text-xs text-gray-600 font-medium">Status</p>
-                <p className="font-bold text-lg leading-tight text-gray-900">Arriving in 15m</p>
+                <p className="font-bold text-lg leading-tight text-gray-900">Ready for Pickup</p>
               </div>
             </motion.div>
           </div>
@@ -141,33 +141,33 @@ export default function Home() {
             <div>
               <span className="text-brand-primary font-semibold tracking-wider text-sm uppercase flex items-center gap-2 mb-4">
                 <span className="w-8 h-1 bg-brand-primary rounded-full"></span>
-                Logistics & Delivery
+                Express Store Pickup
               </span>
               <h2 className="text-5xl lg:text-7xl font-display font-bold leading-tight text-white">
-                Premium Delivery <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-orange-500">Straight to You.</span>
+                Instant Pickup <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-orange-500">Ready on Arrival.</span>
               </h2>
             </div>
 
             <p className="text-gray-300 text-lg leading-relaxed">
-              We've optimized every step of the process. From our shelves to your doorstep, our dedicated riders ensure your order arrives fresh, fast, and exactly as you expected.
+              Skip the checkout queues entirely. Order ahead online, and our staff will hand-pick and carefully pack your items ready for collection at AMStores, General Gas Road, Akobo.
             </p>
 
             <div className="space-y-6">
               <FeatureItem
                 icon={Clock}
-                title="Ultra-Fast 30-Minute Delivery"
-                desc="Our optimized routing ensures lightning-fast delivery within the Ibadan metropolis."
+                title="Swift 15-Minute Preparation"
+                desc="Your order is packed and waiting at our counter shortly after your payment is confirmed."
               />
               <FeatureItem
                 icon={ShieldCheck}
-                title="Cold-Chain Guarantee"
-                desc="Frozen foods and perishables are transported in temperature-controlled bags."
+                title="Fresh &amp; Cold-Chain Guarantee"
+                desc="Frozen foods and perishables are kept in optimal refrigerated storage until you collect them."
               />
               <FeatureItem
-                icon={Tag}
-                title="Best Market Prices"
-                desc="Enjoy competitive pricing and exclusive app-only discounts without compromising on quality."
+                icon={PhoneCall}
+                title="1-Click Call on Arrival"
+                desc="Call our store frontdesk with a single tap on arrival and our team will bring your items out."
               />
             </div>
           </div>

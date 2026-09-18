@@ -5,6 +5,7 @@ import User from "@/lib/models/User";
 import { verifyAuth } from "@/lib/authMiddleware";
 import { sendPushToUser } from "@/lib/subscriptions";
 import pusher from "@/lib/pusher";
+import { sendOrderAcceptedEmail, sendPaymentDeclinedEmail } from "@/lib/email";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -89,6 +90,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       };
       await sendPushToUser(order.customerId.toString(), customerPayload.title, customerPayload.body, customerPayload.url).catch(() => {});
 
+      // Send Email Update: Payment Confirmed & Order Accepted
+      const customerUser = await User.findById(order.customerId);
+      if (customerUser?.email) {
+        sendOrderAcceptedEmail(customerUser.email, order, customerUser.name || order.pickupName).catch((emailErr: any) => {
+          console.error("[Email] sendOrderAcceptedEmail error:", emailErr.message);
+        });
+      }
+
       // Notify other staff about assignment
       const staffMembers = await User.find({ role: { $in: ["admin", "worker", "rider"] } });
       for (const staff of staffMembers) {
@@ -133,6 +142,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         url: `${clientUrl}/order`
       };
       await sendPushToUser(order.customerId.toString(), customerPayload.title, customerPayload.body, customerPayload.url).catch(() => {});
+
+      // Send Email Update: Payment Declined
+      const customerUser = await User.findById(order.customerId);
+      if (customerUser?.email) {
+        sendPaymentDeclinedEmail(customerUser.email, order, customerUser.name || order.pickupName).catch((emailErr: any) => {
+          console.error("[Email] sendPaymentDeclinedEmail error:", emailErr.message);
+        });
+      }
 
       if (io) {
         const updated = await Order.findById(order._id);
