@@ -67,7 +67,7 @@ function MobileBottomNav({ pathname, totalItems, user, onLogout }: MobileBottomN
             className="md:hidden fixed bottom-0 left-0 right-0 z-50"
             style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
-            <div className="mx-3 mb-3 rounded-2xl bg-white/90 dark:bg-zinc-900/95 backdrop-blur-xl border border-white/60 dark:border-zinc-800 shadow-[0_8px_32px_rgba(0,0,0,0.18)] px-1 py-1 flex items-end justify-around relative">
+            <div className="mx-3 mb-3 rounded-2xl bg-white dark:bg-zinc-900/95 backdrop-blur-xl border border-gray-200 dark:border-zinc-800 shadow-[0_8px_32px_rgba(0,0,0,0.12)] px-1 py-1 flex items-end justify-around relative">
                 {/* ── More Dropdown Menu ── */}
                 <AnimatePresence>
                     {showMoreMenu && (
@@ -321,8 +321,8 @@ export default function Navbar() {
                     <div className={cn(
                         "flex items-center justify-between rounded-2xl px-6 py-3 border transition-all duration-300",
                         scrolled
-                            ? "bg-white dark:bg-black/95 backdrop-blur-xl border-gray-200 dark:border-zinc-800 shadow-md"
-                            : "bg-white/95 dark:bg-black/90 backdrop-blur-md border-gray-200/80 dark:border-zinc-800/80 shadow-sm"
+                            ? "bg-white dark:bg-zinc-900/95 backdrop-blur-xl border-gray-200 dark:border-zinc-800 shadow-lg shadow-gray-200/50 dark:shadow-black/20"
+                            : "bg-white dark:bg-zinc-900/90 backdrop-blur-md border-gray-200/80 dark:border-zinc-800/60 shadow-md shadow-gray-200/40 dark:shadow-black/10"
                     )}>
                         {/* Logo */}
                         <Link href="/" className="flex items-center gap-2 group">
@@ -345,7 +345,7 @@ export default function Navbar() {
                                         className={cn(
                                             "relative px-4 py-2 text-sm font-medium rounded-full transition-all duration-300",
                                             isCurrent
-                                                ? "text-brand-primary dark:text-red-400 bg-red-50 dark:bg-zinc-800 font-bold"
+                                                ? "text-brand-primary dark:text-red-400 bg-red-50/80 dark:bg-zinc-800 font-bold"
                                                 : "text-gray-700 dark:text-gray-200 hover:text-brand-primary dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-zinc-800/80"
                                         )}
                                     >
