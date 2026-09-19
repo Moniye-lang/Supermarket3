@@ -438,23 +438,19 @@ export default function Order() {
           </div>
         </div>
 
-        {/* Delivery / Pickup / History Tab Switcher */}
-        <div className="flex bg-white border border-gray-200 rounded-2xl p-1 mb-8 shadow-sm">
-          {(["delivery", "pickup"] as const).map(type => (
-            <button
-              key={type}
-              onClick={() => { setOrderType(type); setActiveTab("active"); }}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all duration-250 ${
-                orderType === type && activeTab === "active"
-                  ? "bg-brand-primary text-white shadow-lg shadow-brand-primary/20"
-                  : "text-gray-500 hover:text-gray-800 hover:bg-gray-50/50"
-              }`}
-            >
-              {type === "delivery" ? <Truck size={16} /> : <MapPin size={16} />}
-              <span className="capitalize">{type}</span>
-            </button>
-          ))}
-          <div className="w-px bg-gray-200 my-1 mx-1" />
+        {/* Active Orders / History Tab Switcher */}
+        <div className="flex bg-white border border-gray-200 rounded-2xl p-1 mb-8 shadow-sm max-w-md">
+          <button
+            onClick={() => { setOrderType("pickup"); setActiveTab("active"); }}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all duration-250 ${
+              activeTab === "active"
+                ? "bg-brand-primary text-white shadow-lg shadow-brand-primary/20"
+                : "text-gray-500 hover:text-gray-800 hover:bg-gray-50/50"
+            }`}
+          >
+            <ShoppingBag size={16} />
+            <span>Active Orders</span>
+          </button>
           <button
             onClick={() => setActiveTab("history")}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all duration-250 ${
@@ -464,7 +460,7 @@ export default function Order() {
             }`}
           >
             <History size={16} />
-            History
+            <span>Order History</span>
           </button>
         </div>
 
@@ -663,9 +659,6 @@ export default function Order() {
             <motion.div key="history" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.25 }}>
               <div className="flex items-center justify-between mb-6">
                 <h2 className="font-extrabold text-brand-dark text-lg">Order History</h2>
-                <Link href="/history" className="text-xs text-brand-primary font-bold flex items-center gap-1 hover:underline">
-                  Full analytics <ChevronRight size={14} />
-                </Link>
               </div>
               <HistoryList token={token} />
             </motion.div>

@@ -174,7 +174,7 @@ export default function AdminUsersPage() {
             />
         </div>
         <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-            {["all", "customer", "worker", "rider", "admin"].map(role => (
+            {["all", "customer", "worker", "admin"].map(role => (
                 <button
                     key={role}
                     onClick={() => setRoleFilter(role)}
@@ -184,7 +184,7 @@ export default function AdminUsersPage() {
                         : "bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200"
                     }`}
                 >
-                    {role}
+                    {role === "worker" ? "Store Staff" : role}
                 </button>
             ))}
             {/* Sort dropdown */}
@@ -219,9 +219,9 @@ export default function AdminUsersPage() {
             <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                     <thead>
-                        <tr className="bg-gray-50 border-b border-gray-100 text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        <tr className="border-b border-gray-100 bg-gray-50/50 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                             <th className="p-4 pl-6">User</th>
-                            <th className="p-4">Contact Info</th>
+                            <th className="p-4">Email</th>
                             <th className="p-4">Orders</th>
                             <th className="p-4">Role</th>
                             <th className="p-4">Status</th>
@@ -229,11 +229,11 @@ export default function AdminUsersPage() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                        {sortedUsers.map(user => (
+                        {sortedUsers.map((user: any) => (
                             <tr key={user._id} className="hover:bg-gray-50/50 transition-colors">
                                 <td className="p-4 pl-6">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-brand-primary/10 text-brand-primary flex items-center justify-center font-bold">
+                                        <div className="w-9 h-9 rounded-full bg-brand-primary/10 text-brand-primary flex items-center justify-center font-bold text-sm shrink-0">
                                             {user.name ? user.name.charAt(0).toUpperCase() : "U"}
                                         </div>
                                         <div>
@@ -268,7 +268,7 @@ export default function AdminUsersPage() {
                                         >
                                             <History size={16} />
                                         </Button>
-                                        {user.role !== "admin" && (user.role === "worker" || user.role === "rider") && (
+                                        {user.role !== "admin" && (
                                             <>
                                                 <select 
                                                     className="text-xs border border-gray-200 rounded-lg p-2 bg-white focus:outline-none focus:border-brand-primary cursor-pointer text-gray-700"
@@ -276,8 +276,7 @@ export default function AdminUsersPage() {
                                                     onChange={(e) => updateUserRole(user._id, e.target.value)}
                                                 >
                                                     <option value="customer">Set as Customer</option>
-                                                    <option value="worker">Set as Pickup Worker</option>
-                                                    <option value="rider">Set as Delivery Rider</option>
+                                                    <option value="worker">Set as Store Staff</option>
                                                 </select>
                                                 <Button 
                                                     variant="ghost" 

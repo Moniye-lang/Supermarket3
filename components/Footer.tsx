@@ -69,7 +69,7 @@ export default function Footer() {
                 { name: "Home", path: "/" },
                 { name: "About Us", path: "/about" },
                 { name: "Shop Products", path: "/products" },
-                { name: "Track Order", path: "/order" },
+                { name: "Contact Us", path: "/contact" },
               ].map((link) => (
                 <li key={link.path}>
                   <Link href={link.path} className="text-gray-400 hover:text-brand-primary transition-colors hover:pl-1 block text-sm">

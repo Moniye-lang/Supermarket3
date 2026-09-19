@@ -123,32 +123,51 @@ body {
     border: 1px solid var(--color-glass-dark-border);
 }
 
-/* Dark mode styles override */
+/* Dark mode styles */
 .dark {
-    --color-brand-light: #0a0a0a;
+    --color-brand-light: #0d0d0d;
     --color-brand-secondary: #e5e7eb;
     --color-brand-muted: #9ca3af;
-    --color-glass-bg: rgba(22, 22, 22, 0.85);
+    --color-glass-bg: rgba(20, 20, 20, 0.88);
     --color-glass-border: rgba(255, 255, 255, 0.08);
 
-    background-color: #0a0a0a;
+    background-color: #0d0d0d;
     color: #f3f4f6;
 }
 
 .dark body, .dark #root {
-    background-color: #0a0a0a;
+    background-color: #0d0d0d;
     color: #f3f4f6;
 }
 
-/* Background containers */
-.dark .bg-white,
-.dark .bg-gray-50,
-.dark .bg-slate-50,
+/* Background containers in dark mode */
 .dark .bg-brand-light,
-.dark [class*="bg-white/"],
-.dark [class*="bg-gray-50/"] {
+.dark .bg-gray-50\/50,
+.dark .bg-gray-100 {
     background-color: #121212 !important;
-    color: #f3f4f6 !important;
+}
+
+.dark .bg-white {
+    background-color: #181818 !important;
+    color: #f3f4f6;
+}
+
+.dark .bg-gray-50 {
+    background-color: #141414 !important;
+}
+
+/* Dark mode inputs and textareas */
+.dark input:not([type="checkbox"]):not([type="radio"]),
+.dark textarea,
+.dark select {
+    background-color: #202020 !important;
+    color: #ffffff !important;
+    border-color: #333333 !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+    color: #71717a !important;
 }
 
 /* Footer & Dark Containers */
@@ -161,35 +180,47 @@ body {
     color: #f3f4f6 !important;
 }
 
-/* Text & headings */
+/* Headings in dark mode */
+.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+    color: #f3f4f6 !important;
+}
+
 .dark .text-brand-dark,
 .dark .text-gray-900,
-.dark .text-slate-900,
-.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+.dark .text-slate-900 {
     color: #f3f4f6 !important;
 }
 
 .dark .text-gray-800,
 .dark .text-gray-700,
-.dark .text-gray-600,
+.dark .text-gray-600 {
+    color: #d1d5db !important;
+}
+
 .dark .text-gray-500,
 .dark .text-gray-400,
-.dark .text-slate-700,
-.dark .text-slate-600,
-.dark .text-slate-500,
 .dark .text-brand-muted {
-    color: #e5e7eb !important;
+    color: #9ca3af !important;
+}
+
+/* Ensure primary button text stays white */
+.dark .bg-brand-primary,
+.dark .bg-emerald-600,
+.dark .bg-green-600,
+.dark .bg-blue-600,
+.dark .bg-red-600 {
+    color: #ffffff !important;
 }
 
 .dark .border-gray-100,
 .dark .border-gray-200,
 .dark .border-slate-200,
 .dark .border-slate-100 {
-    border-color: #262626 !important;
+    border-color: #27272a !important;
 }
 
-.dark .shadow-sm, .dark .shadow-md, .dark .shadow-lg, .dark .shadow-xl {
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+.dark .shadow-sm, .dark .shadow-md, .dark .shadow-lg, .dark .shadow-xl, .dark .shadow-2xl {
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5) !important;
 }
 
 .dark .leaflet-container {

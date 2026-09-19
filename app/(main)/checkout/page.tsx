@@ -65,10 +65,47 @@ export default function Checkout() {
     }
   }, [user]);
 
-  // Order submission flow
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState("");
-  const [showConfirm, setShowConfirm] = useState(false);
+  // Bank settings from admin
+  const [storeSettings, setStoreSettings] = useState<{
+    bankName: string;
+    accountNumber: string;
+    accountName: string;
+    paymentInstructions: string;
+  }>({
+    bankName: "Zenith Bank",
+    accountNumber: "1012345678",
+    accountName: "AMStores Limited",
+    paymentInstructions: "Please transfer the exact amount and use your full name or Order Code as payment reference.",
+  });
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    async function fetchSettings() {
+      try {
+        const res = await fetch(`${API_URL}/api/settings`);
+        const data = await res.json();
+        if (res.ok && data.accountNumber) {
+          setStoreSettings({
+            bankName: data.bankName || "Zenith Bank",
+            accountNumber: data.accountNumber || "1012345678",
+            accountName: data.accountName || "AMStores Limited",
+            paymentInstructions: data.paymentInstructions || "Please transfer the exact amount and use your full name or Order Code as payment reference.",
+          });
+        }
+      } catch (err) {
+        console.warn("Could not fetch store settings, using defaults");
+      }
+    }
+    fetchSettings();
+  }, []);
+
+  function copyAccount() {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(storeSettings.accountNumber);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }
 
   function handlePlaceOrder() {
     setError("");
@@ -257,24 +294,56 @@ export default function Checkout() {
             </section>
 
             {/* Payment Section */}
-            <section className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <h2 className="text-xl font-bold text-brand-dark mb-4 flex items-center gap-2">
+            <section className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
+              <h2 className="text-xl font-bold text-brand-dark flex items-center gap-2">
                 <CreditCard size={20} className="text-brand-primary" /> Payment Method
               </h2>
-              <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-gray-200 text-green-600 shrink-0">
-                  <CheckCircle size={20} />
+              
+              {/* Bank Details Card */}
+              <div className="p-5 rounded-2xl bg-gradient-to-r from-red-50/60 to-orange-50/60 border border-brand-primary/20 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-brand-primary text-white flex items-center justify-center font-bold text-xs">
+                      ₦
+                    </div>
+                    <span className="font-bold text-gray-900 text-sm">Direct Bank Transfer</span>
+                  </div>
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider bg-brand-primary/10 text-brand-primary px-2 py-0.5 rounded-full">Official Account</span>
                 </div>
-                <div>
-                  <span className="font-bold text-gray-900 block">Bank Transfer (Manual)</span>
-                  <span className="text-sm text-gray-500">You will receive bank details and instant confirmation on order submission</span>
+
+                <div className="bg-white rounded-xl p-4 border border-brand-primary/15 shadow-sm space-y-2 text-sm">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-gray-500 font-medium">Bank Name:</span>
+                    <span className="font-bold text-gray-900">{storeSettings.bankName}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-gray-500 font-medium">Account Name:</span>
+                    <span className="font-semibold text-gray-800">{storeSettings.accountName}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+                    <span className="text-gray-500 font-medium text-xs">Account Number:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-black text-brand-primary text-base tracking-wider">{storeSettings.accountNumber}</span>
+                      <button
+                        type="button"
+                        onClick={copyAccount}
+                        className="px-2.5 py-1 text-[11px] font-bold bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary rounded-lg transition-colors cursor-pointer"
+                      >
+                        {copied ? "Copied! ✓" : "Copy"}
+                      </button>
+                    </div>
+                  </div>
                 </div>
+
+                <p className="text-[11px] text-gray-600 leading-relaxed italic">
+                  💡 {storeSettings.paymentInstructions}
+                </p>
               </div>
 
               <Button
                 onClick={handlePlaceOrder}
                 disabled={loading}
-                className="w-full sm:w-auto py-3.5 px-8 shadow-md flex items-center justify-center gap-2"
+                className="w-full sm:w-auto py-3.5 px-8 shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
                 {loading
                   ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

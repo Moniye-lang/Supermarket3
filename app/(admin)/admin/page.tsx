@@ -608,8 +608,8 @@ export default function AdminDashboardHome() {
                                                 <UserCheck size={20} />
                                             </div>
                                             <div>
-                                                <h2 className="text-xl font-black uppercase tracking-tight">Worker & Delivery Fleet Status</h2>
-                                                <p className="text-xs text-zinc-400 font-medium">Real-time availability of fulfillment workers and delivery riders</p>
+                                                <h2 className="text-xl font-black uppercase tracking-tight">Store Fulfillment &amp; Staff Status</h2>
+                                                <p className="text-xs text-zinc-400 font-medium">Real-time availability of store workers and packaging staff</p>
                                             </div>
                                         </div>
                                         <a href="/admin/users" className="text-xs font-bold uppercase tracking-wider bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl transition-all flex items-center gap-1.5">
@@ -617,10 +617,10 @@ export default function AdminDashboardHome() {
                                         </a>
                                     </div>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
                                         <div className="bg-zinc-800/60 border border-zinc-700/50 p-4 rounded-2xl flex items-center justify-between">
                                             <div>
-                                                <p className="text-xs text-zinc-400 font-bold uppercase">Pickup Workers</p>
+                                                <p className="text-xs text-zinc-400 font-bold uppercase">Store Staff &amp; Workers</p>
                                                 <p className="text-2xl font-black text-white mt-1">{staffSummary.availableWorkers} <span className="text-xs font-normal text-zinc-400">/ {staffSummary.totalWorkers} active</span></p>
                                             </div>
                                             <span className={`w-3 h-3 rounded-full ${staffSummary.availableWorkers > 0 ? "bg-emerald-500 shadow-[0_0_10px_#10b981]" : "bg-rose-500"}`} />
@@ -628,15 +628,7 @@ export default function AdminDashboardHome() {
 
                                         <div className="bg-zinc-800/60 border border-zinc-700/50 p-4 rounded-2xl flex items-center justify-between">
                                             <div>
-                                                <p className="text-xs text-zinc-400 font-bold uppercase">Delivery Riders</p>
-                                                <p className="text-2xl font-black text-white mt-1">{staffSummary.availableRiders} <span className="text-xs font-normal text-zinc-400">/ {staffSummary.totalRiders} active</span></p>
-                                            </div>
-                                            <span className={`w-3 h-3 rounded-full ${staffSummary.availableRiders > 0 ? "bg-blue-500 shadow-[0_0_10px_#3b82f6]" : "bg-rose-500"}`} />
-                                        </div>
-
-                                        <div className="bg-zinc-800/60 border border-zinc-700/50 p-4 rounded-2xl flex items-center justify-between">
-                                            <div>
-                                                <p className="text-xs text-zinc-400 font-bold uppercase">Dispatch Efficiency</p>
+                                                <p className="text-xs text-zinc-400 font-bold uppercase">Fulfillment Efficiency</p>
                                                 <p className="text-2xl font-black text-emerald-400 mt-1">100%</p>
                                             </div>
                                             <Sparkles size={20} className="text-emerald-400" />
@@ -644,8 +636,8 @@ export default function AdminDashboardHome() {
 
                                         <div className="bg-zinc-800/60 border border-zinc-700/50 p-4 rounded-2xl flex items-center justify-between">
                                             <div>
-                                                <p className="text-xs text-zinc-400 font-bold uppercase">Auto-Assign Status</p>
-                                                <p className="text-sm font-black text-brand-primary uppercase mt-1">Ready</p>
+                                                <p className="text-xs text-zinc-400 font-bold uppercase">Order Processing</p>
+                                                <p className="text-sm font-black text-brand-primary uppercase mt-1">Active</p>
                                             </div>
                                             <Zap size={20} className="text-amber-400" />
                                         </div>

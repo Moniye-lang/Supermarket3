@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 export default function WorkerLogin() {
-  const [role, setRole] = useState("rider");
+  const role = "worker";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -30,8 +30,8 @@ export default function WorkerLogin() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Login failed.");
-      if (data.user?.role !== role && !data.user?.isAdmin) {
-        throw new Error(`You are not registered as a ${role === "rider" ? "Delivery Rider" : "Pickup Worker"}.`);
+      if (data.user?.role !== "worker" && data.user?.role !== "admin") {
+        throw new Error("You are not registered as a Store Staff Member.");
       }
       localStorage.setItem("workerToken", data.token);
       router.push("/worker");
@@ -53,23 +53,12 @@ export default function WorkerLogin() {
             <span className="font-display text-3xl font-bold tracking-tight text-brand-dark">AM<span className="text-brand-primary">Stores</span></span>
           </Link>
           <h1 className="text-3xl font-bold text-gray-900 font-display">Staff Portal</h1>
-          <p className="text-gray-500 mt-2">Log in to view your assigned tasks.</p>
+          <p className="text-gray-500 mt-2">Log in to view your store tasks &amp; pickups.</p>
         </div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-[2rem] shadow-xl shadow-brand-dark/5 p-8 border border-gray-100">
-          {/* Role Selector */}
-          <div className="flex p-1 bg-gray-100 rounded-2xl mb-8 relative">
-            <div className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white rounded-xl shadow-sm transition-all duration-300 ease-out ${role === "rider" ? "left-1" : "left-[calc(50%+4px)]"}`} />
-            <button type="button" onClick={() => { setRole("rider"); setError(""); }}
-              className={`flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-sm font-medium transition-colors relative z-10 ${role === "rider" ? "text-blue-600" : "text-gray-500 hover:text-gray-700"}`}
-            >
-              <Truck size={20} /> Delivery
-            </button>
-            <button type="button" onClick={() => { setRole("worker"); setError(""); }}
-              className={`flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-sm font-medium transition-colors relative z-10 ${role === "worker" ? "text-orange-500" : "text-gray-500 hover:text-gray-700"}`}
-            >
-              <MapPin size={20} /> Pickup
-            </button>
+          <div className="flex items-center justify-center gap-2 p-3 bg-brand-primary/10 text-brand-primary rounded-2xl mb-8 font-bold text-sm">
+            <MapPin size={18} /> Store Fulfillment Staff
           </div>
 
           <AnimatePresence mode="wait">
@@ -89,8 +78,8 @@ export default function WorkerLogin() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
               <Input type="password" placeholder="••••••••" value={password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} required />
             </div>
-            <Button type="submit" disabled={loading} className={`w-full py-4 text-lg mt-2 flex items-center justify-center gap-2 ${role === "rider" ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/25" : "bg-orange-500 hover:bg-orange-600 text-white shadow-orange-500/25"}`}>
-              {loading ? <Loader2 className="animate-spin" /> : <>{`Login as ${role === "rider" ? "Rider" : "Worker"}`} <ArrowRight size={20} /></>}
+            <Button type="submit" disabled={loading} className="w-full py-4 text-lg mt-2 flex items-center justify-center gap-2 bg-brand-primary hover:bg-brand-primary-hover text-white shadow-brand-primary/25">
+              {loading ? <Loader2 className="animate-spin" /> : <>Login to Staff Portal <ArrowRight size={20} /></>}
             </Button>
           </form>
         </motion.div>

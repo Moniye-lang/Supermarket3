@@ -495,15 +495,11 @@ export default function AdminOrdersPage() {
                                     </td>
                                     <td className="p-4">
                                         <div className="flex items-center gap-2">
-                                            {order.collectionMethod === "delivery" ? (
-                                                <Truck size={14} className="text-blue-500 shrink-0" />
-                                            ) : (
-                                                <MapPin size={14} className="text-orange-500 shrink-0" />
-                                            )}
+                                            <MapPin size={14} className="text-emerald-600 shrink-0" />
                                             <div>
-                                                <p className="text-sm font-medium capitalize text-gray-900">{order.collectionMethod}</p>
-                                                <p className="text-xs text-gray-500 line-clamp-1 w-40" title={order.deliveryAddress}>
-                                                    {order.deliveryAddress}
+                                                <p className="text-sm font-medium capitalize text-gray-900">Store Pickup</p>
+                                                <p className="text-xs text-gray-500 line-clamp-1 w-40" title={order.deliveryAddress || "AMStores Ibadan"}>
+                                                    {order.deliveryAddress || "AMStores Ibadan"}
                                                 </p>
                                             </div>
                                         </div>
@@ -520,12 +516,8 @@ export default function AdminOrdersPage() {
                                             disabled={assigningId === order._id}
                                             onChange={(e) => assignOrder(order._id, e.target.value)}
                                         >
-                                            <option value="">Unassigned</option>
+                                            <option value="">Unassigned Staff</option>
                                             {workers
-                                                .filter(w => {
-                                                    const requiredRole = order.collectionMethod === "delivery" ? "rider" : "worker";
-                                                    return w.role === requiredRole;
-                                                })
                                                 .map(w => (
                                                     <option key={w._id} value={w._id}>
                                                         {w.name} ({w.status || "available"})
@@ -549,13 +541,8 @@ export default function AdminOrdersPage() {
                                               <Package size={16} />
                                             </Button>
                                           )}
-                                          {order.collectionMethod === "delivery" && !["completed", "delivered", "picked_up", "cancelled"].includes(order.status) && (
-                                            <Button variant="outline" className="bg-green-600 text-white hover:bg-green-700 ml-2 cursor-pointer" onClick={() => updateOrderStatus(order._id, "delivery_here")}>
-                                              Delivery Here
-                                            </Button>
-                                          )}
-                                          {order.collectionMethod === "pickup" && !["completed", "delivered", "picked_up", "cancelled"].includes(order.status) && (
-                                            <Button variant="outline" className="bg-indigo-600 text-white hover:bg-indigo-700 ml-2 cursor-pointer" onClick={() => updateOrderStatus(order._id, "ready_for_pickup")}>
+                                          {!["completed", "delivered", "picked_up", "cancelled"].includes(order.status) && (
+                                            <Button variant="outline" className="bg-emerald-600 text-white hover:bg-emerald-700 ml-2 cursor-pointer" onClick={() => updateOrderStatus(order._id, "ready_for_pickup")}>
                                               Pickup Ready
                                             </Button>
                                           )}

@@ -48,19 +48,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) setCart(parsed);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setCart(parsed);
+        }
       } catch {
-        localStorage.removeItem("cart");
+        // keep local storage safe
       }
     }
   }, []);
 
   // Load from backend if logged in
   useEffect(() => {
+    // If auth is still loading, do not make premature decisions or wipe local cart
+    const authIsLoading = (AuthContext as any)?._currentValue?.loading;
+    
     async function loadCart() {
       if (!token || !user?._id) {
-        setCart([]);
-        localStorage.removeItem("cart");
         setLoading(false);
         return;
       }
@@ -71,12 +74,32 @@ export function CartProvider({ children }: { children: ReactNode }) {
           headers: { Authorization: `Bearer ${token}` },
         });
 
+        if (res.status === 401 || res.status === 403) {
+          // Token expired or unauthenticated, preserve local cart
+          setLoading(false);
+          return;
+        }
+
         if (!res.ok) throw new Error(`Failed to fetch cart (${res.status})`);
 
         const data = await res.json();
-        if (data?.items) {
-          setCart(data.items);
-          localStorage.setItem("cart", JSON.stringify(data.items));
+        if (Array.isArray(data?.items)) {
+          if (data.items.length > 0) {
+            setCart(data.items);
+            localStorage.setItem("cart", JSON.stringify(data.items));
+          } else {
+            // If backend is empty but user had a local cart, sync local cart to backend
+            const stored = localStorage.getItem("cart");
+            if (stored) {
+              try {
+                const parsed = JSON.parse(stored);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                  setCart(parsed);
+                  persist(parsed);
+                }
+              } catch {}
+            }
+          }
         }
       } catch (err) {
         console.error("Error loading cart:", err);
