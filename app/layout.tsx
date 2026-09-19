@@ -16,11 +16,11 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "AMStores | Premium Grocery Delivery & Pickup in Ibadan",
-  description: "Shop fresh groceries, meat, bakery items, and household essentials online at AMStores. Fast 30-minute delivery to your doorstep in Ibadan.",
-  keywords: ["AMStores", "Grocery Ibadan", "Online Supermarket", "Fresh Delivery Ibadan", "Agbeni Mercantile Stores"],
+  title: "AMStores | Premium Grocery Shopping & In-Store Pickup in Ibadan",
+  description: "Shop fresh groceries, meat, bakery items, and household essentials online at AMStores with convenient, fast store pickup in Akobo, Ibadan.",
+  keywords: ["AMStores", "Grocery Ibadan", "Online Supermarket", "Store Pickup Ibadan", "Agbeni Mercantile Stores"],
   openGraph: {
-    title: "AMStores | Premium Grocery Delivery & Pickup",
+    title: "AMStores | Premium Grocery Shopping & Pickup",
     description: "Shop fresh groceries, meat, bakery items, and household essentials online at AMStores.",
     url: "https://agbenimercantilestores.com",
     siteName: "AMStores",

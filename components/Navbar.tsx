@@ -319,10 +319,10 @@ export default function Navbar() {
             >
                 <div className="container mx-auto px-4 sm:px-6 max-w-7xl">
                     <div className={cn(
-                        "flex items-center justify-between rounded-2xl px-6 py-3 border transition-all duration-300",
+                        "flex items-center justify-between rounded-2xl px-6 py-3 transition-all duration-300",
                         scrolled
-                            ? "bg-white dark:bg-zinc-900/95 backdrop-blur-xl border-gray-200 dark:border-zinc-800 shadow-lg shadow-gray-200/50 dark:shadow-black/20"
-                            : "bg-white dark:bg-zinc-900/90 backdrop-blur-md border-gray-200/80 dark:border-zinc-800/60 shadow-md shadow-gray-200/40 dark:shadow-black/10"
+                            ? "bg-white dark:bg-zinc-900/95 backdrop-blur-xl border border-gray-200 dark:border-zinc-800 shadow-lg shadow-gray-200/50 dark:shadow-black/20"
+                            : "bg-transparent border border-transparent shadow-none"
                     )}>
                         {/* Logo */}
                         <Link href="/" className="flex items-center gap-2 group">
