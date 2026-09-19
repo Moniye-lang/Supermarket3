@@ -7,7 +7,7 @@ import { Button } from "./ui/Button";
 
 export default function Hero() {
     return (
-        <section className="relative w-full min-h-[95vh] flex items-center bg-brand-light overflow-hidden pt-24 pb-12">
+        <section className="relative w-full min-h-[95vh] flex items-center bg-brand-light dark:bg-[#0a0a0a] overflow-hidden pt-24 pb-12">
             {/* Dynamic Background Gradients */}
             <div className="absolute top-[-10%] right-[-5%] w-[800px] h-[800px] bg-brand-primary/10 rounded-full blur-[120px] animate-pulse" />
             <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-orange-400/10 rounded-full blur-[100px]" />
@@ -25,7 +25,7 @@ export default function Hero() {
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.3 }}
-                        className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/90 backdrop-blur-xl border border-white shadow-sm light-card"
+                        className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border border-white dark:border-zinc-800 shadow-sm light-card"
                     >
                         <span className="flex h-2.5 w-2.5 relative">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-primary opacity-75"></span>
@@ -34,7 +34,7 @@ export default function Hero() {
                         <span className="text-sm font-bold text-black dark:text-white tracking-wide uppercase">Delivering Freshness Daily</span>
                     </motion.div>
 
-                    <h1 className="text-6xl md:text-7xl lg:text-8xl font-display font-extrabold text-brand-dark leading-[1.05] tracking-tight">
+                    <h1 className="text-6xl md:text-7xl lg:text-8xl font-display font-extrabold text-brand-dark dark:text-white leading-[1.05] tracking-tight">
                         Your Groceries, <br />
                         <span className="relative inline-block mt-2">
                             <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-brand-primary via-red-600 to-orange-500">
@@ -44,7 +44,7 @@ export default function Hero() {
                         </span>
                     </h1>
 
-                    <p className="text-xl text-gray-700 max-w-lg leading-relaxed font-normal">
+                    <p className="text-xl text-gray-700 dark:text-gray-300 max-w-lg leading-relaxed font-normal">
                         Skip the lines. We bring the finest, hand-picked essentials directly to your door in minutes. Quality you can taste, convenience you deserve.
                     </p>
 

@@ -321,8 +321,8 @@ export default function Navbar() {
                     <div className={cn(
                         "flex items-center justify-between rounded-2xl px-6 py-3 border transition-all duration-300",
                         scrolled
-                            ? "bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border-gray-200/80 dark:border-zinc-800 shadow-lg shadow-black/5"
-                            : "bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-gray-100 dark:border-zinc-800/60 shadow-sm"
+                            ? "bg-white dark:bg-black/95 backdrop-blur-xl border-gray-200 dark:border-zinc-800 shadow-md"
+                            : "bg-white/95 dark:bg-black/90 backdrop-blur-md border-gray-200/80 dark:border-zinc-800/80 shadow-sm"
                     )}>
                         {/* Logo */}
                         <Link href="/" className="flex items-center gap-2 group">
@@ -345,7 +345,7 @@ export default function Navbar() {
                                         className={cn(
                                             "relative px-4 py-2 text-sm font-medium rounded-full transition-all duration-300",
                                             isCurrent
-                                                ? "text-brand-primary dark:text-red-400 bg-red-50/80 dark:bg-zinc-800 font-bold"
+                                                ? "text-brand-primary dark:text-red-400 bg-red-50 dark:bg-zinc-800 font-bold"
                                                 : "text-gray-700 dark:text-gray-200 hover:text-brand-primary dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-zinc-800/80"
                                         )}
                                     >
