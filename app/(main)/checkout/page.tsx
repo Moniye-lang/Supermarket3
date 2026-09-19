@@ -99,6 +99,11 @@ export default function Checkout() {
     fetchSettings();
   }, []);
 
+  // Order submission flow
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showConfirm, setShowConfirm] = useState(false);
+
   function copyAccount() {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(storeSettings.accountNumber);
