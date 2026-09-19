@@ -321,69 +321,72 @@ export default function Navbar() {
                     <div className={cn(
                         "flex items-center justify-between rounded-2xl px-6 py-3 border transition-all duration-300",
                         scrolled
-                            ? "bg-white/75 dark:bg-zinc-950/85 backdrop-blur-xl border-white/20 dark:border-zinc-800 shadow-lg shadow-black/5"
-                            : "bg-transparent border-transparent"
+                            ? "bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border-gray-200/80 dark:border-zinc-800 shadow-lg shadow-black/5"
+                            : "bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-gray-100 dark:border-zinc-800/60 shadow-sm"
                     )}>
                         {/* Logo */}
                         <Link href="/" className="flex items-center gap-2 group">
                             <div className="w-10 h-10 bg-brand-primary rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg group-hover:scale-105 transition-transform">
                                 A
                             </div>
-                            <span className="font-display text-2xl font-bold tracking-tight text-brand-dark">
+                            <span className="font-display text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
                                 AMStores
                             </span>
                         </Link>
 
                         {/* Desktop Nav */}
                         <nav className="hidden md:flex items-center gap-1">
-                            {navLinks.map((link) => (
-                                <Link
-                                    key={link.path}
-                                    href={link.path}
-                                    className={cn(
-                                        "relative px-4 py-2 text-sm font-medium rounded-full transition-all duration-300 hover:bg-white/50",
-                                        pathname === link.path
-                                            ? "text-brand-primary bg-white/50 font-semibold"
-                                            : "text-gray-600 hover:text-brand-primary"
-                                    )}
-                                >
-                                    {link.name}
-                                    {pathname === link.path && (
-                                        <motion.div
-                                            layoutId="navbar-indicator"
-                                            className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-brand-primary rounded-full"
-                                        />
-                                    )}
-                                </Link>
-                            ))}
+                            {navLinks.map((link) => {
+                                const isCurrent = pathname === link.path;
+                                return (
+                                    <Link
+                                        key={link.path}
+                                        href={link.path}
+                                        className={cn(
+                                            "relative px-4 py-2 text-sm font-medium rounded-full transition-all duration-300",
+                                            isCurrent
+                                                ? "text-brand-primary dark:text-red-400 bg-red-50/80 dark:bg-zinc-800 font-bold"
+                                                : "text-gray-700 dark:text-gray-200 hover:text-brand-primary dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-zinc-800/80"
+                                        )}
+                                    >
+                                        {link.name}
+                                        {isCurrent && (
+                                            <motion.div
+                                                layoutId="navbar-indicator"
+                                                className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-brand-primary dark:bg-red-400 rounded-full"
+                                            />
+                                        )}
+                                    </Link>
+                                );
+                            })}
                         </nav>
 
                         {/* Desktop Actions */}
                         <div className="flex items-center gap-2 sm:gap-4">
                             {/* Search */}
-                            <button className="p-2 text-gray-600 hover:text-brand-primary hover:bg-white/50 rounded-full transition-all hidden sm:block">
+                            <button className="p-2 text-gray-700 dark:text-gray-200 hover:text-brand-primary dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-all hidden sm:block">
                                 <Search size={20} />
                             </button>
 
                             {/* Dark Mode Toggle */}
                             <button
                                 onClick={toggleDarkMode}
-                                className="p-2 text-gray-600 hover:text-brand-primary hover:bg-white/50 rounded-full transition-all"
+                                className="p-2 text-gray-700 dark:text-gray-200 hover:text-brand-primary dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-all"
                                 aria-label="Toggle Dark Mode"
                             >
-                                {darkMode ? <Sun size={20} className="text-amber-500" /> : <Moon size={20} className="text-gray-700" />}
+                                {darkMode ? <Sun size={20} className="text-amber-400" /> : <Moon size={20} className="text-gray-700" />}
                             </button>
 
                             {/* Cart — visible on both mobile and desktop */}
-                            <Link href="/cart" className="relative p-2 hover:bg-white/50 rounded-full transition-all group">
-                                <ShoppingCart size={22} className="text-gray-700 group-hover:text-brand-primary transition-colors" />
+                            <Link href="/cart" className="relative p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-all group">
+                                <ShoppingCart size={22} className="text-gray-700 dark:text-gray-200 group-hover:text-brand-primary dark:group-hover:text-red-400 transition-colors" />
                                 <AnimatePresence>
                                     {totalItems > 0 && (
                                         <motion.span
                                             initial={{ scale: 0 }}
                                             animate={{ scale: 1 }}
                                             exit={{ scale: 0 }}
-                                            className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-brand-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white"
+                                            className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-brand-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white dark:border-zinc-900 shadow-sm"
                                         >
                                             {totalItems}
                                         </motion.span>
@@ -393,13 +396,13 @@ export default function Navbar() {
 
                             {/* User / Login — desktop only */}
                             {user ? (
-                                <div className="hidden md:flex items-center gap-4">
-                                    <span className="text-sm font-medium text-brand-dark">
-                                        Welcome, <span className="text-brand-primary">{user.name.split(" ")[0]}</span>
+                                <div className="hidden md:flex items-center gap-3">
+                                    <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                                        Welcome, <span className="text-brand-primary dark:text-red-400 font-bold">{user.name.split(" ")[0]}</span>
                                     </span>
                                     <button
                                         onClick={() => setShowLogoutConfirm(true)}
-                                        className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
+                                        className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-full transition-all"
                                         title="Logout"
                                     >
                                         <LogOut size={20} />

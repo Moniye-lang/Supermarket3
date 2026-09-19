@@ -10,22 +10,6 @@ import {
   MapPin, ChevronRight, ChevronDown, PackageOpen,
   Calendar, User, Hash, History, Loader2, ReceiptText, Phone, Store, PhoneCall
 } from "lucide-react";
-import dynamic from "next/dynamic";
-
-const RiderMapComponent = dynamic(
-  () => import("@/components/RiderMapComponent"),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="h-[320px] w-full rounded-3xl bg-gray-50 flex items-center justify-center text-sm text-brand-muted border border-gray-100">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="animate-spin text-brand-primary" size={24} />
-          <span>Loading Live Tracking Map...</span>
-        </div>
-      </div>
-    )
-  }
-);
 
 function FulfillmentProgressBar({ status, orderType }: { status: string; orderType: string }) {
   let percentage = 0;
@@ -521,38 +505,6 @@ export default function Order() {
                       <FulfillmentProgressBar status={order.status} orderType={orderType} />
                       <ProgressStepper order={order} orderType={orderType} />
                     </div>
-
-                    {/* Rider or Dispatch notification */}
-                    {orderType === "delivery" && order.status !== "delivered" && order.status !== "completed" && order.status !== "cancelled" && (
-                      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 space-y-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                          <h3 className="text-sm font-bold text-brand-dark uppercase tracking-wider flex items-center gap-2">
-                            <Truck size={16} className="text-brand-primary animate-pulse" /> Live Delivery Route
-                          </h3>
-                          {order.assignedToWorkerId?.phone && (
-                            <a
-                              href={`tel:${order.assignedToWorkerId.phone}`}
-                              className="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-250/30 px-3.5 py-2 rounded-full flex items-center justify-center gap-1.5 hover:bg-emerald-100 transition-colors"
-                            >
-                              <Phone size={12} /> Call Rider ({order.assignedToWorkerId.name})
-                            </a>
-                          )}
-                        </div>
-
-                        {/* Route map layer */}
-                        {order.latitude && order.longitude ? (
-                          <div className="h-[320px] w-full rounded-2xl overflow-hidden border border-gray-100 shadow-inner relative z-0">
-                            <RiderMapComponent destination={{ lat: order.latitude, lng: order.longitude }} />
-                          </div>
-                        ) : (
-                          <div className="h-[120px] w-full rounded-2xl bg-gray-50 flex flex-col items-center justify-center text-center text-sm text-brand-muted border border-gray-100 px-4">
-                            <Loader2 className="animate-spin text-brand-primary mb-2" size={20} />
-                            <p className="font-semibold text-brand-dark">Assigning delivery rider...</p>
-                            <p className="text-[11px] text-brand-muted mt-0.5">Live tracking will begin once your package is dispatched.</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
 
                     {/* Store Operator updates */}
                     {order.goodsStatus && (
