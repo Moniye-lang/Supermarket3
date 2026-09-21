@@ -253,71 +253,70 @@ body {
 }
 
 /* ==============================================================================
-   TASTESKILL 3-CARD L-SHAPED CONTINUOUS STREAM ANIMATION
+   TASTESKILL EXACT STREAM PERSPECTIVE CARD ANIMATION
    ============================================================================== */
-.stream-viewport {
+.hero-stream-viewport {
     position: relative;
     width: 100%;
-    height: 480px;
+    height: 520px;
     overflow: hidden;
-    mask-image: linear-gradient(to bottom, transparent 0%, black 14%, black 86%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 14%, black 86%, transparent 100%);
+    perspective: 1000px;
+    mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%);
 }
 
-.stream-viewport:hover .stream-card-anim {
+.hero-stream-viewport:hover .hero-stream-card {
     animation-play-state: paused;
 }
 
-.stream-card-anim {
+.hero-stream-card {
     position: absolute;
     top: 50%;
     left: 50%;
     width: 100%;
-    max-width: 530px;
-    transform: translate(-50%, -50%);
+    max-width: 520px;
+    transform-style: preserve-3d;
     will-change: transform, opacity;
-    animation: tasteSkillLStream 15s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+    animation: stream-perspective 15s cubic-bezier(0.25, 1, 0.5, 1) infinite;
 }
 
-.stream-card-1 {
+.hero-stream-card:nth-child(1),
+.hero-stream-card-1 {
     animation-delay: 0s;
 }
 
-.stream-card-2 {
+.hero-stream-card:nth-child(2),
+.hero-stream-card-2 {
     animation-delay: -5s;
 }
 
-.stream-card-3 {
+.hero-stream-card:nth-child(3),
+.hero-stream-card-3 {
     animation-delay: -10s;
 }
 
-@keyframes tasteSkillLStream {
-    /* 1. Enter from Top (smaller & fading in) */
+@keyframes stream-perspective {
     0% {
-        transform: translate3d(-50%, calc(-50% - 130px), 0) scale(0.85);
+        transform: translate3d(-50%, calc(-50% - 140px), -100px) scale(0.82);
         opacity: 0;
-        z-index: 10;
-        pointer-events: none;
     }
-    14% {
-        opacity: 1;
+    15% {
+        transform: translate3d(-50%, calc(-50% - 60px), -40px) scale(0.92);
+        opacity: 0.7;
     }
-    /* 2. Main Center Focal Rest (Full Scale & Active) */
-    30%, 65% {
-        transform: translate3d(-50%, -50%, 0) scale(1);
+    35%, 55% {
+        transform: translate3d(-50%, -50%, 0px) scale(1);
         opacity: 1;
         z-index: 30;
-        pointer-events: auto;
     }
-    82% {
-        opacity: 1;
+    75% {
+        transform: translate3d(calc(-50% + 140px), calc(-50% + 160px), -50px) scale(0.88);
+        opacity: 0.6;
     }
-    /* 3. Exit to Bottom-Right (scaling down & dissolving) */
     100% {
-        transform: translate3d(calc(-50% + 160px), calc(-50% + 200px), 0) scale(0.8);
+        transform: translate3d(calc(-50% + 220px), calc(-50% + 260px), -100px) scale(0.78);
         opacity: 0;
-        z-index: 10;
-        pointer-events: none;
     }
 }
+
 
