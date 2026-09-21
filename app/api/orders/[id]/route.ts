@@ -2,9 +2,42 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Order from "@/lib/models/Order";
 import User from "@/lib/models/User";
-import { verifyAdmin } from "@/lib/authMiddleware";
+import { verifyAuth, verifyAdmin } from "@/lib/authMiddleware";
 import { sendPushToUser } from "@/lib/subscriptions";
 import { sendOrderReadyEmail } from "@/lib/email";
+
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    await dbConnect();
+    const authUser = await verifyAuth(req);
+    if (!authUser) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const order = await Order.findById(id)
+      .populate("assignedToWorkerId", "name role status phone")
+      .populate("reassignmentHistory.assignedWorkerId", "name role")
+      .populate("reassignmentHistory.assignedBy", "name role");
+
+    if (!order) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    // Access control: customer who owns the order, worker/rider, or admin
+    if (
+      authUser.role === "customer" &&
+      order.customerId &&
+      order.customerId.toString() !== authUser.id
+    ) {
+      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    }
+
+    return NextResponse.json(order);
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -24,7 +57,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     if (status) {
       order.status = status;
-      if (status === "completed" || status === "delivered") {
+      if (status === "completed" || status === "delivered" || status === "picked_up") {
         order.fulfilled = true;
       } else {
         order.fulfilled = false;
@@ -34,13 +67,15 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     await order.save();
     
     // Notify owner about status change
-    const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+    const clientUrl = process.env.CLIENT_URL || "http://localhost:5000";
     const statusPayload = {
       title: 'Order Status Updated',
-      body: `Your order #${order._id} status is now ${order.status}.`,
-      url: `${clientUrl}/orders/${order._id}`
+      body: `Your order #${order.pickupCode || order._id} status is now ${order.status}.`,
+      url: `${clientUrl}/order`
     };
-    await sendPushToUser(order.customerId.toString(), statusPayload.title, statusPayload.body, statusPayload.url).catch(() => {});
+    if (order.customerId) {
+      await sendPushToUser(order.customerId.toString(), statusPayload.title, statusPayload.body, statusPayload.url).catch(() => {});
+    }
 
     // Send Email Update: Order Ready
     if (status === "ready_for_pickup" || status === "ready") {

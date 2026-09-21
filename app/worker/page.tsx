@@ -22,7 +22,7 @@ export default function Worker() {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const [workerStatus, setWorkerStatus] = useState("available");
-  const [workerRole, setWorkerRole] = useState<"worker" | "rider" | null>(null);
+  const [workerRole, setWorkerRole] = useState<"worker" | "rider" | "admin" | null>(null);
   const [completedOrders, setCompletedOrders] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
 
@@ -461,9 +461,11 @@ export default function Worker() {
 
         {/* Role Stats Strip */}
         {(() => {
-          const myOrders = orders.filter(o =>
-            workerRole === "rider" ? o.collectionMethod === "delivery" : o.collectionMethod === "pickup"
-          );
+          const myOrders = orders.filter(o => {
+            if (workerRole === "rider") return o.collectionMethod === "delivery";
+            if (workerRole === "admin") return true;
+            return o.collectionMethod !== "delivery";
+          });
           const pendingCount = myOrders.filter(o => !o.fulfilled && o.status !== "packing").length;
           const packingCount = myOrders.filter(o => o.status === "packing").length;
           const totalCount = myOrders.length;
@@ -522,9 +524,11 @@ export default function Worker() {
           </div>
         ) : (() => {
           // Filter orders by this worker's role
-          const myOrders = orders.filter(o =>
-            workerRole === "rider" ? o.collectionMethod === "delivery" : o.collectionMethod === "pickup"
-          );
+          const myOrders = orders.filter(o => {
+            if (workerRole === "rider") return o.collectionMethod === "delivery";
+            if (workerRole === "admin") return true;
+            return o.collectionMethod !== "delivery";
+          });
           return myOrders.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-10 bg-white rounded-3xl border border-gray-100 shadow-sm">
             <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-4 text-green-500">

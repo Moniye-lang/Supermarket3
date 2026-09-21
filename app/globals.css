@@ -252,5 +252,75 @@ body {
     color: #ffffff !important;
 }
 
+/* ==============================================================================
+   3-CARD STAGGERED CONTINUOUS CARD STREAM LOOP ANIMATION
+   ============================================================================== */
+.stream-perspective-viewport {
+    perspective: 1200px;
+    transform-style: preserve-3d;
+}
 
+.stream-perspective-viewport:hover .stream-card-anim {
+    animation-play-state: paused;
+}
 
+.stream-card-anim {
+    will-change: transform, opacity;
+    animation-name: streamCardLoop;
+    animation-duration: 15s;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    animation-iteration-count: infinite;
+}
+
+.stream-card-1 {
+    animation-delay: 0s;
+}
+
+.stream-card-2 {
+    animation-delay: -5s;
+}
+
+.stream-card-3 {
+    animation-delay: -10s;
+}
+
+@keyframes streamCardLoop {
+    /* Position 1: Front & Active */
+    0%, 28% {
+        transform: translate3d(0, 0, 0) scale(1) rotateX(0deg) rotateZ(0deg);
+        opacity: 1;
+        z-index: 30;
+        pointer-events: auto;
+        filter: drop-shadow(0 20px 30px rgba(0, 0, 0, 0.12));
+    }
+    /* Transition 1 -> 2 */
+    33.3%, 61% {
+        transform: translate3d(18px, 64px, -50px) scale(0.92) rotateX(3deg) rotateZ(1.5deg);
+        opacity: 0.88;
+        z-index: 20;
+        pointer-events: none;
+        filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.08));
+    }
+    /* Transition 2 -> 3 */
+    66.6%, 93% {
+        transform: translate3d(36px, 128px, -100px) scale(0.84) rotateX(6deg) rotateZ(3deg);
+        opacity: 0.55;
+        z-index: 10;
+        pointer-events: none;
+        filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.05));
+    }
+    /* Transition 3 -> Wrap to Front */
+    96.5% {
+        transform: translate3d(0, -50px, 30px) scale(1.02) rotateX(-2deg) rotateZ(-1deg);
+        opacity: 0.2;
+        z-index: 35;
+        pointer-events: none;
+    }
+    100% {
+        transform: translate3d(0, 0, 0) scale(1) rotateX(0deg) rotateZ(0deg);
+        opacity: 1;
+        z-index: 30;
+        pointer-events: auto;
+        filter: drop-shadow(0 20px 30px rgba(0, 0, 0, 0.12));
+    }
+}

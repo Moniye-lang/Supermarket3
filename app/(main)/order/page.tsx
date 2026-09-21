@@ -372,7 +372,14 @@ export default function Order() {
       try {
         setLoading(true);
         setError("");
-        const res = await fetch(`/api/orders/latest/${orderType}`, { headers: { Authorization: `Bearer ${token}` } });
+        const storedOrderId = typeof window !== "undefined" 
+          ? (new URLSearchParams(window.location.search).get("id") || localStorage.getItem("orderId") || "") 
+          : "";
+        const queryParam = storedOrderId ? `?orderId=${encodeURIComponent(storedOrderId)}` : "";
+        
+        const res = await fetch(`/api/orders/latest/any${queryParam}`, { 
+          headers: { Authorization: `Bearer ${token}` } 
+        });
         const data = await res.json();
         if (!res.ok) {
           if (res.status === 401) {
@@ -383,6 +390,12 @@ export default function Order() {
           throw new Error(data.error || "Failed to fetch order");
         }
         setOrder(data);
+        if (data.collectionMethod && (data.collectionMethod === "delivery" || data.collectionMethod === "pickup")) {
+          setOrderType(data.collectionMethod);
+        }
+        if (data._id) {
+          localStorage.setItem("orderId", data._id);
+        }
       } catch (err: any) {
         setOrder(null);
         setError(err.message);
@@ -391,7 +404,7 @@ export default function Order() {
       }
     }
     if (activeTab === "active") fetchOrder();
-  }, [token, orderType, activeTab]);
+  }, [token, activeTab]);
 
   useEffect(() => {
     if (!order?._id) return;
