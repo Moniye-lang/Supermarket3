@@ -253,11 +253,13 @@ body {
 }
 
 /* ==============================================================================
-   3-CARD STAGGERED CONTINUOUS CARD STREAM LOOP ANIMATION
+   3-CARD STAGGERED CONTINUOUS CARD STREAM LOOP ANIMATION (L-Shaped Top to Bottom-Right)
    ============================================================================== */
 .stream-perspective-viewport {
-    perspective: 1200px;
-    transform-style: preserve-3d;
+    position: relative;
+    overflow: hidden;
+    mask-image: linear-gradient(to bottom, transparent 0%, black 6%, black 90%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 6%, black 90%, transparent 100%);
 }
 
 .stream-perspective-viewport:hover .stream-card-anim {
@@ -268,7 +270,7 @@ body {
     will-change: transform, opacity;
     animation-name: streamCardLoop;
     animation-duration: 15s;
-    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    animation-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
     animation-iteration-count: infinite;
 }
 
@@ -285,39 +287,43 @@ body {
 }
 
 @keyframes streamCardLoop {
-    /* Position 1: Front & Active */
-    0%, 28% {
-        transform: translate3d(0, 0, 0) scale(1) rotateX(0deg) rotateZ(0deg);
+    /* Stage 1: Active Front & Center */
+    0%, 25% {
+        transform: translate3d(0, 0, 0) scale(1);
         opacity: 1;
         z-index: 30;
         pointer-events: auto;
         filter: drop-shadow(0 20px 30px rgba(0, 0, 0, 0.12));
     }
-    /* Transition 1 -> 2 */
-    33.3%, 61% {
-        transform: translate3d(18px, 64px, -50px) scale(0.92) rotateX(3deg) rotateZ(1.5deg);
-        opacity: 0.88;
-        z-index: 20;
-        pointer-events: none;
-        filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.08));
-    }
-    /* Transition 2 -> 3 */
-    66.6%, 93% {
-        transform: translate3d(36px, 128px, -100px) scale(0.84) rotateX(6deg) rotateZ(3deg);
-        opacity: 0.55;
+    /* Stage 2: Exit to Bottom-Right (shrinking and fading out) */
+    32% {
+        transform: translate3d(50px, 120px, 0) scale(0.82);
+        opacity: 0;
         z-index: 10;
         pointer-events: none;
-        filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.05));
+        filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.04));
     }
-    /* Transition 3 -> Wrap to Front */
-    96.5% {
-        transform: translate3d(0, -50px, 30px) scale(1.02) rotateX(-2deg) rotateZ(-1deg);
-        opacity: 0.2;
-        z-index: 35;
+    /* Stage 3: Offscreen Reset (Waiting above top) */
+    32.1%, 91.5% {
+        transform: translate3d(0, -110px, 0) scale(0.82);
+        opacity: 0;
+        z-index: 5;
         pointer-events: none;
     }
+    /* Stage 4: Enter from Top (smaller, expanding down to center) */
+    92% {
+        transform: translate3d(0, -90px, 0) scale(0.84);
+        opacity: 0.2;
+        z-index: 25;
+        pointer-events: none;
+    }
+    97% {
+        transform: translate3d(0, -15px, 0) scale(0.97);
+        opacity: 0.9;
+        z-index: 28;
+    }
     100% {
-        transform: translate3d(0, 0, 0) scale(1) rotateX(0deg) rotateZ(0deg);
+        transform: translate3d(0, 0, 0) scale(1);
         opacity: 1;
         z-index: 30;
         pointer-events: auto;

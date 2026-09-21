@@ -3,7 +3,7 @@ import React from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, Star, Zap, ShieldCheck, ShoppingBag } from "lucide-react";
+import { ArrowRight, Star, Zap, ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "./ui/Button";
 
 const CARDS_DATA = [
@@ -11,57 +11,57 @@ const CARDS_DATA = [
     id: 1,
     className: "stream-card-1",
     tag: "Fresh Farm Produce · Direct Daily",
-    title: "Farm-Fresh Strawberries & Greens",
-    subtitle: "Chilled, organic, and hand-picked daily from vetted local growers for maximum nutrition.",
-    price: "₦4,500 / basket",
-    cta: "Shop Fresh Daily",
+    title: "Farm-Fresh Strawberries & Organic Produce",
+    subtitle: "Hand-picked daily, chilled and delivered within 30 minutes to preserve peak flavor and vital nutrients.",
+    price: "₦4,500 / pack",
+    cta: "Shop Fresh Produce",
     image: "/AMstore1.jpg",
   },
   {
     id: 2,
     className: "stream-card-2",
-    tag: "In-Store Gourmet · Akobo Supermarket",
-    title: "Bakery, Dairy & Gourmet Pantry",
-    subtitle: "Freshly baked artisan loaves, premium pantry staples, and imported essentials.",
+    tag: "Bakery & Gourmet · In-Store Specials",
+    title: "Artisan Sourdough & Pantry Staples",
+    subtitle: "Warm crusty baguettes, imported cheeses, and premium household favorites freshly stocked.",
     price: "₦2,800 / unit",
-    cta: "Browse Groceries",
+    cta: "Browse Bakery & Dairy",
     image: "/IMG_4525.JPG",
   },
   {
     id: 3,
     className: "stream-card-3",
-    tag: "Rapid Store Pickup · Ready in 30 Mins",
-    title: "Prime Butchery & Daily Essentials",
-    subtitle: "Quality poultry, prime meats, and all your supermarket favorites packed with care.",
+    tag: "Butchery & Poultry · Express Delivery",
+    title: "Prime Cuts & Daily Essentials",
+    subtitle: "Quality-grade poultry, seasoned cuts, and fresh supermarket groceries packed with extreme care.",
     price: "₦6,500 / pack",
-    cta: "Order for Pickup",
+    cta: "Order Butcher Cuts",
     image: "/IMG_4523.JPG",
   },
 ];
 
 export default function Hero() {
   return (
-    <section className="relative w-full min-h-[95vh] flex items-center bg-brand-light dark:bg-zinc-950 overflow-hidden pt-28 pb-16">
+    <section className="relative w-full min-h-[92vh] flex items-center bg-brand-light dark:bg-zinc-950 overflow-hidden pt-28 pb-16">
       {/* Dynamic Background Gradients */}
-      <div className="absolute top-[-10%] right-[-5%] w-[700px] h-[700px] bg-brand-primary/10 rounded-full blur-[120px] pointer-events-none animate-pulse" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-orange-400/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-[-10%] right-[-5%] w-[700px] h-[700px] bg-brand-primary/10 rounded-full blur-[130px] pointer-events-none animate-pulse" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-orange-400/10 rounded-full blur-[110px] pointer-events-none" />
 
-      <div className="container mx-auto px-4 sm:px-6 grid lg:grid-cols-12 gap-10 lg:gap-12 items-center relative z-10 h-full">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-12 gap-10 lg:gap-8 items-center relative z-10 h-full">
         {/* ------------------------------------------------------------------ */}
-        {/* LEFT COLUMN: Editorial Headline, Subtitle, CTAs & Metrics          */}
+        {/* LEFT COLUMN: Headline, Subtitle, CTAs & Value Metrics               */}
         {/* ------------------------------------------------------------------ */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="lg:col-span-5 space-y-7"
+          className="lg:col-span-6 space-y-7 max-w-xl"
         >
           {/* Status badge pill */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2 }}
-            className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border border-gray-200/80 dark:border-zinc-800 shadow-sm"
+            className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border border-gray-200/80 dark:border-zinc-800 shadow-xs"
           >
             <span className="flex h-2.5 w-2.5 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-primary opacity-75"></span>
@@ -84,12 +84,12 @@ export default function Hero() {
           </h1>
 
           {/* Subtitle */}
-          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 max-w-lg leading-relaxed font-normal">
+          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 leading-relaxed font-normal">
             Skip the lines. We bring hand-picked supermarket essentials and farm-fresh produce directly to your doorstep in minutes. Quality you can taste, convenience you deserve.
           </p>
 
           {/* CTAs */}
-          <div className="flex flex-wrap gap-4 pt-2">
+          <div className="flex flex-wrap gap-4 pt-1">
             <Link href="/products">
               <Button
                 size="lg"
@@ -140,31 +140,31 @@ export default function Hero() {
         </motion.div>
 
         {/* ------------------------------------------------------------------ */}
-        {/* RIGHT COLUMN: 3-Card Staggered Continuous Card Stream Loop         */}
+        {/* RIGHT COLUMN: 3-Card Staggered Top-In / Bottom-Right-Out Stream    */}
         {/* ------------------------------------------------------------------ */}
         <motion.div
-          initial={{ opacity: 0, x: 40 }}
+          initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.9, delay: 0.3 }}
-          className="lg:col-span-7 flex items-center justify-center lg:justify-end relative min-h-[560px] sm:min-h-[620px] w-full overflow-visible"
+          className="lg:col-span-6 flex items-center justify-center lg:justify-end relative w-full"
         >
-          {/* The 3D perspective stream viewport (Hover pauses motion) */}
-          <div className="stream-perspective-viewport relative w-full max-w-xl h-[520px] sm:h-[580px] flex items-center justify-center lg:justify-end">
+          {/* L-Shaped Stream Viewport (Overflow hidden, blends entry/exit seamlessly) */}
+          <div className="stream-perspective-viewport relative w-full max-w-[580px] h-[360px] sm:h-[390px] flex items-center justify-center">
             {CARDS_DATA.map((card) => (
               <div
                 key={card.id}
-                className={`stream-card-anim ${card.className} group absolute w-full max-w-[480px] sm:max-w-[530px] flex overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 p-5 sm:p-6 shadow-xl border border-gray-100 dark:border-zinc-800 transition-all duration-500 ease-out hover:-translate-y-1 hover:shadow-2xl cursor-pointer`}
+                className={`stream-card-anim ${card.className} group absolute w-full max-w-[530px] sm:max-w-[560px] flex overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 p-5 sm:p-6 shadow-2xl border border-gray-100 dark:border-zinc-800 transition-shadow duration-300 hover:shadow-2xl cursor-pointer`}
               >
                 {/* Content Side */}
                 <div className="flex flex-1 flex-col justify-between pr-4 sm:pr-5 z-10 space-y-3">
                   <div>
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-widest text-brand-primary font-bold block">
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-brand-primary font-bold block truncate">
                       {card.tag}
                     </span>
-                    <h2 className="mt-1.5 font-display text-xl sm:text-2xl font-bold leading-snug text-gray-900 dark:text-white">
+                    <h2 className="mt-1.5 font-display text-lg sm:text-xl font-bold leading-snug text-gray-900 dark:text-white">
                       {card.title}
                     </h2>
-                    <p className="mt-1.5 text-xs sm:text-[13px] text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                    <p className="mt-1 text-xs sm:text-[13px] text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
                       {card.subtitle}
                     </p>
                     <div className="mt-2 text-sm sm:text-base font-extrabold text-brand-primary">
@@ -172,8 +172,8 @@ export default function Hero() {
                     </div>
                   </div>
 
-                  {/* CTA Button with Arrow Animation */}
-                  <div className="mt-2">
+                  {/* CTA Button */}
+                  <div className="mt-1">
                     <Link
                       href="/products"
                       className="inline-flex items-center gap-2 rounded-full bg-brand-primary hover:bg-brand-primary-hover px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-bold text-white transition-all duration-200 shadow-md group-hover:shadow-lg"
@@ -191,17 +191,17 @@ export default function Hero() {
                   </div>
                 </div>
 
-                {/* Image Side with Zoom Animation */}
-                <div className="w-[50%] sm:w-[52%] overflow-hidden rounded-2xl relative min-h-[190px] sm:min-h-[220px] bg-gray-100 dark:bg-zinc-800 flex-shrink-0 shadow-inner">
+                {/* Image Side */}
+                <div className="w-[45%] sm:w-[48%] overflow-hidden rounded-2xl relative min-h-[180px] sm:min-h-[200px] bg-gray-100 dark:bg-zinc-800 flex-shrink-0 shadow-inner">
                   <Image
                     src={card.image}
                     alt={card.title}
                     fill
-                    sizes="(max-width: 640px) 240px, 300px"
+                    sizes="(max-width: 640px) 220px, 280px"
                     className="object-cover transition-transform duration-700 ease-out group-hover:scale-108"
                     priority={card.id === 1}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent pointer-events-none" />
                 </div>
               </div>
             ))}
