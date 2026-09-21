@@ -149,11 +149,11 @@ export default function Hero() {
           className="lg:col-span-6 flex items-center justify-center lg:justify-end relative w-full"
         >
           {/* L-Shaped Stream Viewport (Overflow hidden, blends entry/exit seamlessly) */}
-          <div className="stream-perspective-viewport relative w-full max-w-[580px] h-[360px] sm:h-[390px] flex items-center justify-center">
+          <div className="stream-viewport relative w-full max-w-[580px] h-[480px] sm:h-[500px] flex items-center justify-center">
             {CARDS_DATA.map((card) => (
               <div
                 key={card.id}
-                className={`stream-card-anim ${card.className} group absolute w-full max-w-[530px] sm:max-w-[560px] flex overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 p-5 sm:p-6 shadow-2xl border border-gray-100 dark:border-zinc-800 transition-shadow duration-300 hover:shadow-2xl cursor-pointer`}
+                className={`stream-card-anim ${card.className} group flex overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 p-5 sm:p-6 shadow-2xl border border-gray-100 dark:border-zinc-800 transition-shadow duration-300 hover:shadow-2xl cursor-pointer`}
               >
                 {/* Content Side */}
                 <div className="flex flex-1 flex-col justify-between pr-4 sm:pr-5 z-10 space-y-3">
