@@ -12,7 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 function ProductsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { addToCart } = useContext(CartContext);
+  const { addToCart, openCart } = useContext(CartContext);
 
   const initialCat = searchParams.get("category") || "All Departments";
   const initialQ = searchParams.get("q") || "";
@@ -87,7 +87,7 @@ function ProductsContent() {
   const displayedProducts = rawProducts.filter((p: any) => p.price <= priceRange);
 
   const handleAddToCart = (product: any) => addToCart(product);
-  const handleBuyNow = (product: any) => { addToCart(product); router.push("/cart"); };
+  const handleBuyNow = (product: any) => { addToCart(product); openCart("checkout"); };
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {

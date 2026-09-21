@@ -22,6 +22,12 @@ interface CartContextType {
   totalItems: number;
   totalPrice: number;
   lastAdded: { name: string; image?: string; ts: number } | null;
+  isCartOpen: boolean;
+  setIsCartOpen: (open: boolean) => void;
+  openCart: (step?: "cart" | "checkout") => void;
+  closeCart: () => void;
+  cartStep: "cart" | "checkout";
+  setCartStep: (step: "cart" | "checkout") => void;
 }
 
 export const CartContext = createContext<CartContextType>({
@@ -34,6 +40,12 @@ export const CartContext = createContext<CartContextType>({
   totalItems: 0,
   totalPrice: 0,
   lastAdded: null,
+  isCartOpen: false,
+  setIsCartOpen: () => {},
+  openCart: () => {},
+  closeCart: () => {},
+  cartStep: "cart",
+  setCartStep: () => {},
 });
 
 export function CartProvider({ children }: { children: ReactNode }) {
@@ -41,6 +53,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastAdded, setLastAdded] = useState<{ name: string; image?: string; ts: number } | null>(null);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [cartStep, setCartStep] = useState<"cart" | "checkout">("cart");
+
+  const openCart = (step: "cart" | "checkout" = "cart") => {
+    setCartStep(step);
+    setIsCartOpen(true);
+  };
+
+  const closeCart = () => {
+    setIsCartOpen(false);
+  };
 
   // Load cart from localStorage first
   useEffect(() => {
@@ -212,6 +235,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
         totalItems,
         totalPrice,
         lastAdded,
+        isCartOpen,
+        setIsCartOpen,
+        openCart,
+        closeCart,
+        cartStep,
+        setCartStep,
       }}
     >
       {children}

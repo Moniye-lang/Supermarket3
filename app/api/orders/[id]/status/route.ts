@@ -33,21 +33,22 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     await order.save();
 
     // Push notification
+    const orderCode = order.pickupCode || order.code || (order._id ? order._id.toString().slice(-6).toUpperCase() : "");
     let title = 'Order Status Updated';
-    let body = `Your order #${order._id} status is now ${order.status}.`;
+    let body = `Your order #${orderCode} status is now ${order.status}.`;
 
     if (status === 'delivery_here') {
       title = '🚚 Rider Arrived!';
-      body = `Your rider has arrived at your address with your order! Please collect it.`;
+      body = `Your rider has arrived at your address with order #${orderCode}! Please collect it.`;
     } else if (status === 'ready_for_pickup') {
       title = '🛍️ Order Ready for Pickup!';
-      body = `Your order is prepared and ready for pickup at the store!`;
+      body = `Your order #${orderCode} is prepared and ready for pickup at the store!`;
     } else if (status === 'assigned') {
       title = '📦 Order In Progress';
-      body = `A staff member has been assigned to prepare your order.`;
+      body = `A staff member has been assigned to prepare your order #${orderCode}.`;
     } else if (status === 'delivered') {
       title = '✅ Order Delivered';
-      body = `Your order #${order._id} has been marked as fully delivered. Thank you!`;
+      body = `Your order #${orderCode} has been marked as fully delivered. Thank you!`;
     }
 
     const clientUrl = process.env.NEXTAUTH_URL || process.env.CLIENT_URL || "";

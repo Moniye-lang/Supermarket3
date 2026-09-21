@@ -17,6 +17,7 @@ export default function Cart() {
     totalItems,
     totalPrice,
     loading,
+    openCart,
   } = useContext(CartContext);
 
   const router = useRouter();
@@ -143,15 +144,12 @@ export default function Cart() {
                 </div>
 
                 <Button
-                  className="w-full py-6 text-lg shadow-brand-primary/25 shadow-xl"
+                  className="w-full py-6 text-lg shadow-brand-primary/25 shadow-xl cursor-pointer"
                   onClick={() => {
-                    if (typeof window !== "undefined") {
-                      sessionStorage.setItem("checkoutItems", JSON.stringify(cart));
-                    }
-                    router.push("/checkout");
+                    openCart("checkout");
                   }}
                 >
-                  Proceed to Checkout
+                  Proceed to Checkout <ArrowRight size={18} className="ml-2" />
                 </Button>
               </div>
             </div>

@@ -11,7 +11,7 @@ export default function ProductDets() {
     const params = useParams();
     const id = params.id as string;
     const router = useRouter();
-    const { addToCart } = useContext(CartContext);
+    const { addToCart, openCart } = useContext(CartContext);
 
     const [product, setProduct] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -80,10 +80,8 @@ export default function ProductDets() {
 
     const handleBuyNow = () => {
         if (!token) return router.push("/signin");
-        router.push("/checkout");
-        if (typeof window !== "undefined") {
-            sessionStorage.setItem("checkoutItems", JSON.stringify([{ ...product, qty }]));
-        }
+        addToCart({ ...product, qty });
+        openCart("checkout");
     };
 
     if (loading) {

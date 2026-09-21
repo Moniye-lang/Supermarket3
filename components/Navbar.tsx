@@ -256,7 +256,7 @@ function MobileBottomNav({ pathname, totalItems, user, onLogout }: MobileBottomN
 export default function Navbar() {
     const [scrolled, setScrolled] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-    const { totalItems } = useContext(CartContext);
+    const { totalItems, openCart } = useContext(CartContext);
     const { user, logout } = useContext(AuthContext);
     const pathname = usePathname();
 
@@ -299,9 +299,7 @@ export default function Navbar() {
         { name: "Home",     path: "/" },
         { name: "Shop",     path: "/products" },
         { name: "About",    path: "/about" },
-        { name: "Checkout", path: "/checkout" },
         { name: "Order",    path: "/order" },
-        // { name: "History", path: "/history" },
         { name: "Contact",  path: "/contact" },
     ];
 
@@ -351,7 +349,7 @@ export default function Navbar() {
                                     >
                                         {link.name}
                                         {isCurrent && (
-                                            <motion.div
+                                             <motion.div
                                                 layoutId="navbar-indicator"
                                                 className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-brand-primary dark:bg-red-400 rounded-full"
                                             />
@@ -377,8 +375,12 @@ export default function Navbar() {
                                 {darkMode ? <Sun size={20} className="text-amber-400" /> : <Moon size={20} className="text-gray-700" />}
                             </button>
 
-                            {/* Cart — visible on both mobile and desktop */}
-                            <Link href="/cart" className="relative p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-all group">
+                            {/* Cart Drawer Trigger — visible on both mobile and desktop */}
+                            <button
+                                onClick={() => openCart("cart")}
+                                className="relative p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-all group cursor-pointer"
+                                aria-label="Open Cart & Checkout Drawer"
+                            >
                                 <ShoppingCart size={22} className="text-gray-700 dark:text-gray-200 group-hover:text-brand-primary dark:group-hover:text-red-400 transition-colors" />
                                 <AnimatePresence>
                                     {totalItems > 0 && (
@@ -392,7 +394,7 @@ export default function Navbar() {
                                         </motion.span>
                                     )}
                                 </AnimatePresence>
-                            </Link>
+                            </button>
 
                             {/* User / Login — desktop only */}
                             {user ? (

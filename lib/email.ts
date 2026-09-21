@@ -108,9 +108,9 @@ export const sendOtpEmail = async (email: string, otp: string) => {
 // ─── 1. Payment Received & Order Accepted Email ──────────────────────────────
 export async function sendOrderAcceptedEmail(to: string, order: any, customerName?: string) {
   const name = customerName || order.pickupName || "Valued Customer";
-  const orderId = order._id ? order._id.toString() : "N/A";
+  const orderCode = order.pickupCode || order.code || (order._id ? order._id.toString().slice(-6).toUpperCase() : "N/A");
   const amountStr = Number(order.amount || 0).toLocaleString();
-  const pickupCode = order.pickupCode || "—";
+  const pickupCode = orderCode;
   const clientUrl = process.env.NEXTAUTH_URL || process.env.CLIENT_URL || "http://localhost:5000";
 
   const itemsHtml = Array.isArray(order.items)
@@ -129,7 +129,7 @@ export async function sendOrderAcceptedEmail(to: string, order: any, customerNam
         .join("")
     : "";
 
-  const subject = `✅ Payment Received & Order Accepted! — AMStores #${orderId.slice(-6)}`;
+  const subject = `✅ Payment Received & Order Accepted! — AMStores #${orderCode}`;
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 580px; margin: 0 auto; padding: 28px 20px; background-color: #f9fafb;">
       <div style="background-color: #ffffff; border-radius: 20px; border: 1px solid #e5e7eb; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.04);">
@@ -143,7 +143,7 @@ export async function sendOrderAcceptedEmail(to: string, order: any, customerNam
         <div style="padding: 24px;">
           <p style="font-size: 16px; color: #1f2937; margin: 0 0 12px;">Hello <strong>${name}</strong>,</p>
           <p style="font-size: 14px; color: #4b5563; line-height: 1.6; margin: 0 0 20px;">
-            Your payment of <strong style="color: #111827;">₦${amountStr}</strong> has been successfully received and verified! Our store staff is now packing your items.
+            Your payment of <strong style="color: #111827;">₦${amountStr}</strong> for Order <strong style="color: #dc2626;">#${orderCode}</strong> has been successfully received and verified! Our store staff is now packing your items.
           </p>
 
           <!-- Pickup Code Badge -->
@@ -174,8 +174,8 @@ export async function sendOrderAcceptedEmail(to: string, order: any, customerNam
 
           <!-- Call / Action Button -->
           <div style="text-align: center; margin-bottom: 10px;">
-            <a href="${clientUrl}/pickup" style="display: inline-block; background-color: #dc2626; color: #ffffff; font-weight: 700; font-size: 14px; text-decoration: none; padding: 12px 28px; border-radius: 12px; box-shadow: 0 2px 8px rgba(220,38,38,0.25);">
-              Track Pickup Order
+            <a href="${clientUrl}/order" style="display: inline-block; background-color: #dc2626; color: #ffffff; font-weight: 700; font-size: 14px; text-decoration: none; padding: 12px 28px; border-radius: 12px; box-shadow: 0 2px 8px rgba(220,38,38,0.25);">
+              Track Order Live
             </a>
           </div>
         </div>
@@ -193,11 +193,11 @@ export async function sendOrderAcceptedEmail(to: string, order: any, customerNam
 // ─── 2. Payment Declined Email ───────────────────────────────────────────────
 export async function sendPaymentDeclinedEmail(to: string, order: any, customerName?: string) {
   const name = customerName || order.pickupName || "Customer";
-  const orderId = order._id ? order._id.toString() : "N/A";
+  const orderCode = order.pickupCode || order.code || (order._id ? order._id.toString().slice(-6).toUpperCase() : "N/A");
   const amountStr = Number(order.amount || 0).toLocaleString();
   const clientUrl = process.env.NEXTAUTH_URL || process.env.CLIENT_URL || "http://localhost:5000";
 
-  const subject = `❌ Payment Verification Declined — AMStores #${orderId.slice(-6)}`;
+  const subject = `❌ Payment Verification Declined — AMStores #${orderCode}`;
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 580px; margin: 0 auto; padding: 28px 20px; background-color: #f9fafb;">
       <div style="background-color: #ffffff; border-radius: 20px; border: 1px solid #fee2e2; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.04);">
@@ -210,7 +210,7 @@ export async function sendPaymentDeclinedEmail(to: string, order: any, customerN
         <div style="padding: 24px;">
           <p style="font-size: 16px; color: #1f2937; margin: 0 0 12px;">Hello <strong>${name}</strong>,</p>
           <p style="font-size: 14px; color: #4b5563; line-height: 1.6; margin: 0 0 16px;">
-            We could not verify your bank transfer payment of <strong>₦${amountStr}</strong> for Order <strong>#${orderId.slice(-6)}</strong>.
+            We could not verify your bank transfer payment of <strong>₦${amountStr}</strong> for Order <strong style="color: #ef4444;">#${orderCode}</strong>.
           </p>
 
           <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 14px 16px; border-radius: 8px; margin-bottom: 20px;">
@@ -231,7 +231,7 @@ export async function sendPaymentDeclinedEmail(to: string, order: any, customerN
             <a href="tel:08023434790" style="display: inline-block; background-color: #ef4444; color: #ffffff; font-weight: 700; font-size: 14px; text-decoration: none; padding: 12px 24px; border-radius: 12px; margin-right: 8px;">
               📞 Call Store: 08023434790
             </a>
-            <a href="${clientUrl}/pickup" style="display: inline-block; background-color: #f3f4f6; color: #374151; font-weight: 600; font-size: 14px; text-decoration: none; padding: 12px 20px; border-radius: 12px; border: 1px solid #d1d5db;">
+            <a href="${clientUrl}/order" style="display: inline-block; background-color: #f3f4f6; color: #374151; font-weight: 600; font-size: 14px; text-decoration: none; padding: 12px 20px; border-radius: 12px; border: 1px solid #d1d5db;">
               View Order
             </a>
           </div>
@@ -250,15 +250,15 @@ export async function sendPaymentDeclinedEmail(to: string, order: any, customerN
 // ─── 3. Order Ready for Pickup Email ─────────────────────────────────────────
 export async function sendOrderReadyEmail(to: string, order: any, customerName?: string) {
   const name = customerName || order.pickupName || "Valued Customer";
-  const orderId = order._id ? order._id.toString() : "N/A";
-  const pickupCode = order.pickupCode || "—";
+  const orderCode = order.pickupCode || order.code || (order._id ? order._id.toString().slice(-6).toUpperCase() : "N/A");
+  const pickupCode = orderCode;
   const clientUrl = process.env.NEXTAUTH_URL || process.env.CLIENT_URL || "http://localhost:5000";
 
   const itemsList = Array.isArray(order.items)
     ? order.items.map((it: any) => `${it.name || "Item"} × ${it.qty}`).join(", ")
     : "Your purchased items";
 
-  const subject = `🛍️ Your Order is Ready for Pickup! — AMStores #${orderId.slice(-6)}`;
+  const subject = `🛍️ Your Order is Ready for Pickup! — AMStores #${orderCode}`;
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 580px; margin: 0 auto; padding: 28px 20px; background-color: #f9fafb;">
       <div style="background-color: #ffffff; border-radius: 20px; border: 1px solid #d1fae5; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.04);">
@@ -273,7 +273,7 @@ export async function sendOrderReadyEmail(to: string, order: any, customerName?:
         <div style="padding: 24px;">
           <p style="font-size: 16px; color: #1f2937; margin: 0 0 10px;">Hello <strong>${name}</strong>,</p>
           <p style="font-size: 14px; color: #4b5563; line-height: 1.6; margin: 0 0 20px;">
-            Great news! Your order <strong>#${orderId.slice(-6)}</strong> has been carefully packed and is ready for pickup right now.
+            Great news! Your order <strong style="color: #059669;">#${orderCode}</strong> has been carefully packed and is ready for pickup right now.
           </p>
 
           <!-- Highlighted Pickup Code -->
@@ -302,8 +302,8 @@ export async function sendOrderReadyEmail(to: string, order: any, customerName?:
           </div>
 
           <div style="text-align: center;">
-            <a href="${clientUrl}/pickup" style="display: inline-block; color: #059669; font-weight: 700; font-size: 13px; text-decoration: underline;">
-              View Live Pickup Status →
+            <a href="${clientUrl}/order" style="display: inline-block; color: #059669; font-weight: 700; font-size: 13px; text-decoration: underline;">
+              View Live Order Status →
             </a>
           </div>
         </div>

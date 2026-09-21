@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import {
   CreditCard, CheckCircle, User, ShieldCheck,
-  Phone, X, AlertCircle, Clock, Store, Lock, PhoneCall, MapPin
+  Phone, X, AlertCircle, Clock, Store, Lock, PhoneCall, MapPin,
+  Sparkles, ArrowRight
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CartContext } from "@/context/CartContext";
@@ -46,7 +47,7 @@ export default function Checkout() {
   }, [todaySlots, pickupSlot]);
 
   // Cart & Pricing
-  const { clearCart, cart, totalPrice } = useContext(CartContext);
+  const { clearCart, cart, totalPrice, openCart } = useContext(CartContext);
   const items = cart;
   const subtotal = totalPrice;
   const orderTotal = subtotal; // Store pickup has 0 delivery fee
@@ -54,9 +55,9 @@ export default function Checkout() {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    if (!token) router.push("/signin");
-  }, [token, router]);
+    openCart("checkout");
+    router.replace("/products");
+  }, [openCart, router]);
 
   useEffect(() => {
     if (user) {
@@ -103,6 +104,25 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
+
+  // Completed Animation state
+  const [successOrder, setSuccessOrder] = useState<{ id: string; code: string; amount: number } | null>(null);
+  const [countdown, setCountdown] = useState(3);
+
+  useEffect(() => {
+    if (!successOrder) return;
+    const interval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          router.push("/order");
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [successOrder, router]);
 
   function copyAccount() {
     if (navigator.clipboard) {
@@ -156,9 +176,10 @@ export default function Checkout() {
       if (!res.ok) { setError(data.error || "Order placement failed"); return; }
 
       const id = data.order?._id || data._id;
+      const orderCode = data.order?.pickupCode || data.pickupCode || data.code || (id ? id.slice(-6).toUpperCase() : "N/A");
       localStorage.setItem("orderId", id);
       clearCart();
-      router.push("/pickup");
+      setSuccessOrder({ id, code: orderCode, amount: orderTotal });
     } catch (err) {
       setError("Network error. Please try again.");
       setLoading(false);
@@ -505,6 +526,171 @@ export default function Checkout() {
                   }
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Payment Success & Order Completed Animation Screen ── */}
+      <AnimatePresence>
+        {successOrder && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 select-none">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            />
+
+            {/* Modal Card */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 24 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 16 }}
+              transition={{ type: "spring", damping: 26, stiffness: 220, mass: 0.9 }}
+              className="bg-white rounded-[2rem] shadow-2xl p-7 sm:p-9 max-w-lg w-full text-center relative z-10 overflow-hidden border border-emerald-100"
+            >
+              {/* Soft ambient background glows */}
+              <div className="absolute -top-20 -left-20 w-44 h-44 bg-emerald-400/15 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-20 -right-20 w-44 h-44 bg-teal-400/15 rounded-full blur-3xl pointer-events-none" />
+
+              {/* Gentle Floating Particle Stars */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0.3, 0.8, 0.3], y: [0, -6, 0] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute top-8 left-10 text-emerald-400 pointer-events-none"
+              >
+                <Sparkles size={16} />
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0.2, 0.7, 0.2], y: [0, 6, 0] }}
+                transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                className="absolute top-12 right-12 text-teal-400 pointer-events-none"
+              >
+                <Sparkles size={18} />
+              </motion.div>
+
+              {/* ── Ultra-Smooth SVG Draw Checkmark Icon ── */}
+              <div className="relative w-24 h-24 mx-auto mb-5 flex items-center justify-center">
+                {/* Pulsing Ripple Wave */}
+                <motion.div
+                  initial={{ scale: 0.85, opacity: 0 }}
+                  animate={{ scale: [1, 1.35, 1.15], opacity: [0.45, 0, 0.45] }}
+                  transition={{ repeat: Infinity, duration: 2.6, ease: "easeInOut" }}
+                  className="absolute inset-0 bg-emerald-300/30 rounded-full blur-xs"
+                />
+
+                {/* Main Icon Orb */}
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 320, damping: 22, delay: 0.1 }}
+                  className="w-20 h-20 bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 text-white rounded-full flex items-center justify-center shadow-xl shadow-emerald-600/25 relative z-10 p-3"
+                >
+                  <svg className="w-full h-full" viewBox="0 0 60 60" fill="none">
+                    {/* Circle Stroke Draw */}
+                    <motion.circle
+                      cx="30"
+                      cy="30"
+                      r="26"
+                      stroke="rgba(255, 255, 255, 0.35)"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                      initial={{ pathLength: 0, opacity: 0 }}
+                      animate={{ pathLength: 1, opacity: 1 }}
+                      transition={{ duration: 0.6, ease: [0.65, 0, 0.35, 1], delay: 0.15 }}
+                    />
+                    {/* Checkmark Path Draw */}
+                    <motion.path
+                      d="M18 31.5 L26 39.5 L42 22.5"
+                      stroke="#ffffff"
+                      strokeWidth="4.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      initial={{ pathLength: 0, opacity: 0 }}
+                      animate={{ pathLength: 1, opacity: 1 }}
+                      transition={{ duration: 0.5, delay: 0.4, ease: [0.65, 0, 0.35, 1] }}
+                    />
+                  </svg>
+                </motion.div>
+              </div>
+
+              {/* ── Headline & Confirmation Badge ── */}
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-700 text-[11px] font-bold uppercase tracking-wider mb-2 shadow-2xs">
+                  <Sparkles size={12} className="text-emerald-600" /> Payment & Order Completed
+                </span>
+                <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-gray-900 mt-1 mb-1.5 tracking-tight">
+                  Order Successfully Placed!
+                </h2>
+                <p className="text-gray-500 text-xs sm:text-sm max-w-sm mx-auto leading-relaxed">
+                  Your transfer has been recorded. Our store attendants are preparing your order right now.
+                </p>
+              </motion.div>
+
+              {/* ── Pickup Code Badge Highlight ── */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.38, ease: [0.16, 1, 0.3, 1] }}
+                className="mt-5 bg-gradient-to-b from-gray-50/90 via-white to-gray-50/50 border-2 border-dashed border-emerald-300/90 rounded-2xl p-4.5 shadow-2xs"
+              >
+                <p className="text-[10px] font-black text-emerald-800 uppercase tracking-widest">
+                  Pickup Identification Code
+                </p>
+                <p className="text-3xl sm:text-4xl font-black text-emerald-600 tracking-widest font-mono my-1">
+                  #{successOrder.code}
+                </p>
+                <div className="flex items-center justify-center gap-2.5 text-xs text-gray-500 pt-1.5 border-t border-gray-100/80 mt-1.5">
+                  <span>Total: <strong className="text-gray-900 font-bold">₦{successOrder.amount.toLocaleString()}</strong></span>
+                  <span className="text-gray-300">·</span>
+                  <span>Station: <strong className="text-gray-900 font-bold">AMStores Akobo</strong></span>
+                </div>
+              </motion.div>
+
+              {/* ── Smooth Progress & Navigation Action ── */}
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                className="mt-5 space-y-3"
+              >
+                <div className="flex justify-between items-center text-xs font-semibold text-gray-500 px-1">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Routing to live order tracking...
+                  </span>
+                  <span className="font-mono text-emerald-600 font-bold">{countdown}s</span>
+                </div>
+
+                {/* Linear GPU-accelerated Progress Bar */}
+                <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: 1 }}
+                    transition={{ duration: 3.2, ease: "linear" }}
+                    style={{ transformOrigin: "left" }}
+                    className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-400 rounded-full"
+                  />
+                </div>
+
+                {/* Instant Track Button */}
+                <button
+                  onClick={() => router.push("/order")}
+                  className="w-full mt-1.5 py-3.5 px-6 rounded-2xl bg-gray-950 hover:bg-black active:scale-[0.985] text-white font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-gray-950/15 cursor-pointer"
+                >
+                  <span>Track Live Order Status</span>
+                  <ArrowRight size={16} />
+                </button>
+              </motion.div>
             </motion.div>
           </div>
         )}

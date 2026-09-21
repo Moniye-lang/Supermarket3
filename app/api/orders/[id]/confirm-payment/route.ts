@@ -70,9 +70,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         });
 
         // Notify the worker
+        const orderCode = order.pickupCode || order.code || (order._id ? order._id.toString().slice(-6).toUpperCase() : "");
         const workerPayload = {
           title: 'New Order Assigned',
-          body: `You have been assigned to order #${order._id}.`,
+          body: `You have been assigned to order #${orderCode}.`,
           url: `${clientUrl}/worker`
         };
         await sendPushToUser(selectedWorker._id.toString(), workerPayload.title, workerPayload.body, workerPayload.url).catch(() => {});
@@ -82,10 +83,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
       await order.save();
 
+      const orderCode = order.pickupCode || order.code || (order._id ? order._id.toString().slice(-6).toUpperCase() : "");
+
       // Notify customer that payment is accepted and order is packing
       const customerPayload = {
         title: '✅ Payment Confirmed!',
-        body: `Your payment has been received! We are now packing your order.`,
+        body: `Your payment for order #${orderCode} has been received! We are now packing your order.`,
         url: `${clientUrl}/order`
       };
       await sendPushToUser(order.customerId.toString(), customerPayload.title, customerPayload.body, customerPayload.url).catch(() => {});
@@ -103,7 +106,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       for (const staff of staffMembers) {
         if (order.assignedToWorkerId && staff._id.toString() === order.assignedToWorkerId.toString()) continue;
         let title = '🔔 Order Paid & Active';
-        let body = `Order #${order._id} was verified. Status is now packing.`;
+        let body = `Order #${orderCode} was verified. Status is now packing.`;
         await sendPushToUser(staff._id.toString(), title, body, `${clientUrl}/worker`).catch(() => {});
       }
 

@@ -14,9 +14,21 @@ export async function GET(req: Request, { params }: { params: Promise<{ collecti
     }
 
     const { collectionMethod } = await params;
-    const order = await Order.findOne({ customerId: authUser.id, collectionMethod })
+    const query: any = { customerId: authUser.id };
+    if (collectionMethod && collectionMethod !== "any" && collectionMethod !== "all") {
+      query.collectionMethod = collectionMethod;
+    }
+
+    let order = await Order.findOne(query)
       .sort({ createdAt: -1 })
       .populate("assignedToWorkerId", "name role status phone");
+
+    if (!order && query.collectionMethod) {
+      // Fallback to latest order overall
+      order = await Order.findOne({ customerId: authUser.id })
+        .sort({ createdAt: -1 })
+        .populate("assignedToWorkerId", "name role status phone");
+    }
 
     if (!order) {
       return NextResponse.json({ error: "No recent order found" }, { status: 404 });

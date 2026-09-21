@@ -179,10 +179,26 @@ function InfoGrid({ order, orderType }: { order: any; orderType: string }) {
         <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider flex items-center gap-1.5 mb-1"><User size={12} /> Recipient Name</p>
         <p className="text-sm font-bold text-brand-dark truncate">{order.pickupName || "—"}</p>
       </div>
-      {orderType === "delivery" && order.deliveryAddress && (
+      {orderType === "delivery" && order.deliveryAddress ? (
         <div className="col-span-2 bg-gray-50/50 border border-gray-100 rounded-2xl p-3.5">
           <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider flex items-center gap-1.5 mb-1"><MapPin size={12} /> Delivery Destination</p>
           <p className="text-sm font-bold text-brand-dark leading-relaxed">{order.deliveryAddress}</p>
+        </div>
+      ) : (
+        <div className="col-span-2 bg-gradient-to-r from-red-50/70 to-orange-50/70 border border-red-100 rounded-2xl p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+              <Store size={14} className="text-brand-primary" /> AMStores Ibadan (Pickup Station)
+            </p>
+            <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">Akobo</span>
+          </div>
+          <p className="text-xs text-gray-600">General Gas Road, Akobo, Ibadan, Oyo State</p>
+          <a
+            href="tel:08023434790"
+            className="inline-flex items-center justify-center gap-1.5 w-full py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-xs transition-all"
+          >
+            <PhoneCall size={12} /> Call Frontdesk (08023434790)
+          </a>
         </div>
       )}
     </div>
@@ -339,7 +355,7 @@ function HistoryList({ token }: { token: string | null }) {
 export default function Order() {
   const router = useRouter();
   const { token: ctxToken } = useContext(AuthContext);
-  const [orderType, setOrderType] = useState<"delivery" | "pickup">("delivery");
+  const [orderType, setOrderType] = useState<"delivery" | "pickup">("pickup");
   const [activeTab, setActiveTab] = useState<"active" | "history">("active");
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -484,7 +500,7 @@ export default function Order() {
                         <p className="text-[10px] font-extrabold text-brand-primary uppercase tracking-wider">
                           {orderType === "pickup" ? "Pickup Code" : "Order Code"}
                         </p>
-                        <p className="text-3xl font-black text-brand-primary tracking-widest font-display mt-0.5">{order.pickupCode || "—"}</p>
+                        <p className="text-3xl font-black text-brand-primary tracking-widest font-display mt-0.5">{order.pickupCode || order.code || (order._id ? order._id.slice(-6).toUpperCase() : "—")}</p>
                       </div>
                     </div>
                     <div className="text-center sm:text-right shrink-0 w-full sm:w-auto border-t sm:border-t-0 border-gray-100 pt-3 sm:pt-0">
