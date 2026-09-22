@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useContext, ReactNode } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { LayoutDashboard, Package, ShoppingCart, Users, Settings, LogOut, Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -78,10 +79,16 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             >
                 <div className="p-6 flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-2 group">
-                        <div className="w-10 h-10 bg-brand-primary rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg group-hover:scale-105 transition-transform">
-                            A
+                        <div className="relative h-10 w-36 flex items-center bg-white/95 rounded-xl px-2 py-0.5 shadow-sm group-hover:scale-105 transition-transform">
+                            <Image
+                                src="/logo.png"
+                                alt="AMStores"
+                                fill
+                                sizes="144px"
+                                className="object-contain p-0.5"
+                            />
                         </div>
-                        <span className="font-display text-2xl font-bold tracking-tight">Admin</span>
+                        <span className="bg-brand-primary text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded tracking-wide uppercase">Admin</span>
                     </Link>
                     <button className="lg:hidden p-2 text-gray-400 hover:text-white" onClick={() => setSidebarOpen(false)}>
                         <X size={20} />

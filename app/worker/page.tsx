@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { CheckCircle, MapPin, Truck, ShieldCheck, LogOut, Loader2, Phone, MessageCircle, Navigation, X, Package, Send, BellRing, ThumbsUp, ThumbsDown, History, Award, ChevronDown, ChevronUp } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -367,8 +368,16 @@ export default function Worker() {
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 p-4 sticky top-0 z-40">
         <div className="container mx-auto max-w-4xl flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="font-display text-2xl font-bold tracking-tight text-brand-dark">AM<span className="text-brand-primary">Stores</span></span>
+          <Link href="/" className="flex items-center gap-3">
+            <div className="relative h-9 w-32 sm:w-36 flex items-center">
+              <Image
+                src="/logo.png"
+                alt="AMStores"
+                fill
+                sizes="144px"
+                className="object-contain object-left"
+              />
+            </div>
             <span className="bg-brand-dark text-white text-xs px-2 py-0.5 rounded-md font-medium tracking-wide">
               {workerRole === "rider" ? "RIDER" : "PICKUP STAFF"}
             </span>

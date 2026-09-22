@@ -37,11 +37,16 @@ export default function Footer() {
 
           {/* Brand & Newsletter */}
           <div className="lg:col-span-4 space-y-8">
-            <Link href="/" className="flex items-center gap-3 group w-fit">
-              <div className="w-12 h-12 bg-brand-primary rounded-xl flex items-center justify-center text-white font-bold text-2xl shadow-lg shadow-brand-primary/20 group-hover:scale-105 transition-transform">
-                A
+            <Link href="/" className="flex items-center group w-fit">
+              <div className="relative h-12 sm:h-14 w-44 sm:w-52 flex items-center bg-white/95 rounded-2xl px-3 py-1 shadow-lg group-hover:scale-105 transition-transform duration-200">
+                <Image
+                  src="/logo.png"
+                  alt="AMStores - Agbeni Mercantile Stores"
+                  fill
+                  sizes="208px"
+                  className="object-contain p-1"
+                />
               </div>
-              <span className="font-display text-3xl font-bold tracking-tight">AMStores</span>
             </Link>
             <p className="text-gray-400 leading-relaxed text-base max-w-sm">
               Experience the future of grocery shopping. Premium products, delivered with care and precision directly to your doorstep.

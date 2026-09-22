@@ -2,6 +2,7 @@
 
 import { useState, useContext, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
     ShoppingCart,
@@ -323,13 +324,17 @@ export default function Navbar() {
                             : "bg-transparent border border-transparent shadow-none"
                     )}>
                         {/* Logo */}
-                        <Link href="/" className="flex items-center gap-2 group">
-                            <div className="w-10 h-10 bg-brand-primary rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg group-hover:scale-105 transition-transform">
-                                A
+                        <Link href="/" className="flex items-center group">
+                            <div className="relative h-10 sm:h-12 w-36 sm:w-44 flex items-center group-hover:scale-105 transition-transform duration-200">
+                                <Image
+                                    src="/logo.png"
+                                    alt="AMStores - Agbeni Mercantile Stores"
+                                    fill
+                                    sizes="(max-width: 640px) 144px, 176px"
+                                    priority
+                                    className="object-contain object-left dark:brightness-110"
+                                />
                             </div>
-                            <span className="font-display text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-                                AMStores
-                            </span>
                         </Link>
 
                         {/* Desktop Nav */}

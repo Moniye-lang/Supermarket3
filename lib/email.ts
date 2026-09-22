@@ -65,31 +65,39 @@ export async function sendHtmlEmail(
   const plainText = customText || htmlToPlainText(html);
   const replyTo = options?.replyTo || senderEmail;
 
-  // 1. Try Nodemailer Gmail SMTP first (SPF & DKIM authenticated by Google)
-  const mail = getTransporter();
-  if (mail) {
-    const mailOptions = {
-      from: `"AMStores" <${senderEmail}>`,
-      to,
-      replyTo,
-      subject,
-      text: plainText,
-      html,
-    };
-
+  // 1. Try Brevo (Sendinblue) API if configured — Best inbox deliverability
+  if (process.env.BREVO_API_KEY) {
     try {
-      await Promise.race([
-        mail.sendMail(mailOptions),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("SMTP Timeout (8s)")), 8000)),
-      ]);
-      console.log(`✅ Email "${subject}" sent to ${to} via authenticated SMTP`);
-      return { success: true, method: "smtp" };
+      const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "api-key": process.env.BREVO_API_KEY,
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: JSON.stringify({
+          sender: { name: "AMStores", email: senderEmail },
+          to: [{ email: to }],
+          subject,
+          htmlContent: html,
+          textContent: plainText,
+          replyTo: { email: replyTo },
+        }),
+      });
+
+      const data = (await response.json()) as any;
+      if (response.ok && data.messageId) {
+        console.log(`✅ Email "${subject}" delivered to ${to} via Brevo API`);
+        return { success: true, method: "brevo", messageId: data.messageId };
+      } else {
+        console.warn("⚠️ Brevo API response:", data);
+      }
     } catch (error: any) {
-      console.error(`❌ SMTP failed for ${to}:`, error.message);
+      console.warn("⚠️ Brevo request error:", error.message);
     }
   }
 
-  // 2. Fallback to Resend HTTP API if configured
+  // 2. Try Resend HTTP API if configured
   if (process.env.RESEND_API_KEY) {
     try {
       const response = await fetch("https://api.resend.com/emails", {
@@ -120,7 +128,35 @@ export async function sendHtmlEmail(
     }
   }
 
-  // 3. Fallback mock if credentials missing
+  // 3. Try Nodemailer Gmail SMTP
+  const mail = getTransporter();
+  if (mail) {
+    const mailOptions = {
+      from: `"David Adeniyi (AMStores)" <${senderEmail}>`,
+      to,
+      replyTo,
+      envelope: {
+        from: senderEmail,
+        to: [to],
+      },
+      subject,
+      text: plainText,
+      html,
+    };
+
+    try {
+      await Promise.race([
+        mail.sendMail(mailOptions),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("SMTP Timeout (8s)")), 8000)),
+      ]);
+      console.log(`✅ Email "${subject}" sent to ${to} via authenticated SMTP`);
+      return { success: true, method: "smtp" };
+    } catch (error: any) {
+      console.error(`❌ SMTP failed for ${to}:`, error.message);
+    }
+  }
+
+  // 4. Fallback mock if credentials missing
   console.log(`\n📧 [EMAIL MOCK] To: ${to} | Subject: ${subject}`);
   return { success: true, mocked: true };
 }
