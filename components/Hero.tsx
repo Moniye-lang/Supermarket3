@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, Star, Zap, ShieldCheck, ShoppingBag, Sparkles } from "lucide-react";
+import { ArrowRight, Star, Zap, ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "./ui/Button";
 
 const CARDS_DATA = [
@@ -38,27 +38,13 @@ const CARDS_DATA = [
 ];
 
 export default function Hero() {
-  const [activeIdx, setActiveIdx] = useState(0);
-  const [isHovered, setIsHovered] = useState(false);
-
-  // Smooth periodic stream transition (pause on hover)
-  useEffect(() => {
-    if (isHovered) return;
-    const timer = setInterval(() => {
-      setActiveIdx((prev) => (prev + 1) % CARDS_DATA.length);
-    }, 4200);
-    return () => clearInterval(timer);
-  }, [isHovered]);
-
-  const activeCard = CARDS_DATA[activeIdx];
-
   return (
     <section className="relative w-full min-h-[92vh] flex items-center bg-brand-light dark:bg-zinc-950 overflow-hidden pt-28 pb-16">
       {/* Dynamic Background Gradients */}
       <div className="absolute top-[-10%] right-[-5%] w-[700px] h-[700px] bg-brand-primary/10 rounded-full blur-[130px] pointer-events-none animate-pulse" />
       <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-orange-400/10 rounded-full blur-[110px] pointer-events-none" />
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-12 gap-10 lg:gap-8 items-center relative z-10 h-full">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-12 gap-8 lg:gap-8 items-center relative z-10 h-full">
         {/* ------------------------------------------------------------------ */}
         {/* LEFT COLUMN: Headline, Subtitle, CTAs & Value Metrics               */}
         {/* ------------------------------------------------------------------ */}
@@ -66,7 +52,7 @@ export default function Hero() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="lg:col-span-6 space-y-7 max-w-xl"
+          className="lg:col-span-6 space-y-7 max-w-xl mx-auto lg:mx-0"
         >
           {/* Status badge pill */}
           <motion.div
@@ -152,67 +138,35 @@ export default function Hero() {
         </motion.div>
 
         {/* ------------------------------------------------------------------ */}
-        {/* RIGHT COLUMN: Buttery-Smooth L-Shaped Stream Card Viewport           */}
+        {/* RIGHT COLUMN: 3-Card Staggered Simultaneous Stream River           */}
         {/* ------------------------------------------------------------------ */}
         <motion.div
           initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.9, delay: 0.3 }}
-          className="lg:col-span-6 flex flex-col items-center justify-center lg:items-end relative w-full"
+          className="lg:col-span-6 flex items-center justify-center relative w-full"
         >
           {/* Stream Stage Viewport with Edge Masking */}
-          <div
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            className="relative w-full max-w-[580px] h-[390px] sm:h-[420px] flex items-center justify-center overflow-hidden"
-            style={{
-              maskImage: "linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)",
-              WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)",
-            }}
-          >
-            <AnimatePresence mode="popLayout">
-              <motion.div
-                key={activeCard.id}
-                initial={{ y: -160, scale: 0.86, opacity: 0 }}
-                animate={{
-                  x: 0,
-                  y: 0,
-                  scale: 1,
-                  opacity: 1,
-                  transition: {
-                    y: { type: "spring", stiffness: 240, damping: 26, mass: 0.9 },
-                    scale: { duration: 0.6, ease: [0.16, 1, 0.3, 1] },
-                    opacity: { duration: 0.5, ease: "easeOut" },
-                  },
-                }}
-                exit={{
-                  x: 140,
-                  y: 180,
-                  scale: 0.82,
-                  opacity: 0,
-                  transition: {
-                    x: { type: "spring", stiffness: 240, damping: 26, mass: 0.9 },
-                    y: { type: "spring", stiffness: 240, damping: 26, mass: 0.9 },
-                    scale: { duration: 0.5, ease: "easeInOut" },
-                    opacity: { duration: 0.4, ease: "easeInOut" },
-                  },
-                }}
-                className="w-full max-w-[530px] sm:max-w-[560px] flex overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 p-5 sm:p-6 shadow-2xl border border-gray-100 dark:border-zinc-800 transition-all duration-300 hover:shadow-brand-primary/10 hover:border-brand-primary/20 cursor-pointer select-none"
+          <div className="hero-stream-viewport relative w-full max-w-[580px] lg:max-w-[620px] flex items-center justify-center">
+            {CARDS_DATA.map((card, idx) => (
+              <div
+                key={card.id}
+                className={`hero-stream-card hero-stream-card-${idx + 1} group flex overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 p-5 sm:p-6 shadow-2xl border border-gray-100 dark:border-zinc-800 transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] cursor-pointer`}
               >
                 {/* Content Side */}
                 <div className="flex flex-1 flex-col justify-between pr-4 sm:pr-5 z-10 space-y-3">
                   <div>
                     <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-brand-primary font-bold block truncate">
-                      {activeCard.tag}
+                      {card.tag}
                     </span>
                     <h2 className="mt-1.5 font-display text-lg sm:text-xl font-bold leading-snug text-gray-900 dark:text-white">
-                      {activeCard.title}
+                      {card.title}
                     </h2>
                     <p className="mt-1 text-xs sm:text-[13px] text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
-                      {activeCard.subtitle}
+                      {card.subtitle}
                     </p>
                     <div className="mt-2 text-sm sm:text-base font-extrabold text-brand-primary">
-                      {activeCard.price}
+                      {card.price}
                     </div>
                   </div>
 
@@ -222,7 +176,7 @@ export default function Hero() {
                       href="/products"
                       className="inline-flex items-center gap-2 rounded-full bg-brand-primary hover:bg-brand-primary-hover px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-bold text-white transition-all duration-200 shadow-md hover:shadow-lg active:scale-95"
                     >
-                      <span>{activeCard.cta}</span>
+                      <span>{card.cta}</span>
                       <svg
                         className="h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-1"
                         fill="none"
@@ -236,34 +190,18 @@ export default function Hero() {
                 </div>
 
                 {/* Image Side */}
-                <div className="w-[45%] sm:w-[48%] overflow-hidden rounded-2xl relative min-h-[180px] sm:min-h-[200px] bg-gray-100 dark:bg-zinc-800 flex-shrink-0 shadow-inner group">
+                <div className="w-[45%] sm:w-[48%] overflow-hidden rounded-2xl relative min-h-[190px] sm:min-h-[220px] bg-gray-100 dark:bg-zinc-800 flex-shrink-0 shadow-inner group">
                   <Image
-                    src={activeCard.image}
-                    alt={activeCard.title}
+                    src={card.image}
+                    alt={card.title}
                     fill
-                    sizes="(max-width: 640px) 220px, 280px"
+                    sizes="(max-width: 640px) 260px, 320px"
                     className="object-cover transition-transform duration-700 ease-out hover:scale-108"
                     priority
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent pointer-events-none" />
                 </div>
-              </motion.div>
-            </AnimatePresence>
-          </div>
-
-          {/* Interactive Progress Stream Indicators */}
-          <div className="flex items-center gap-2 mt-2 px-2">
-            {CARDS_DATA.map((c, i) => (
-              <button
-                key={c.id}
-                onClick={() => setActiveIdx(i)}
-                className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                  activeIdx === i
-                    ? "w-8 bg-brand-primary"
-                    : "w-2 bg-gray-200 dark:bg-zinc-700 hover:bg-gray-300"
-                }`}
-                title={`View ${c.title}`}
-              />
+              </div>
             ))}
           </div>
         </motion.div>

@@ -253,16 +253,16 @@ body {
 }
 
 /* ==============================================================================
-   TASTESKILL EXACT STREAM PERSPECTIVE CARD ANIMATION
+   TASTESKILL 3-CARD SIMULTANEOUS STREAM FLOW ANIMATION
    ============================================================================== */
 .hero-stream-viewport {
     position: relative;
     width: 100%;
-    height: 520px;
+    height: 640px;
     overflow: hidden;
-    perspective: 1000px;
-    mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%);
+    perspective: 1200px;
+    mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
 }
 
 .hero-stream-viewport:hover .hero-stream-card {
@@ -274,49 +274,62 @@ body {
     top: 50%;
     left: 50%;
     width: 100%;
-    max-width: 520px;
+    max-width: 560px;
     transform-style: preserve-3d;
     will-change: transform, opacity;
-    animation: stream-perspective 15s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+    animation: streamFlow 15s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-.hero-stream-card:nth-child(1),
 .hero-stream-card-1 {
     animation-delay: 0s;
 }
 
-.hero-stream-card:nth-child(2),
 .hero-stream-card-2 {
     animation-delay: -5s;
 }
 
-.hero-stream-card:nth-child(3),
 .hero-stream-card-3 {
     animation-delay: -10s;
 }
 
-@keyframes stream-perspective {
+@keyframes streamFlow {
+    /* 0%: Entering from offscreen top */
     0% {
-        transform: translate3d(-50%, calc(-50% - 140px), -100px) scale(0.82);
+        transform: translate3d(calc(-50% - 15px), calc(-50% - 300px), -100px) scale(0.75);
         opacity: 0;
+        z-index: 5;
     }
-    15% {
-        transform: translate3d(-50%, calc(-50% - 60px), -40px) scale(0.92);
-        opacity: 0.7;
+    /* 8% to 26%: Position 1 (Top-Left / Top-Center) */
+    8%, 26% {
+        transform: translate3d(calc(-50% - 25px), calc(-50% - 195px), -60px) scale(0.85);
+        opacity: 0.82;
+        z-index: 10;
     }
-    35%, 55% {
-        transform: translate3d(-50%, -50%, 0px) scale(1);
+    /* 41.6% to 59.6%: Position 2 (Center Hero Focal) */
+    41.6%, 59.6% {
+        transform: translate3d(-50%, -50%, 0px) scale(1.05);
         opacity: 1;
         z-index: 30;
     }
-    75% {
-        transform: translate3d(calc(-50% + 140px), calc(-50% + 160px), -50px) scale(0.88);
-        opacity: 0.6;
+    /* 75% to 92%: Position 3 (Bottom-Right Exiting) */
+    75%, 92% {
+        transform: translate3d(calc(-50% + 45px), calc(-50% + 195px), -40px) scale(0.88);
+        opacity: 0.82;
+        z-index: 20;
     }
-    100% {
-        transform: translate3d(calc(-50% + 220px), calc(-50% + 260px), -100px) scale(0.78);
+    /* 98%: Exiting offscreen bottom-right */
+    98% {
+        transform: translate3d(calc(-50% + 110px), calc(-50% + 300px), -100px) scale(0.75);
         opacity: 0;
+        z-index: 5;
+    }
+    /* 100%: Wrap back to top */
+    100% {
+        transform: translate3d(calc(-50% - 15px), calc(-50% - 300px), -100px) scale(0.75);
+        opacity: 0;
+        z-index: 5;
     }
 }
+
 
 

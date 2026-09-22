@@ -38,13 +38,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       order.paymentStatus = "paid";
       order.status = "packing"; // status transitions to packing
       
-      // Auto-assign worker
-      const availableWorkers = await User.find({ role: { $in: ["worker", "rider"] }, status: "available" });
+      // Auto-assign worker based on order type (rider for delivery, worker for pickup)
+      const targetRole = order.collectionMethod === "delivery" ? "rider" : "worker";
+      const availableWorkers = await User.find({ role: targetRole, status: "available" });
       if (availableWorkers && availableWorkers.length > 0) {
         const workersWithWorkload = await Promise.all(
           availableWorkers.map(async (w: any) => {
             const workload = await Order.countDocuments({
-              assignedToWorkerId: w._id,
+              $or: [
+                { assignedToWorkerId: w._id },
+                { assignedTo: w._id }
+              ],
               fulfilled: false
             });
             return { worker: w, workload };
