@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import mongoose from "mongoose";
+import { sendContactFormEmail } from "@/lib/email";
 
 // Contact message schema
 const contactMessageSchema = new mongoose.Schema(
@@ -36,6 +37,18 @@ export async function POST(req: Request) {
       email: email.trim().toLowerCase(),
       subject: subject.trim(),
       message: message.trim(),
+    });
+
+    // Send email notification to store admin
+    const adminEmail = process.env.EMAIL_USER || "davidadeniyi269@gmail.com";
+    sendContactFormEmail(adminEmail, {
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      subject: subject.trim(),
+      message: message.trim(),
+      createdAt: created.createdAt || new Date(),
+    }).catch((emailErr: any) => {
+      console.error("[Email] Contact form email dispatch error:", emailErr.message);
     });
 
     return NextResponse.json({

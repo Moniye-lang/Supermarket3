@@ -44,7 +44,7 @@ export default function Hero() {
       <div className="absolute top-[-10%] right-[-5%] w-[700px] h-[700px] bg-brand-primary/10 rounded-full blur-[130px] pointer-events-none animate-pulse" />
       <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-orange-400/10 rounded-full blur-[110px] pointer-events-none" />
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-12 gap-8 lg:gap-8 items-center relative z-10 h-full">
+      <div className="container mx-auto px-6 sm:px-8 lg:px-12 grid lg:grid-cols-12 gap-8 lg:gap-10 items-center relative z-10 h-full">
         {/* ------------------------------------------------------------------ */}
         {/* LEFT COLUMN: Headline, Subtitle, CTAs & Value Metrics               */}
         {/* ------------------------------------------------------------------ */}
@@ -52,20 +52,20 @@ export default function Hero() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="lg:col-span-6 space-y-7 max-w-xl mx-auto lg:mx-0"
+          className="lg:col-span-6 space-y-7 max-w-xl mx-auto lg:mx-0 lg:pl-6 xl:pl-10"
         >
           {/* Status badge pill */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2 }}
-            className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border border-gray-200/80 dark:border-zinc-800 shadow-xs"
+            className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-gray-200/80 dark:border-zinc-800 shadow-sm"
           >
             <span className="flex h-2.5 w-2.5 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-primary opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-primary"></span>
             </span>
-            <span className="text-xs sm:text-sm font-bold text-gray-900 dark:text-gray-100 tracking-wide uppercase">
+            <span className="text-sm sm:text-base font-extrabold text-gray-900 dark:text-gray-100 tracking-wide uppercase">
               Delivering Freshness Daily · Akobo, Ibadan
             </span>
           </motion.div>
@@ -82,7 +82,7 @@ export default function Hero() {
           </h1>
 
           {/* Subtitle */}
-          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 leading-relaxed font-normal">
+          <p className="text-lg sm:text-xl lg:text-[21px] text-gray-600 dark:text-gray-300 leading-relaxed font-normal">
             Skip the lines. We bring hand-picked supermarket essentials and farm-fresh produce directly to your doorstep in minutes. Quality you can taste, convenience you deserve.
           </p>
 
@@ -116,7 +116,7 @@ export default function Hero() {
                 <Zap className="text-orange-500 w-5 h-5" />
                 <span className="font-bold text-gray-900 dark:text-white text-base sm:text-lg">30 Min</span>
               </div>
-              <span className="text-xs text-gray-500 dark:text-gray-400">Fast Delivery</span>
+              <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Fast Delivery</span>
             </div>
             <div className="w-px h-10 bg-gray-200 dark:bg-zinc-800"></div>
             <div className="flex flex-col gap-1">
@@ -124,7 +124,7 @@ export default function Hero() {
                 <ShieldCheck className="text-green-500 w-5 h-5" />
                 <span className="font-bold text-gray-900 dark:text-white text-base sm:text-lg">100%</span>
               </div>
-              <span className="text-xs text-gray-500 dark:text-gray-400">Quality Assured</span>
+              <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Quality Assured</span>
             </div>
             <div className="w-px h-10 bg-gray-200 dark:bg-zinc-800"></div>
             <div className="flex flex-col gap-1">
@@ -132,7 +132,7 @@ export default function Hero() {
                 <Star className="text-yellow-500 w-5 h-5 fill-yellow-500" />
                 <span className="font-bold text-gray-900 dark:text-white text-base sm:text-lg">4.9/5</span>
               </div>
-              <span className="text-xs text-gray-500 dark:text-gray-400">Customer Rating</span>
+              <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Customer Rating</span>
             </div>
           </div>
         </motion.div>
