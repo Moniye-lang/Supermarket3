@@ -49,7 +49,13 @@ function htmlToPlainText(html: string): string {
 }
 
 // ─── Base Email Sender ───────────────────────────────────────────────────────
-export async function sendHtmlEmail(to: string, subject: string, html: string, customText?: string) {
+export async function sendHtmlEmail(
+  to: string,
+  subject: string,
+  html: string,
+  customText?: string,
+  options?: { replyTo?: string }
+) {
   if (!to || !to.includes("@")) {
     console.warn("[Email] Invalid recipient email:", to);
     return { success: false, error: "Invalid email" };
@@ -57,6 +63,7 @@ export async function sendHtmlEmail(to: string, subject: string, html: string, c
 
   const senderEmail = process.env.EMAIL_USER || "davidadeniyi269@gmail.com";
   const plainText = customText || htmlToPlainText(html);
+  const replyTo = options?.replyTo || senderEmail;
 
   // 1. Try Nodemailer Gmail SMTP first (SPF & DKIM authenticated by Google)
   const mail = getTransporter();
@@ -64,17 +71,10 @@ export async function sendHtmlEmail(to: string, subject: string, html: string, c
     const mailOptions = {
       from: `"AMStores" <${senderEmail}>`,
       to,
-      replyTo: senderEmail,
+      replyTo,
       subject,
       text: plainText,
       html,
-      headers: {
-        "X-Priority": "3",
-        "X-MSMail-Priority": "Normal",
-        "Importance": "Normal",
-        "X-Mailer": "AMStores Transactional Mailer",
-        "Precedence": "bulk",
-      },
     };
 
     try {
@@ -101,7 +101,7 @@ export async function sendHtmlEmail(to: string, subject: string, html: string, c
         body: JSON.stringify({
           from: `AMStores <${senderEmail}>`,
           to,
-          reply_to: senderEmail,
+          reply_to: replyTo,
           subject,
           text: plainText,
           html,
@@ -486,5 +486,5 @@ export async function sendContactFormEmail(
 </body>
 </html>`;
 
-  return sendHtmlEmail(to, emailSubject, html);
+  return sendHtmlEmail(to, emailSubject, html, undefined, { replyTo: email });
 }
