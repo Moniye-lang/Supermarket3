@@ -111,6 +111,18 @@ export default function SignUp() {
               <Button type="submit" className="w-full py-6 text-lg shadow-brand-primary/25 shadow-xl group" disabled={loading}>
                 {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <>Next Step <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" /></>}
               </Button>
+
+              <p className="text-xs text-gray-500 text-center leading-relaxed mt-3">
+                By creating an account, you agree to our{" "}
+                <Link href="/terms" className="text-brand-primary hover:underline font-medium">
+                  Terms &amp; Conditions
+                </Link>{" "}
+                and acknowledge our{" "}
+                <Link href="/privacy" className="text-brand-primary hover:underline font-medium">
+                  Privacy Policy
+                </Link>
+                .
+              </p>
             </motion.form>
           ) : (
             <motion.form key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} onSubmit={handleVerify} className="space-y-6">
