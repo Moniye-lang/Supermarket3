@@ -98,6 +98,18 @@ export default function WorkerSignUp() {
           >
             {loading ? "Signing Up..." : "Sign Up"}
           </Button>
+
+          <p className="text-xs text-gray-500 text-center leading-relaxed mt-2">
+            By signing up, you agree to our{" "}
+            <Link href="/terms" target="_blank" className="text-blue-600 font-bold underline hover:text-blue-700">
+              Terms &amp; Conditions
+            </Link>{" "}
+            and acknowledge our{" "}
+            <Link href="/privacy" target="_blank" className="text-blue-600 font-bold underline hover:text-blue-700">
+              Privacy Policy
+            </Link>
+            .
+          </p>
         </form>
         {message && <p className="text-center mt-4 text-sm font-semibold text-gray-700 bg-gray-50 p-2 rounded-xl">{message}</p>}
       </div>

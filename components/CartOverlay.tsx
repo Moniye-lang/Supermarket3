@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useContext, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { CartContext } from "@/context/CartContext";
 import { AuthContext } from "@/context/AuthContext";
 import pusherClient from "@/lib/pusher-client";
@@ -526,20 +527,33 @@ export default function CartOverlay() {
                   <ArrowRight size={16} />
                 </button>
               ) : (
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setCartStep("cart")}
-                    className="py-4 px-4 rounded-2xl border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300 font-bold text-sm hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-                  >
-                    <ArrowLeft size={16} />
-                  </button>
-                  <button
-                    onClick={handleInitiateCheckout}
-                    disabled={loading || cart.length === 0}
-                    className="flex-1 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm transition-all duration-200 shadow-lg shadow-emerald-600/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    {loading ? <Loader2 className="animate-spin" size={18} /> : <span>I Have Transferred ₦{totalPrice.toLocaleString()}</span>}
-                  </button>
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setCartStep("cart")}
+                      className="py-4 px-4 rounded-2xl border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300 font-bold text-sm hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                    >
+                      <ArrowLeft size={16} />
+                    </button>
+                    <button
+                      onClick={handleInitiateCheckout}
+                      disabled={loading || cart.length === 0}
+                      className="flex-1 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm transition-all duration-200 shadow-lg shadow-emerald-600/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      {loading ? <Loader2 className="animate-spin" size={18} /> : <span>I Have Transferred ₦{totalPrice.toLocaleString()}</span>}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-gray-400 text-center leading-tight pt-1">
+                    By placing an order, you agree to our{" "}
+                    <Link href="/terms" target="_blank" className="text-brand-primary font-semibold hover:underline">
+                      Terms
+                    </Link>{" "}
+                    &amp;{" "}
+                    <Link href="/privacy" target="_blank" className="text-brand-primary font-semibold hover:underline">
+                      Privacy Policy
+                    </Link>
+                    .
+                  </p>
                 </div>
               )}
             </div>

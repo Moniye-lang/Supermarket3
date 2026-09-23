@@ -203,10 +203,22 @@ export default function SignIn() {
             <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-6 h-6" />
             Sign in with Google
           </button>
+
+          <p className="text-xs text-gray-500 text-center leading-relaxed mt-4">
+            By continuing, you agree to our{" "}
+            <Link href="/terms" target="_blank" className="text-brand-primary font-bold underline hover:text-brand-primary-hover">
+              Terms &amp; Conditions
+            </Link>{" "}
+            and acknowledge our{" "}
+            <Link href="/privacy" target="_blank" className="text-brand-primary font-bold underline hover:text-brand-primary-hover">
+              Privacy Policy
+            </Link>
+            .
+          </p>
         </form>
 
-        <div className="mt-8 text-center">
-          <p className="text-gray-500 text-sm">Don&apos;t have an account?{" "}<Link href="/signup" className="text-brand-primary font-semibold hover:underline">Sign Up</Link></p>
+        <div className="mt-6 text-center">
+          <p className="text-gray-500 text-sm">Don&apos;t have an account?{" "}<Link href="/signup" className="text-brand-primary font-bold hover:underline">Sign Up</Link></p>
         </div>
       </motion.div>
 

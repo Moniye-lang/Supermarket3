@@ -112,17 +112,19 @@ export default function SignUp() {
                 {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <>Next Step <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" /></>}
               </Button>
 
-              <p className="text-xs text-gray-500 text-center leading-relaxed mt-3">
-                By creating an account, you agree to our{" "}
-                <Link href="/terms" className="text-brand-primary hover:underline font-medium">
-                  Terms &amp; Conditions
-                </Link>{" "}
-                and acknowledge our{" "}
-                <Link href="/privacy" className="text-brand-primary hover:underline font-medium">
-                  Privacy Policy
-                </Link>
-                .
-              </p>
+              <div className="pt-2 text-center">
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  By creating an account, you agree to our{" "}
+                  <Link href="/terms" target="_blank" className="text-brand-primary font-bold underline hover:text-brand-primary-hover">
+                    Terms &amp; Conditions
+                  </Link>{" "}
+                  and acknowledge our{" "}
+                  <Link href="/privacy" target="_blank" className="text-brand-primary font-bold underline hover:text-brand-primary-hover">
+                    Privacy Policy
+                  </Link>
+                  .
+                </p>
+              </div>
             </motion.form>
           ) : (
             <motion.form key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} onSubmit={handleVerify} className="space-y-6">
@@ -140,6 +142,20 @@ export default function SignUp() {
               <Button type="submit" className="w-full py-6 text-lg shadow-brand-primary/25 shadow-xl group" disabled={loading}>
                 {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <>Verify &amp; Login <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" /></>}
               </Button>
+
+              <div className="pt-1 text-center">
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  By verifying, you agree to our{" "}
+                  <Link href="/terms" target="_blank" className="text-brand-primary font-bold underline hover:text-brand-primary-hover">
+                    Terms &amp; Conditions
+                  </Link>{" "}
+                  and{" "}
+                  <Link href="/privacy" target="_blank" className="text-brand-primary font-bold underline hover:text-brand-primary-hover">
+                    Privacy Policy
+                  </Link>
+                  .
+                </p>
+              </div>
 
               <button type="button" onClick={() => setStep(1)} className="w-full text-center text-gray-500 text-sm hover:text-gray-700">Back to Details</button>
             </motion.form>
