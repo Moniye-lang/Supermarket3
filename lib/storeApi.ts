@@ -55,13 +55,17 @@ function buildHeaders(): Record<string, string> {
   if (secret && key) {
     const authString = Buffer.from(`${key}:${secret}`).toString("base64");
     headers["Authorization"] = `Basic ${authString}`;
-  } else if (secret) {
-    headers["Authorization"] = `Bearer ${secret}`;
+    headers["X-Api-Key"] = secret;
     headers["x-api-key"] = secret;
+  } else if (secret) {
+    headers["X-Api-Key"] = secret;
+    headers["x-api-key"] = secret;
+    headers["Authorization"] = `Bearer ${secret}`;
     headers["x-store-secret"] = secret;
   } else if (key) {
-    headers["Authorization"] = `Bearer ${key}`;
+    headers["X-Api-Key"] = key;
     headers["x-api-key"] = key;
+    headers["Authorization"] = `Bearer ${key}`;
   }
 
   return headers;
