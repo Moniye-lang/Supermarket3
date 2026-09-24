@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchWooProducts, createWooProduct, isWooConfigured, WooProduct } from "@/lib/woocommerce";
+import { isStoreApiConfigured, fetchLiveCatalogProducts } from "@/lib/storeApi";
 import { verifyAdmin } from "@/lib/authMiddleware";
 import dbConnect from "@/lib/mongodb";
 import Product from "@/lib/models/Product";
@@ -160,7 +161,26 @@ export async function GET(req: Request) {
       order = "desc";
     }
 
-    // 1. If WooCommerce API credentials are set in .env.local, fetch live from WooCommerce
+    // 1. If Store API is configured, fetch live catalog from GET /v1/catalog
+    if (isStoreApiConfigured()) {
+      try {
+        const catalogResult = await fetchLiveCatalogProducts({ page, limit, search: q, category, orderby, order });
+        if (catalogResult && Array.isArray(catalogResult.products) && catalogResult.products.length > 0) {
+          return NextResponse.json(
+            { ...catalogResult, source: "store_api" },
+            {
+              headers: {
+                "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+              },
+            }
+          );
+        }
+      } catch (storeErr: any) {
+        console.warn("[Products API] Store API live catalog fetch error, falling back to backup:", storeErr.message);
+      }
+    }
+
+    // 1b. Fallback to WooCommerce if configured
     if (isWooConfigured()) {
       try {
         const wooResult = await fetchWooProducts({ page, limit, search: q, category, orderby, order });

@@ -9,6 +9,29 @@ export interface StoreApiConfig {
   key?: string;
 }
 
+export interface StoreProduct {
+  _id: string;
+  id: number | string;
+  name: string;
+  description: string;
+  shortDescription: string;
+  price: number;
+  regularPrice?: number;
+  salePrice?: number;
+  oldPrice?: number;
+  onSale: boolean;
+  discount?: number;
+  stockStatus: string;
+  stockTracked: boolean;
+  stock: number;
+  sku: string;
+  category: string;
+  categories: { id: number | string; name: string; slug: string }[];
+  image: string;
+  images: string[];
+  createdAt: string;
+}
+
 export function getStoreApiConfig(): StoreApiConfig {
   const baseUrl = (process.env.STORE_API_URL || process.env.WOOCOMMERCE_URL || "").trim().replace(/\/$/, "");
   const secret = (process.env.STORE_API_SECRET || process.env.WOOCOMMERCE_CONSUMER_SECRET || "").trim();
@@ -115,6 +138,90 @@ async function request<T = any>(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PRODUCT NORMALIZATION HELPER
+// ─────────────────────────────────────────────────────────────────────────────
+export function normalizeStoreProduct(p: any): StoreProduct {
+  if (!p || typeof p !== "object") return null as any;
+
+  const rawId = p._id || p.id || p.productId || p.sku || String(Math.random());
+  const idStr = String(rawId);
+  const numericId = typeof p.id === "number" ? p.id : parseInt(idStr.replace(/\D/g, "").slice(-6) || "101", 10);
+
+  const price = parseFloat(p.price || p.regularPrice || p.regular_price || p.unitPrice || "0") || 0;
+  const regularPrice = p.regularPrice ? parseFloat(p.regularPrice) : (p.regular_price ? parseFloat(p.regular_price) : (p.oldPrice ? parseFloat(p.oldPrice) : undefined));
+  const salePrice = p.salePrice ? parseFloat(p.salePrice) : (p.sale_price ? parseFloat(p.sale_price) : undefined);
+
+  let oldPrice = regularPrice;
+  let discount = 0;
+  if (regularPrice && regularPrice > price) {
+    discount = Math.round(((regularPrice - price) / regularPrice) * 100);
+  }
+
+  const stockQty = typeof p.stock === "number" 
+    ? p.stock 
+    : (typeof p.quantity === "number" ? p.quantity : (typeof p.stock_quantity === "number" ? p.stock_quantity : 10));
+  
+  const rawStockStatus = String(p.stockStatus || p.stock_status || (stockQty > 0 ? "instock" : "outofstock")).toLowerCase();
+
+  let images: string[] = [];
+  if (Array.isArray(p.images)) {
+    images = p.images.map((img: any) => (typeof img === "string" ? img : img?.src || img?.url)).filter(Boolean);
+  }
+  const primaryImage = p.image || p.imageUrl || p.thumbnail || (images.length > 0 ? images[0] : "/placeholder.png");
+  if (images.length === 0 && primaryImage) {
+    images = [primaryImage];
+  }
+
+  let categories: { id: number | string; name: string; slug: string }[] = [];
+  let mainCategory = p.category || p.department || "General";
+  if (typeof mainCategory === "object" && mainCategory?.name) {
+    mainCategory = mainCategory.name;
+  }
+
+  if (Array.isArray(p.categories)) {
+    categories = p.categories.map((c: any) => ({
+      id: c.id || 1,
+      name: typeof c === "string" ? c : c.name || "General",
+      slug: (typeof c === "string" ? c : c.slug || c.name || "general").toLowerCase().replace(/\s+/g, "-"),
+    }));
+    if (categories.length > 0 && (!p.category || typeof p.category === "object")) {
+      mainCategory = categories[0].name;
+    }
+  } else {
+    categories = [
+      {
+        id: 1,
+        name: String(mainCategory),
+        slug: String(mainCategory).toLowerCase().replace(/\s+/g, "-"),
+      },
+    ];
+  }
+
+  return {
+    _id: idStr,
+    id: numericId,
+    name: p.name || p.title || "Product",
+    description: p.description || p.shortDescription || p.short_description || "",
+    shortDescription: p.shortDescription || p.short_description || (p.description ? p.description.slice(0, 120) : ""),
+    price,
+    regularPrice,
+    salePrice,
+    oldPrice,
+    onSale: Boolean(p.onSale || p.on_sale || (regularPrice && regularPrice > price)),
+    discount,
+    stockStatus: rawStockStatus.includes("in") ? "In Stock" : "Out of Stock",
+    stockTracked: true,
+    stock: stockQty,
+    sku: p.sku || `SKU-${idStr.slice(-5).toUpperCase()}`,
+    category: String(mainCategory),
+    categories,
+    image: primaryImage,
+    images,
+    createdAt: p.createdAt || p.date_created || new Date().toISOString(),
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 1. HEALTH (/health)
 // ─────────────────────────────────────────────────────────────────────────────
 export async function checkHealth() {
@@ -137,6 +244,61 @@ export async function syncAnalytics(payload?: Record<string, any>) {
 // ─────────────────────────────────────────────────────────────────────────────
 export async function getCatalog(params?: { page?: number; limit?: number; search?: string; category?: string }) {
   return request("/v1/catalog", { method: "GET", params });
+}
+
+export async function fetchLiveCatalogProducts(params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  category?: string;
+  orderby?: string;
+  order?: "asc" | "desc";
+}): Promise<{ products: StoreProduct[]; total: number; pages: number; page: number }> {
+  const page = params.page || 1;
+  const limit = params.limit || 12;
+
+  const res = await getCatalog({
+    page,
+    limit,
+    search: params.search,
+    category: params.category && params.category !== "All Departments" ? params.category : undefined,
+  });
+
+  if (!res.success || !res.data) {
+    throw new Error(res.error || "Failed to fetch catalog from Store API");
+  }
+
+  let rawList: any[] = [];
+  let totalCount = 0;
+
+  if (Array.isArray(res.data)) {
+    rawList = res.data;
+    totalCount = res.data.length;
+  } else if (res.data && typeof res.data === "object") {
+    if (Array.isArray(res.data.products)) rawList = res.data.products;
+    else if (Array.isArray(res.data.items)) rawList = res.data.items;
+    else if (Array.isArray(res.data.data)) rawList = res.data.data;
+    else if (Array.isArray(res.data.catalog)) rawList = res.data.catalog;
+
+    totalCount = res.data.total || res.data.count || rawList.length;
+  }
+
+  const products = rawList.map(normalizeStoreProduct).filter(Boolean);
+  const totalPages = Math.ceil(totalCount / limit) || 1;
+
+  return {
+    products,
+    total: totalCount,
+    pages: totalPages,
+    page,
+  };
+}
+
+export async function fetchLiveCatalogProductById(productId: string | number): Promise<StoreProduct | null> {
+  const res = await getCatalogProduct(productId);
+  if (!res.success || !res.data) return null;
+  const item = res.data.product || res.data.data || res.data;
+  return normalizeStoreProduct(item);
 }
 
 export async function getCatalogProduct(productId: string | number) {

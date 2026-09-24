@@ -1,13 +1,43 @@
 import { NextResponse } from "next/server";
 import { fetchWooCategories, isWooConfigured } from "@/lib/woocommerce";
+import { isStoreApiConfigured, fetchLiveCatalogProducts } from "@/lib/storeApi";
 import dbConnect from "@/lib/mongodb";
 import Product from "@/lib/models/Product";
 import { DEFAULT_PRODUCTS } from "@/lib/defaultProducts";
 
-// GET product categories (WooCommerce API with DB backup)
+// GET product categories (Store API / WooCommerce API with DB backup)
 export async function GET() {
   try {
-    // 1. Try WooCommerce if configured
+    // 1. Try Store API if configured
+    if (isStoreApiConfigured()) {
+      try {
+        const catalogResult = await fetchLiveCatalogProducts({ limit: 100 });
+        if (catalogResult && Array.isArray(catalogResult.products) && catalogResult.products.length > 0) {
+          const categoryCounts: Record<string, number> = {};
+          catalogResult.products.forEach((p) => {
+            const cat = p.category || "General";
+            categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+          });
+
+          const categories = Object.entries(categoryCounts).map(([name, count], i) => ({
+            id: i + 1,
+            name,
+            slug: name.toLowerCase().replace(/\s+/g, "-"),
+            count,
+          }));
+
+          return NextResponse.json({ categories }, {
+            headers: {
+              "Cache-Control": "public, s-maxage=300, stale-while-revalidate=1800",
+            },
+          });
+        }
+      } catch (storeErr: any) {
+        console.warn("[Categories API] Store API categories extraction error, falling back:", storeErr.message);
+      }
+    }
+
+    // 1b. Try WooCommerce if configured
     if (isWooConfigured()) {
       try {
         const wooCategories = await fetchWooCategories();

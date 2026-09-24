@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchWooProductById, updateWooProduct, deleteWooProduct, isWooConfigured, WooProduct } from "@/lib/woocommerce";
+import { isStoreApiConfigured, fetchLiveCatalogProductById } from "@/lib/storeApi";
 import { verifyAdmin } from "@/lib/authMiddleware";
 import dbConnect from "@/lib/mongodb";
 import Product from "@/lib/models/Product";
@@ -41,7 +42,7 @@ function normalizeSingleDbProduct(p: any): WooProduct {
   };
 }
 
-// GET single product by ID (WooCommerce API with DB backup)
+// GET single product by ID (Store API / WooCommerce API with DB backup)
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
@@ -49,7 +50,19 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: "Product ID is required" }, { status: 400 });
     }
 
-    // 1. Try WooCommerce if configured
+    // 1. Try Store API if configured
+    if (isStoreApiConfigured()) {
+      try {
+        const liveProduct = await fetchLiveCatalogProductById(id);
+        if (liveProduct) {
+          return NextResponse.json(liveProduct);
+        }
+      } catch (storeErr: any) {
+        console.warn("[Products API] Store API single product fetch error, falling back:", storeErr.message);
+      }
+    }
+
+    // 1b. Try WooCommerce if configured
     if (isWooConfigured()) {
       try {
         const product = await fetchWooProductById(id);
