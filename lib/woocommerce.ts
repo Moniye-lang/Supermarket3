@@ -29,16 +29,15 @@ export interface WooCategory {
 }
 
 export function isWooConfigured(): boolean {
-  const url = (process.env.WOOCOMMERCE_URL || "").trim();
-  const key = (process.env.WOOCOMMERCE_CONSUMER_KEY || "").trim();
-  const secret = (process.env.WOOCOMMERCE_CONSUMER_SECRET || "").trim();
-  return Boolean(url && key && secret);
+  const url = (process.env.STORE_API_URL || process.env.WOOCOMMERCE_URL || "").trim();
+  const token = (process.env.STORE_API_SECRET || process.env.STORE_API_KEY || process.env.WOOCOMMERCE_CONSUMER_KEY || "").trim();
+  return Boolean(url && token);
 }
 
 export function getWooConfig() {
-  const url = (process.env.WOOCOMMERCE_URL || "").trim().replace(/\/$/, "");
-  const key = (process.env.WOOCOMMERCE_CONSUMER_KEY || "").trim();
-  const secret = (process.env.WOOCOMMERCE_CONSUMER_SECRET || "").trim();
+  const url = (process.env.STORE_API_URL || process.env.WOOCOMMERCE_URL || "").trim().replace(/\/$/, "");
+  const key = (process.env.STORE_API_KEY || process.env.WOOCOMMERCE_CONSUMER_KEY || "").trim();
+  const secret = (process.env.STORE_API_SECRET || process.env.WOOCOMMERCE_CONSUMER_SECRET || "").trim();
   return { url, key, secret };
 }
 
@@ -127,7 +126,7 @@ export function normalizeWooProduct(p: any): WooProduct {
   };
 }
 
-// Build auth headers for WooCommerce REST API
+// Build auth headers for Store REST API
 function buildWooHeaders(): Record<string, string> {
   const { key, secret } = getWooConfig();
   const headers: Record<string, string> = {
@@ -138,18 +137,29 @@ function buildWooHeaders(): Record<string, string> {
   if (key && secret) {
     const authString = Buffer.from(`${key}:${secret}`).toString("base64");
     headers["Authorization"] = `Basic ${authString}`;
+  } else if (secret) {
+    headers["Authorization"] = `Bearer ${secret}`;
+    headers["x-api-key"] = secret;
+  } else if (key) {
+    headers["Authorization"] = `Bearer ${key}`;
+    headers["x-api-key"] = key;
   }
   return headers;
 }
 
 function buildWooUrl(endpoint: string, params: Record<string, string | number> = {}): string {
-  const { url: wooUrl, key, secret } = getWooConfig();
-  if (!wooUrl) {
-    throw new Error("WooCommerce URL is not configured in .env");
+  const { url: baseUrl, key, secret } = getWooConfig();
+  if (!baseUrl) {
+    throw new Error("Store API URL is not configured in .env.local");
   }
-  const url = new URL(`${wooUrl}/wp-json/wc/v3${endpoint}`);
-  if (key) url.searchParams.set("consumer_key", key);
-  if (secret) url.searchParams.set("consumer_secret", secret);
+  const fullPath = baseUrl.includes("/wp-json/wc/") 
+    ? `${baseUrl}${endpoint}`
+    : (baseUrl.includes("/api") ? `${baseUrl}${endpoint}` : `${baseUrl}/wp-json/wc/v3${endpoint}`);
+  const url = new URL(fullPath);
+  if (key && secret) {
+    url.searchParams.set("consumer_key", key);
+    url.searchParams.set("consumer_secret", secret);
+  }
   Object.entries(params).forEach(([paramKey, val]) => {
     if (val !== undefined && val !== null && val !== "") {
       url.searchParams.set(paramKey, String(val));

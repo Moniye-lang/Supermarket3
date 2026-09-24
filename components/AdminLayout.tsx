@@ -3,7 +3,7 @@ import { useState, useEffect, useContext, ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Package, ShoppingCart, Users, Settings, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Users, Settings, LogOut, Menu, X, Webhook } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AuthContext } from "@/context/AuthContext";
 
@@ -52,6 +52,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         { name: "Products", path: "/admin/products", icon: Package },
         { name: "Orders", path: "/admin/orders", icon: ShoppingCart },
         { name: "Users", path: "/admin/users", icon: Users },
+        { name: "Integrations", path: "/admin/integrations", icon: Webhook },
         { name: "Settings", path: "/admin/settings", icon: Settings },
     ];
 

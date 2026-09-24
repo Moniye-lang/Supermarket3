@@ -1,0 +1,16 @@
+import { NextResponse } from "next/server";
+import { getOrderById, isStoreApiConfigured } from "@/lib/storeApi";
+import { verifyAdmin } from "@/lib/authMiddleware";
+
+export async function GET(req: Request, { params }: { params: Promise<{ orderId: string }> }) {
+  const adminCheck = verifyAdmin(req);
+  if (adminCheck) return adminCheck;
+
+  if (!isStoreApiConfigured()) {
+    return NextResponse.json({ error: "Store API not configured in .env.local" }, { status: 400 });
+  }
+
+  const { orderId } = await params;
+  const result = await getOrderById(orderId);
+  return NextResponse.json(result.data, { status: result.status });
+}
