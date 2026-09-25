@@ -13,11 +13,11 @@ export async function GET(req: Request) {
   }
 
   const { searchParams } = new URL(req.url);
-  const startDate = searchParams.get("startDate") || undefined;
-  const endDate = searchParams.get("endDate") || undefined;
-  const period = searchParams.get("period") || undefined;
+  const from = searchParams.get("from") || searchParams.get("startDate") || undefined;
+  const to = searchParams.get("to") || searchParams.get("endDate") || undefined;
+  const period = searchParams.get("period") || searchParams.get("groupBy") || undefined;
 
-  const result = await getAnalytics({ startDate, endDate, period });
+  const result = await getAnalytics({ from, to, period });
   return NextResponse.json(result.data, { status: result.status });
 }
 

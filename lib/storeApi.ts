@@ -404,8 +404,12 @@ export async function createOrder(orderPayload: {
   return request("/v1/orders", { method: "POST", body: orderPayload });
 }
 
-export async function getOrders(params?: { status?: string; page?: number; pageSize?: number }) {
-  return request("/v1/orders", { method: "GET", params });
+export async function getOrders(params?: { status?: string; page?: number; pageSize?: number; limit?: number }) {
+  const queryParams: Record<string, any> = {};
+  if (params?.status) queryParams.status = params.status;
+  if (params?.page) queryParams.page = params.page;
+  if (params?.pageSize || params?.limit) queryParams.pageSize = params.pageSize || params.limit;
+  return request("/v1/orders", { method: "GET", params: queryParams });
 }
 
 export async function getOrderById(orderId: string | number) {
@@ -415,8 +419,12 @@ export async function getOrderById(orderId: string | number) {
 // ─────────────────────────────────────────────────────────────────────────────
 // 4. STOCK (/v1/stock)
 // ─────────────────────────────────────────────────────────────────────────────
-export async function getStock(params?: { outletId?: number; inStock?: boolean; search?: string }) {
-  return request("/v1/stock", { method: "GET", params });
+export async function getStock(params?: { outletId?: number; inStock?: boolean; search?: string; page?: number; limit?: number; lowStock?: boolean }) {
+  const queryParams: Record<string, any> = {};
+  if (params?.outletId) queryParams.outletId = params.outletId;
+  if (params?.inStock !== undefined) queryParams.inStock = params.inStock;
+  if (params?.search) queryParams.search = params.search;
+  return request("/v1/stock", { method: "GET", params: queryParams });
 }
 
 export async function getStockSyncStatus() {
@@ -433,13 +441,27 @@ export async function syncStock(payload?: { stockUpdates?: any[] }) {
 export async function getSales(params?: {
   from?: string;
   to?: string;
+  startDate?: string;
+  endDate?: string;
   customerId?: number;
   paymentMode?: string;
   saleType?: string;
   page?: number;
   pageSize?: number;
+  limit?: number;
 }) {
-  return request("/v1/sales", { method: "GET", params });
+  const queryParams: Record<string, any> = {};
+  const from = params?.from || params?.startDate;
+  const to = params?.to || params?.endDate;
+  if (from) queryParams.from = from;
+  if (to) queryParams.to = to;
+  if (params?.customerId) queryParams.customerId = params.customerId;
+  if (params?.paymentMode) queryParams.paymentMode = params.paymentMode;
+  if (params?.saleType) queryParams.saleType = params.saleType;
+  if (params?.page) queryParams.page = params.page;
+  if (params?.pageSize || params?.limit) queryParams.pageSize = params.pageSize || params.limit;
+
+  return request("/v1/sales", { method: "GET", params: queryParams });
 }
 
 export async function syncSales(payload?: { sales?: any[] }) {
@@ -449,8 +471,12 @@ export async function syncSales(payload?: { sales?: any[] }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // 6. CUSTOMERS (/v1/customers)
 // ─────────────────────────────────────────────────────────────────────────────
-export async function getCustomers(params?: { search?: string; page?: number; pageSize?: number }) {
-  return request("/v1/customers", { method: "GET", params });
+export async function getCustomers(params?: { search?: string; page?: number; pageSize?: number; limit?: number }) {
+  const queryParams: Record<string, any> = {};
+  if (params?.search) queryParams.search = params.search;
+  if (params?.page) queryParams.page = params.page;
+  if (params?.pageSize || params?.limit) queryParams.pageSize = params.pageSize || params.limit;
+  return request("/v1/customers", { method: "GET", params: queryParams });
 }
 
 export async function syncCustomers(payload?: { customers?: any[] }) {
@@ -463,10 +489,22 @@ export async function syncCustomers(payload?: { customers?: any[] }) {
 export async function getAnalytics(params?: {
   from?: string;
   to?: string;
+  startDate?: string;
+  endDate?: string;
   groupBy?: "day" | "week" | "month";
+  period?: string;
   outletId?: number;
 }) {
-  return request("/v1/analytics", { method: "GET", params });
+  const queryParams: Record<string, any> = {};
+  const from = params?.from || params?.startDate;
+  const to = params?.to || params?.endDate;
+  if (from) queryParams.from = from;
+  if (to) queryParams.to = to;
+  const group = params?.groupBy || (params?.period as any) || "day";
+  if (group) queryParams.groupBy = group;
+  if (params?.outletId) queryParams.outletId = params.outletId;
+
+  return request("/v1/analytics", { method: "GET", params: queryParams });
 }
 
 export async function syncAnalytics(payload?: Record<string, any>) {
@@ -479,13 +517,27 @@ export async function syncAnalytics(payload?: Record<string, any>) {
 export async function getTransactions(params?: {
   from?: string;
   to?: string;
+  startDate?: string;
+  endDate?: string;
   status?: string;
   transactionType?: string;
   paymentMethod?: string;
   page?: number;
   pageSize?: number;
+  limit?: number;
 }) {
-  return request("/v1/transactions", { method: "GET", params });
+  const queryParams: Record<string, any> = {};
+  const from = params?.from || params?.startDate;
+  const to = params?.to || params?.endDate;
+  if (from) queryParams.from = from;
+  if (to) queryParams.to = to;
+  if (params?.status) queryParams.status = params.status;
+  if (params?.transactionType) queryParams.transactionType = params.transactionType;
+  if (params?.paymentMethod) queryParams.paymentMethod = params.paymentMethod;
+  if (params?.page) queryParams.page = params.page;
+  if (params?.pageSize || params?.limit) queryParams.pageSize = params.pageSize || params.limit;
+
+  return request("/v1/transactions", { method: "GET", params: queryParams });
 }
 
 export async function syncTransactions(payload?: { transactions?: any[] }) {
