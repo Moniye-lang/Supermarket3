@@ -1,17 +1,36 @@
 /**
- * STORE & ERP / POS INTEGRATION CLIENT
- * Centralized connector for external Store API endpoints
+ * STOREAPP INTEGRATION API CLIENT (v1)
+ * Official client for StoreApp Merchant API
+ * Base URL: https://st-epi-dev.azurewebsites.net
  */
 
-export interface StoreApiConfig {
+export interface StoreAppConfig {
   baseUrl: string;
-  secret: string;
-  key?: string;
+  apiKey: string;
+  tenantId?: string;
 }
 
-export interface StoreProduct {
+export interface StoreAppCatalogProduct {
+  productId: number;
+  name: string;
+  sku: string;
+  genericName?: string;
+  brand?: string;
+  brandId?: number;
+  category: string;
+  price: number;
+  unit?: string;
+  inStock: boolean;
+  stockQuantity: number;
+  imageUrl?: string | null;
+  isBrandDefault?: boolean;
+  attributes?: { name: string; value: string }[];
+  syncedAt?: string;
+}
+
+export interface NormalizedStoreProduct {
   _id: string;
-  id: number | string;
+  id: number;
   name: string;
   description: string;
   shortDescription: string;
@@ -26,46 +45,59 @@ export interface StoreProduct {
   stock: number;
   sku: string;
   category: string;
-  categories: { id: number | string; name: string; slug: string }[];
+  categories: { id: number; name: string; slug: string }[];
   image: string;
   images: string[];
+  brand?: string;
+  unit?: string;
+  attributes?: { name: string; value: string }[];
   createdAt: string;
 }
 
-export function getStoreApiConfig(): StoreApiConfig {
-  const baseUrl = (process.env.STORE_API_URL || process.env.WOOCOMMERCE_URL || "").trim().replace(/\/$/, "");
-  const secret = (process.env.STORE_API_SECRET || process.env.WOOCOMMERCE_CONSUMER_SECRET || "").trim();
-  const key = (process.env.STORE_API_KEY || process.env.WOOCOMMERCE_CONSUMER_KEY || "").trim();
-  return { baseUrl, secret, key };
+export function getStoreApiConfig(): StoreAppConfig {
+  const baseUrl = (
+    process.env.STORE_API_URL ||
+    process.env.STOREAPP_API_URL ||
+    "https://st-epi-dev.azurewebsites.net"
+  ).trim().replace(/\/$/, "");
+
+  const apiKey = (
+    process.env.STORE_API_SECRET ||
+    process.env.STORE_API_KEY ||
+    process.env.STOREAPP_API_KEY ||
+    ""
+  ).trim();
+
+  const tenantId = (
+    process.env.STORE_API_TENANT_ID ||
+    process.env.STOREAPP_TENANT_ID ||
+    ""
+  ).trim();
+
+  return { baseUrl, apiKey, tenantId };
 }
 
 export function isStoreApiConfigured(): boolean {
-  const { baseUrl, secret, key } = getStoreApiConfig();
-  return Boolean(baseUrl && (secret || key));
+  const { baseUrl, apiKey } = getStoreApiConfig();
+  return Boolean(baseUrl && apiKey);
 }
 
 function buildHeaders(): Record<string, string> {
-  const { secret, key } = getStoreApiConfig();
+  const { apiKey, tenantId } = getStoreApiConfig();
   const headers: Record<string, string> = {
     "Accept": "application/json",
     "Content-Type": "application/json",
-    "User-Agent": "AMStores-Integration/1.0",
+    "User-Agent": "AMStores-StoreApp-Integration/1.0",
   };
 
-  if (secret && key) {
-    const authString = Buffer.from(`${key}:${secret}`).toString("base64");
-    headers["Authorization"] = `Basic ${authString}`;
-    headers["X-Api-Key"] = secret;
-    headers["x-api-key"] = secret;
-  } else if (secret) {
-    headers["X-Api-Key"] = secret;
-    headers["x-api-key"] = secret;
-    headers["Authorization"] = `Bearer ${secret}`;
-    headers["x-store-secret"] = secret;
-  } else if (key) {
-    headers["X-Api-Key"] = key;
-    headers["x-api-key"] = key;
-    headers["Authorization"] = `Bearer ${key}`;
+  if (apiKey) {
+    headers["X-Api-Key"] = apiKey;
+    headers["x-api-key"] = apiKey;
+  }
+
+  if (tenantId) {
+    headers["X-Tenant-Id"] = tenantId;
+    headers["Tenant-Id"] = tenantId;
   }
 
   return headers;
@@ -79,14 +111,14 @@ async function request<T = any>(
     params?: Record<string, string | number | boolean | undefined>;
   } = {}
 ): Promise<{ success: boolean; data: T; error?: string; status: number }> {
-  const { baseUrl } = getStoreApiConfig();
+  const { baseUrl, apiKey } = getStoreApiConfig();
 
-  if (!baseUrl) {
+  if (!apiKey) {
     return {
       success: false,
       data: null as any,
-      error: "STORE_API_URL is not configured in .env.local",
-      status: 500,
+      error: "STORE_API_SECRET (X-Api-Key) is not configured in .env.local",
+      status: 401,
     };
   }
 
@@ -135,93 +167,65 @@ async function request<T = any>(
     return {
       success: false,
       data: null as any,
-      error: err.message || "Network error connecting to Store API",
+      error: err.message || "Network error connecting to StoreApp Integration API",
       status: 503,
     };
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PRODUCT NORMALIZATION HELPER
+// PRODUCT NORMALIZATION ACCORDING TO STOREAPP SPEC
 // ─────────────────────────────────────────────────────────────────────────────
-export function normalizeStoreProduct(p: any): StoreProduct {
+export function normalizeStoreProduct(p: any): NormalizedStoreProduct {
   if (!p || typeof p !== "object") return null as any;
 
-  const rawId = p._id || p.id || p.productId || p.sku || String(Math.random());
-  const idStr = String(rawId);
-  const numericId = typeof p.id === "number" ? p.id : parseInt(idStr.replace(/\D/g, "").slice(-6) || "101", 10);
+  const rawId = p.productId ?? p.id ?? p._id ?? p.sku ?? Math.floor(Math.random() * 10000);
+  const numericId = typeof rawId === "number" ? rawId : parseInt(String(rawId).replace(/\D/g, "").slice(-6) || "101", 10);
+  const idStr = String(numericId);
 
-  const price = parseFloat(p.price || p.regularPrice || p.regular_price || p.unitPrice || "0") || 0;
-  const regularPrice = p.regularPrice ? parseFloat(p.regularPrice) : (p.regular_price ? parseFloat(p.regular_price) : (p.oldPrice ? parseFloat(p.oldPrice) : undefined));
-  const salePrice = p.salePrice ? parseFloat(p.salePrice) : (p.sale_price ? parseFloat(p.sale_price) : undefined);
-
-  let oldPrice = regularPrice;
-  let discount = 0;
-  if (regularPrice && regularPrice > price) {
-    discount = Math.round(((regularPrice - price) / regularPrice) * 100);
-  }
-
-  const stockQty = typeof p.stock === "number" 
-    ? p.stock 
-    : (typeof p.quantity === "number" ? p.quantity : (typeof p.stock_quantity === "number" ? p.stock_quantity : 10));
+  const price = typeof p.price === "number" ? p.price : parseFloat(p.price || "0") || 0;
+  const stockQty = typeof p.stockQuantity === "number" 
+    ? p.stockQuantity 
+    : (typeof p.stock === "number" ? p.stock : (p.inStock ? 50 : 0));
   
-  const rawStockStatus = String(p.stockStatus || p.stock_status || (stockQty > 0 ? "instock" : "outofstock")).toLowerCase();
+  const inStock = p.inStock ?? (stockQty > 0);
+  const image = p.imageUrl || p.image || "/placeholder.png";
+  const categoryName = p.category || p.genericName || "General";
 
-  let images: string[] = [];
-  if (Array.isArray(p.images)) {
-    images = p.images.map((img: any) => (typeof img === "string" ? img : img?.src || img?.url)).filter(Boolean);
-  }
-  const primaryImage = p.image || p.imageUrl || p.thumbnail || (images.length > 0 ? images[0] : "/placeholder.png");
-  if (images.length === 0 && primaryImage) {
-    images = [primaryImage];
-  }
-
-  let categories: { id: number | string; name: string; slug: string }[] = [];
-  let mainCategory = p.category || p.department || "General";
-  if (typeof mainCategory === "object" && mainCategory?.name) {
-    mainCategory = mainCategory.name;
-  }
-
-  if (Array.isArray(p.categories)) {
-    categories = p.categories.map((c: any) => ({
-      id: c.id || 1,
-      name: typeof c === "string" ? c : c.name || "General",
-      slug: (typeof c === "string" ? c : c.slug || c.name || "general").toLowerCase().replace(/\s+/g, "-"),
-    }));
-    if (categories.length > 0 && (!p.category || typeof p.category === "object")) {
-      mainCategory = categories[0].name;
-    }
-  } else {
-    categories = [
-      {
-        id: 1,
-        name: String(mainCategory),
-        slug: String(mainCategory).toLowerCase().replace(/\s+/g, "-"),
-      },
-    ];
-  }
+  const description = p.genericName 
+    ? `${p.name} - ${p.genericName} (${p.unit || "Unit"}). ${p.brand ? `Brand: ${p.brand}.` : ""}`
+    : `${p.name} (${p.unit || "Unit"}). ${p.brand ? `Brand: ${p.brand}.` : ""}`;
 
   return {
     _id: idStr,
     id: numericId,
-    name: p.name || p.title || "Product",
-    description: p.description || p.shortDescription || p.short_description || "",
-    shortDescription: p.shortDescription || p.short_description || (p.description ? p.description.slice(0, 120) : ""),
+    name: p.name || "Product",
+    description,
+    shortDescription: description.slice(0, 120),
     price,
-    regularPrice,
-    salePrice,
-    oldPrice,
-    onSale: Boolean(p.onSale || p.on_sale || (regularPrice && regularPrice > price)),
-    discount,
-    stockStatus: rawStockStatus.includes("in") ? "In Stock" : "Out of Stock",
+    regularPrice: price,
+    salePrice: undefined,
+    oldPrice: undefined,
+    onSale: false,
+    discount: 0,
+    stockStatus: inStock ? "In Stock" : "Out of Stock",
     stockTracked: true,
     stock: stockQty,
-    sku: p.sku || `SKU-${idStr.slice(-5).toUpperCase()}`,
-    category: String(mainCategory),
-    categories,
-    image: primaryImage,
-    images,
-    createdAt: p.createdAt || p.date_created || new Date().toISOString(),
+    sku: p.sku || `SKU-${numericId}`,
+    category: categoryName,
+    categories: [
+      {
+        id: p.brandId || 1,
+        name: categoryName,
+        slug: categoryName.toLowerCase().replace(/\s+/g, "-"),
+      },
+    ],
+    image,
+    images: [image],
+    brand: p.brand,
+    unit: p.unit,
+    attributes: p.attributes || [],
+    createdAt: p.syncedAt || new Date().toISOString(),
   };
 }
 
@@ -233,21 +237,33 @@ export async function checkHealth() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 2. ANALYTICS (/v1/analytics)
+// 2. CATALOG (/v1/catalog)
 // ─────────────────────────────────────────────────────────────────────────────
-export async function getAnalytics(params?: { startDate?: string; endDate?: string; period?: string }) {
-  return request("/v1/analytics", { method: "GET", params });
-}
+export async function getCatalog(params?: {
+  search?: string;
+  brand?: string;
+  brandId?: number;
+  category?: string;
+  inStock?: boolean;
+  minPrice?: number;
+  maxPrice?: number;
+  pageSize?: number;
+  continuationToken?: string;
+  page?: number;
+  limit?: number;
+}) {
+  const queryParams: Record<string, any> = {};
+  if (params?.search) queryParams.search = params.search;
+  if (params?.brand) queryParams.brand = params.brand;
+  if (params?.brandId) queryParams.brandId = params.brandId;
+  if (params?.category) queryParams.category = params.category;
+  if (params?.inStock !== undefined) queryParams.inStock = params.inStock;
+  if (params?.minPrice) queryParams.minPrice = params.minPrice;
+  if (params?.maxPrice) queryParams.maxPrice = params.maxPrice;
+  if (params?.pageSize || params?.limit) queryParams.pageSize = params?.pageSize || params?.limit;
+  if (params?.continuationToken) queryParams.continuationToken = params.continuationToken;
 
-export async function syncAnalytics(payload?: Record<string, any>) {
-  return request("/v1/analytics/sync", { method: "POST", body: payload || {} });
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 3. CATALOG (/v1/catalog)
-// ─────────────────────────────────────────────────────────────────────────────
-export async function getCatalog(params?: { page?: number; limit?: number; search?: string; category?: string }) {
-  return request("/v1/catalog", { method: "GET", params });
+  return request("/v1/catalog", { method: "GET", params: queryParams });
 }
 
 export async function fetchLiveCatalogProducts(params: {
@@ -257,34 +273,35 @@ export async function fetchLiveCatalogProducts(params: {
   category?: string;
   orderby?: string;
   order?: "asc" | "desc";
-}): Promise<{ products: StoreProduct[]; total: number; pages: number; page: number }> {
+}): Promise<{ products: NormalizedStoreProduct[]; total: number; pages: number; page: number; continuationToken?: string }> {
   const page = params.page || 1;
-  const limit = params.limit || 12;
+  const limit = params.limit || 50;
 
   const res = await getCatalog({
-    page,
-    limit,
     search: params.search,
     category: params.category && params.category !== "All Departments" ? params.category : undefined,
+    pageSize: limit,
   });
 
   if (!res.success || !res.data) {
-    throw new Error(res.error || "Failed to fetch catalog from Store API");
+    throw new Error(res.error || "Failed to fetch catalog from StoreApp Integration API");
   }
 
+  const envelope = res.data;
   let rawList: any[] = [];
   let totalCount = 0;
+  let continuationToken: string | undefined = undefined;
 
-  if (Array.isArray(res.data)) {
-    rawList = res.data;
-    totalCount = res.data.length;
-  } else if (res.data && typeof res.data === "object") {
-    if (Array.isArray(res.data.products)) rawList = res.data.products;
-    else if (Array.isArray(res.data.items)) rawList = res.data.items;
-    else if (Array.isArray(res.data.data)) rawList = res.data.data;
-    else if (Array.isArray(res.data.catalog)) rawList = res.data.catalog;
+  if (Array.isArray(envelope)) {
+    rawList = envelope;
+    totalCount = envelope.length;
+  } else if (envelope && typeof envelope === "object") {
+    if (Array.isArray(envelope.products)) rawList = envelope.products;
+    else if (Array.isArray(envelope.data)) rawList = envelope.data;
+    else if (Array.isArray(envelope.items)) rawList = envelope.items;
 
-    totalCount = res.data.total || res.data.count || rawList.length;
+    totalCount = envelope.totalCount || envelope.total || rawList.length;
+    continuationToken = envelope.continuationToken || undefined;
   }
 
   const products = rawList.map(normalizeStoreProduct).filter(Boolean);
@@ -295,18 +312,19 @@ export async function fetchLiveCatalogProducts(params: {
     total: totalCount,
     pages: totalPages,
     page,
+    continuationToken,
   };
-}
-
-export async function fetchLiveCatalogProductById(productId: string | number): Promise<StoreProduct | null> {
-  const res = await getCatalogProduct(productId);
-  if (!res.success || !res.data) return null;
-  const item = res.data.product || res.data.data || res.data;
-  return normalizeStoreProduct(item);
 }
 
 export async function getCatalogProduct(productId: string | number) {
   return request(`/v1/catalog/${productId}`, { method: "GET" });
+}
+
+export async function fetchLiveCatalogProductById(productId: string | number): Promise<NormalizedStoreProduct | null> {
+  const res = await getCatalogProduct(productId);
+  if (!res.success || !res.data) return null;
+  const item = res.data.product || res.data.data || res.data;
+  return normalizeStoreProduct(item);
 }
 
 export async function getCatalogSyncStatus() {
@@ -318,20 +336,22 @@ export async function syncCatalog(payload?: { fullSync?: boolean; items?: any[] 
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 4. CUSTOMERS (/v1/customers)
+// 3. ORDERS (/v1/orders) - POS Real-time Submission
 // ─────────────────────────────────────────────────────────────────────────────
-export async function getCustomers(params?: { page?: number; limit?: number; search?: string }) {
-  return request("/v1/customers", { method: "GET", params });
+export async function createOrder(orderPayload: {
+  externalRef: string;
+  storeId: number;
+  customerId?: number;
+  customerName?: string;
+  items: { productId: number; quantity: number; unitPrice: number; discount?: number }[];
+  payments: { mode: "cash" | "card" | "bank" | "online"; amount: number; reference?: string }[];
+  comments?: string;
+  webhookUrl?: string;
+}) {
+  return request("/v1/orders", { method: "POST", body: orderPayload });
 }
 
-export async function syncCustomers(payload?: { customers?: any[] }) {
-  return request("/v1/customers/sync", { method: "POST", body: payload || {} });
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 5. ORDERS (/v1/orders)
-// ─────────────────────────────────────────────────────────────────────────────
-export async function getOrders(params?: { page?: number; limit?: number; status?: string }) {
+export async function getOrders(params?: { status?: string; page?: number; pageSize?: number }) {
   return request("/v1/orders", { method: "GET", params });
 }
 
@@ -339,25 +359,10 @@ export async function getOrderById(orderId: string | number) {
   return request(`/v1/orders/${orderId}`, { method: "GET" });
 }
 
-export async function createOrder(orderData: Record<string, any>) {
-  return request("/v1/orders", { method: "POST", body: orderData });
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
-// 6. SALES (/v1/sales)
+// 4. STOCK (/v1/stock)
 // ─────────────────────────────────────────────────────────────────────────────
-export async function getSales(params?: { page?: number; limit?: number; startDate?: string; endDate?: string }) {
-  return request("/v1/sales", { method: "GET", params });
-}
-
-export async function syncSales(payload?: { sales?: any[] }) {
-  return request("/v1/sales/sync", { method: "POST", body: payload || {} });
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 7. STOCK (/v1/stock)
-// ─────────────────────────────────────────────────────────────────────────────
-export async function getStock(params?: { page?: number; limit?: number; lowStock?: boolean }) {
+export async function getStock(params?: { outletId?: number; inStock?: boolean; search?: string }) {
   return request("/v1/stock", { method: "GET", params });
 }
 
@@ -370,9 +375,63 @@ export async function syncStock(payload?: { stockUpdates?: any[] }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 5. SALES (/v1/sales)
+// ─────────────────────────────────────────────────────────────────────────────
+export async function getSales(params?: {
+  from?: string;
+  to?: string;
+  customerId?: number;
+  paymentMode?: string;
+  saleType?: string;
+  page?: number;
+  pageSize?: number;
+}) {
+  return request("/v1/sales", { method: "GET", params });
+}
+
+export async function syncSales(payload?: { sales?: any[] }) {
+  return request("/v1/sales/sync", { method: "POST", body: payload || {} });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6. CUSTOMERS (/v1/customers)
+// ─────────────────────────────────────────────────────────────────────────────
+export async function getCustomers(params?: { search?: string; page?: number; pageSize?: number }) {
+  return request("/v1/customers", { method: "GET", params });
+}
+
+export async function syncCustomers(payload?: { customers?: any[] }) {
+  return request("/v1/customers/sync", { method: "POST", body: payload || {} });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 7. ANALYTICS (/v1/analytics)
+// ─────────────────────────────────────────────────────────────────────────────
+export async function getAnalytics(params?: {
+  from?: string;
+  to?: string;
+  groupBy?: "day" | "week" | "month";
+  outletId?: number;
+}) {
+  return request("/v1/analytics", { method: "GET", params });
+}
+
+export async function syncAnalytics(payload?: Record<string, any>) {
+  return request("/v1/analytics/sync", { method: "POST", body: payload || {} });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 8. TRANSACTIONS (/v1/transactions)
 // ─────────────────────────────────────────────────────────────────────────────
-export async function getTransactions(params?: { page?: number; limit?: number; status?: string }) {
+export async function getTransactions(params?: {
+  from?: string;
+  to?: string;
+  status?: string;
+  transactionType?: string;
+  paymentMethod?: string;
+  page?: number;
+  pageSize?: number;
+}) {
   return request("/v1/transactions", { method: "GET", params });
 }
 
