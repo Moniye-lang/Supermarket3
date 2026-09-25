@@ -106,12 +106,10 @@ function buildHeaders(overrideKey?: string): Record<string, string> {
 
   if (keyToUse) {
     headers["X-Api-Key"] = keyToUse;
-    headers["x-api-key"] = keyToUse;
   }
 
   if (tenantId) {
     headers["X-Tenant-Id"] = tenantId;
-    headers["Tenant-Id"] = tenantId;
   }
 
   return headers;
