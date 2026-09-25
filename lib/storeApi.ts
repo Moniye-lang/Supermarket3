@@ -1,6 +1,6 @@
 /**
  * STOREAPP INTEGRATION API CLIENT (v1)
- * Official client for StoreApp Merchant API
+ * Official client for StoreApp Merchant & Admin API
  * Base URL: https://st-epi-dev.azurewebsites.net
  */
 
@@ -54,6 +54,13 @@ export interface NormalizedStoreProduct {
   createdAt: string;
 }
 
+export interface StoreAppConfig {
+  baseUrl: string;
+  apiKey: string;
+  adminKey?: string;
+  tenantId?: string;
+}
+
 export function getStoreApiConfig(): StoreAppConfig {
   const baseUrl = (
     process.env.STORE_API_URL ||
@@ -61,20 +68,26 @@ export function getStoreApiConfig(): StoreAppConfig {
     "https://st-epi-dev.azurewebsites.net"
   ).trim().replace(/\/$/, "");
 
+  const adminKey = (
+    process.env.STOREAPP_ADMIN_KEY ||
+    process.env.STORE_ADMIN_KEY ||
+    ""
+  ).trim();
+
   const apiKey = (
     process.env.STORE_API_SECRET ||
     process.env.STORE_API_KEY ||
     process.env.STOREAPP_API_KEY ||
-    ""
+    adminKey
   ).trim();
 
   const tenantId = (
     process.env.STORE_API_TENANT_ID ||
     process.env.STOREAPP_TENANT_ID ||
-    ""
+    "demo"
   ).trim();
 
-  return { baseUrl, apiKey, tenantId };
+  return { baseUrl, apiKey, adminKey, tenantId };
 }
 
 export function isStoreApiConfigured(): boolean {
@@ -82,17 +95,18 @@ export function isStoreApiConfigured(): boolean {
   return Boolean(baseUrl && apiKey);
 }
 
-function buildHeaders(): Record<string, string> {
-  const { apiKey, tenantId } = getStoreApiConfig();
+function buildHeaders(overrideKey?: string): Record<string, string> {
+  const { apiKey, adminKey, tenantId } = getStoreApiConfig();
+  const keyToUse = overrideKey || apiKey || adminKey;
   const headers: Record<string, string> = {
     "Accept": "application/json",
     "Content-Type": "application/json",
     "User-Agent": "AMStores-StoreApp-Integration/1.0",
   };
 
-  if (apiKey) {
-    headers["X-Api-Key"] = apiKey;
-    headers["x-api-key"] = apiKey;
+  if (keyToUse) {
+    headers["X-Api-Key"] = keyToUse;
+    headers["x-api-key"] = keyToUse;
   }
 
   if (tenantId) {
@@ -109,11 +123,13 @@ async function request<T = any>(
     method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
     body?: any;
     params?: Record<string, string | number | boolean | undefined>;
+    authKey?: string;
   } = {}
 ): Promise<{ success: boolean; data: T; error?: string; status: number }> {
-  const { baseUrl, apiKey } = getStoreApiConfig();
+  const { baseUrl, apiKey, adminKey } = getStoreApiConfig();
+  const keyToUse = options.authKey || apiKey || adminKey;
 
-  if (!apiKey) {
+  if (!keyToUse) {
     return {
       success: false,
       data: null as any,
@@ -136,7 +152,7 @@ async function request<T = any>(
   try {
     const res = await fetch(url.toString(), {
       method: options.method || "GET",
-      headers: buildHeaders(),
+      headers: buildHeaders(options.authKey),
       body: options.body ? JSON.stringify(options.body) : undefined,
       cache: "no-store",
     });
@@ -230,6 +246,42 @@ export function normalizeStoreProduct(p: any): NormalizedStoreProduct {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 0. ADMIN - INTEGRATIONS (/admin/v1/integrations)
+// ─────────────────────────────────────────────────────────────────────────────
+export async function getAdminIntegrations() {
+  const { adminKey } = getStoreApiConfig();
+  return request("/admin/v1/integrations", { method: "GET", authKey: adminKey });
+}
+
+export async function createAdminIntegration(payload: {
+  tenantId: string;
+  name: string;
+  permissions?: string[];
+  webhookUrl?: string | null;
+}) {
+  const { adminKey } = getStoreApiConfig();
+  return request("/admin/v1/integrations", { method: "POST", body: payload, authKey: adminKey });
+}
+
+export async function updateAdminIntegration(
+  id: string,
+  payload: {
+    name?: string;
+    status?: "active" | "revoked";
+    permissions?: string[];
+    webhookUrl?: string | null;
+  }
+) {
+  const { adminKey } = getStoreApiConfig();
+  return request(`/admin/v1/integrations/${id}`, { method: "PUT", body: payload, authKey: adminKey });
+}
+
+export async function deleteAdminIntegration(id: string) {
+  const { adminKey } = getStoreApiConfig();
+  return request(`/admin/v1/integrations/${id}`, { method: "DELETE", authKey: adminKey });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 1. HEALTH (/health)
 // ─────────────────────────────────────────────────────────────────────────────
 export async function checkHealth() {
@@ -288,20 +340,21 @@ export async function fetchLiveCatalogProducts(params: {
   }
 
   const envelope = res.data;
+  const payload = (envelope && typeof envelope === "object" && envelope.data) ? envelope.data : envelope;
   let rawList: any[] = [];
   let totalCount = 0;
   let continuationToken: string | undefined = undefined;
 
-  if (Array.isArray(envelope)) {
-    rawList = envelope;
-    totalCount = envelope.length;
-  } else if (envelope && typeof envelope === "object") {
-    if (Array.isArray(envelope.products)) rawList = envelope.products;
-    else if (Array.isArray(envelope.data)) rawList = envelope.data;
-    else if (Array.isArray(envelope.items)) rawList = envelope.items;
+  if (Array.isArray(payload)) {
+    rawList = payload;
+    totalCount = payload.length;
+  } else if (payload && typeof payload === "object") {
+    if (Array.isArray(payload.products)) rawList = payload.products;
+    else if (Array.isArray(payload.data)) rawList = payload.data;
+    else if (Array.isArray(payload.items)) rawList = payload.items;
 
-    totalCount = envelope.totalCount || envelope.total || rawList.length;
-    continuationToken = envelope.continuationToken || undefined;
+    totalCount = payload.totalCount || payload.total || rawList.length;
+    continuationToken = payload.continuationToken || undefined;
   }
 
   const products = rawList.map(normalizeStoreProduct).filter(Boolean);
