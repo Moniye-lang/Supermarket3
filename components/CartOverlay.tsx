@@ -10,7 +10,7 @@ import {
   X, ShoppingBag, Plus, Minus, Trash2, ArrowRight, ArrowLeft,
   Store, Clock, MapPin, PhoneCall, ShieldCheck, CreditCard,
   CheckCircle, Copy, Check, Sparkles, User, Phone, Lock, AlertCircle,
-  Loader2, BellRing, AlertTriangle, RefreshCw
+  Loader2, BellRing, AlertTriangle, RefreshCw, LogIn, UserPlus
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -199,8 +199,23 @@ export default function CartOverlay() {
     }
   }
 
+  function handleProceedToCheckout() {
+    if (!user && !token) {
+      closeCart();
+      router.push("/signin");
+      return;
+    }
+    setCartStep("checkout");
+  }
+
   function handleInitiateCheckout() {
     setError("");
+    if (!user && !token) {
+      setError("Please sign in to complete your checkout.");
+      closeCart();
+      router.push("/signin");
+      return;
+    }
     if (!customerName.trim()) { setError("Please enter your full name"); return; }
     if (!phoneNumber.trim()) { setError("Please enter your phone number so store staff can reach you"); return; }
     if (!pickupSlot && todaySlots.length > 0) { setError("Please select a pickup time slot"); return; }
@@ -209,17 +224,26 @@ export default function CartOverlay() {
   }
 
   async function handleConfirmOrder() {
+    if (!user && !token) {
+      setError("Please sign in to complete your order.");
+      setShowConfirm(false);
+      closeCart();
+      router.push("/signin");
+      return;
+    }
+
     setShowConfirm(false);
     setLoading(true);
 
     try {
       const pickupTimeText = pickupSlot ? `Pickup Station (Time: ${pickupSlot})` : `Store Pickup — Today`;
+      const authToken = localStorage.getItem("token") || token;
 
       const res = await fetch(`${API_URL}/api/orders`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${authToken}`,
         },
         body: JSON.stringify({
           customerName,
@@ -298,7 +322,7 @@ export default function CartOverlay() {
                 </button>
                 <span className="text-gray-300 dark:text-zinc-700">/</span>
                 <button
-                  onClick={() => totalItems > 0 && setCartStep("checkout")}
+                  onClick={() => totalItems > 0 && handleProceedToCheckout()}
                   disabled={totalItems === 0}
                   className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
                     cartStep === "checkout"
@@ -386,6 +410,47 @@ export default function CartOverlay() {
                     </div>
                   )}
                 </>
+              ) : (!user && !token) ? (
+                /* STEP 2 (GATED): SIGN IN REQUIRED */
+                <div className="space-y-6 py-6 text-center">
+                  <div className="w-16 h-16 rounded-3xl bg-brand-primary/10 text-brand-primary flex items-center justify-center mx-auto shadow-sm">
+                    <Lock size={30} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">Sign In Required to Checkout</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-xs mx-auto leading-relaxed">
+                      To place an order and track fulfillment in real-time, please sign in to your AMStores account.
+                    </p>
+                  </div>
+
+                  <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 text-xs text-amber-800 dark:text-amber-300 text-left">
+                    💡 <strong>Your cart items are saved.</strong> Once you log in, you will be able to complete your payment and get your unique pickup code.
+                  </div>
+
+                  <div className="space-y-3 pt-2">
+                    <button
+                      onClick={() => {
+                        closeCart();
+                        router.push("/signin");
+                      }}
+                      className="w-full py-4 rounded-2xl bg-brand-primary hover:bg-brand-primary-hover text-white font-extrabold text-sm transition-all shadow-lg shadow-brand-primary/25 flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <LogIn size={18} />
+                      <span>Sign In to Continue</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        closeCart();
+                        router.push("/signup");
+                      }}
+                      className="w-full py-3.5 rounded-2xl border border-gray-200 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 text-gray-700 dark:text-gray-300 font-bold text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <UserPlus size={18} />
+                      <span>Create New Account</span>
+                    </button>
+                  </div>
+                </div>
               ) : (
                 /* STEP 2: CHECKOUT INFO & BANK DETAILS */
                 <div className="space-y-6">
@@ -519,13 +584,32 @@ export default function CartOverlay() {
 
               {cartStep === "cart" ? (
                 <button
-                  onClick={() => setCartStep("checkout")}
+                  onClick={handleProceedToCheckout}
                   disabled={cart.length === 0}
                   className="w-full py-4 rounded-2xl bg-brand-primary hover:bg-brand-primary-hover text-white font-extrabold text-sm transition-all duration-200 shadow-lg shadow-brand-primary/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>Proceed to Checkout</span>
                   <ArrowRight size={16} />
                 </button>
+              ) : (!user && !token) ? (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCartStep("cart")}
+                    className="py-4 px-4 rounded-2xl border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300 font-bold text-sm hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                  >
+                    <ArrowLeft size={16} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      closeCart();
+                      router.push("/signin");
+                    }}
+                    className="flex-1 py-4 rounded-2xl bg-brand-primary hover:bg-brand-primary-hover text-white font-extrabold text-sm transition-all duration-200 shadow-lg shadow-brand-primary/25 flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <LogIn size={16} />
+                    <span>Sign In to Checkout</span>
+                  </button>
+                </div>
               ) : (
                 <div className="flex flex-col gap-2">
                   <div className="flex gap-2">

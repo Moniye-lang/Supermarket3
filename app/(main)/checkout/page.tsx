@@ -55,9 +55,13 @@ export default function Checkout() {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   useEffect(() => {
+    if (!token && !user) {
+      router.replace("/signin");
+      return;
+    }
     openCart("checkout");
     router.replace("/products");
-  }, [openCart, router]);
+  }, [openCart, router, token, user]);
 
   useEffect(() => {
     if (user) {
@@ -134,6 +138,11 @@ export default function Checkout() {
 
   function handlePlaceOrder() {
     setError("");
+    if (!token && !user) {
+      setError("Please sign in to place your order");
+      router.push("/signin");
+      return;
+    }
     if (!customerName.trim()) { setError("Please enter your full name"); return; }
     if (!phoneNumber.trim()) { setError("Please enter your phone number so store staff can reach you"); return; }
     if (!pickupSlot && todaySlots.length > 0) { setError("Please select a pickup time slot"); return; }
@@ -142,6 +151,11 @@ export default function Checkout() {
   }
 
   async function handleCheckout() {
+    if (!token && !user) {
+      setError("Please sign in to complete your order");
+      router.push("/signin");
+      return;
+    }
     setShowConfirm(false);
     setLoading(true);
 

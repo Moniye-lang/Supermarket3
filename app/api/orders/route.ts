@@ -44,23 +44,13 @@ export async function POST(req: Request) {
     const isDocFormat = body.customer !== undefined || body.orderId !== undefined;
 
     const authUser = await verifyAuth(req);
-    let customerId = authUser?.id;
-
-    if (!customerId) {
-      const dummyUser = await User.findOne({ role: "customer" }) || await User.findOne({});
-      if (dummyUser) {
-        customerId = dummyUser._id.toString();
-      } else {
-        const dummy = new User({
-          name: isDocFormat ? (body.customer || "Demo User") : "Demo User",
-          email: "demo@example.com",
-          passwordHash: "dummy",
-          role: "customer"
-        });
-        await dummy.save();
-        customerId = dummy._id.toString();
-      }
+    if (!authUser || !authUser.id) {
+      return NextResponse.json(
+        { error: "Authentication required. Please sign in to place an order." },
+        { status: 401 }
+      );
     }
+    const customerId = authUser.id;
 
     let rawItems: any[] = [];
     let deliveryAddress = "";

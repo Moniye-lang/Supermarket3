@@ -2,6 +2,7 @@
 import { useState, useContext, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CartContext } from "@/context/CartContext";
+import { AuthContext } from "@/context/AuthContext";
 import ProductCard from "@/components/ProductCard";
 import { Search, SlidersHorizontal, ChevronDown, ChevronLeft, ChevronRight, Filter } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -12,6 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 function ProductsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, token } = useContext(AuthContext);
   const { addToCart, openCart } = useContext(CartContext);
 
   const initialCat = searchParams.get("category") || "All Departments";
@@ -87,7 +89,14 @@ function ProductsContent() {
   const displayedProducts = rawProducts.filter((p: any) => p.price <= priceRange);
 
   const handleAddToCart = (product: any) => addToCart(product);
-  const handleBuyNow = (product: any) => { addToCart(product); openCart("checkout"); };
+  const handleBuyNow = (product: any) => {
+    addToCart(product);
+    if (!user && !token) {
+      router.push("/signin");
+      return;
+    }
+    openCart("checkout");
+  };
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {

@@ -2,6 +2,7 @@
 import { useEffect, useState, useContext } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { CartContext } from "@/context/CartContext";
+import { AuthContext } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
 import { Minus, Plus, ShoppingCart, Star, Store, ShieldCheck, ArrowLeft, Share2 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -11,6 +12,7 @@ export default function ProductDets() {
     const params = useParams();
     const id = params.id as string;
     const router = useRouter();
+    const { user, token: ctxToken } = useContext(AuthContext);
     const { addToCart, openCart } = useContext(CartContext);
 
     const [product, setProduct] = useState<any>(null);
@@ -19,7 +21,7 @@ export default function ProductDets() {
     const [activeImage, setActiveImage] = useState(0);
     const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
 
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const token = ctxToken || (typeof window !== "undefined" ? localStorage.getItem("token") : null);
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: "smooth" });

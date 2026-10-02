@@ -3,11 +3,13 @@ import { useContext, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CartContext } from "@/context/CartContext";
+import { AuthContext } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
 import { Trash2, Plus, Minus, ArrowRight, ArrowLeft, ShoppingBag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Cart() {
+  const { user, token } = useContext(AuthContext);
   const {
     cart,
     addToCart,
@@ -146,6 +148,10 @@ export default function Cart() {
                 <Button
                   className="w-full py-6 text-lg shadow-brand-primary/25 shadow-xl cursor-pointer"
                   onClick={() => {
+                    if (!user && !token) {
+                      router.push("/signin");
+                      return;
+                    }
                     openCart("checkout");
                   }}
                 >
