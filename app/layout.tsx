@@ -19,6 +19,12 @@ export const metadata: Metadata = {
   title: "AMStores | Premium Grocery Shopping & In-Store Pickup in Ibadan",
   description: "Shop fresh groceries, meat, bakery items, and household essentials online at AMStores with convenient, fast store pickup in Akobo, Ibadan.",
   keywords: ["AMStores", "Grocery Ibadan", "Online Supermarket", "Store Pickup Ibadan", "Agbeni Mercantile Stores"],
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "AMStores",
+  },
   openGraph: {
     title: "AMStores | Premium Grocery Shopping & Pickup",
     description: "Shop fresh groceries, meat, bakery items, and household essentials online at AMStores.",
