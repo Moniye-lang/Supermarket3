@@ -9,11 +9,6 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { motion } from "framer-motion";
 
 export default function Home() {
-
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
-
   const categories = [
     {
       Icon: ShoppingCart,
@@ -116,8 +111,10 @@ export default function Home() {
                 src="/IMG_4542.JPG"
                 alt="Store Pickup"
                 fill
-                sizes="(max-width: 1024px) 100vw, 50vw"
+                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 600px"
                 className="object-cover opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-700"
+                loading="lazy"
+                quality={75}
               />
             </div>
 

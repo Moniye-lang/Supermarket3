@@ -195,9 +195,11 @@ export default function Hero() {
                     src={card.image}
                     alt={card.title}
                     fill
-                    sizes="(max-width: 640px) 260px, 320px"
+                    sizes="(max-width: 640px) 240px, (max-width: 1024px) 300px, 340px"
                     className="object-cover transition-transform duration-700 ease-out hover:scale-108"
-                    priority
+                    priority={idx === 0}
+                    loading={idx === 0 ? "eager" : "lazy"}
+                    quality={75}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent pointer-events-none" />
                 </div>

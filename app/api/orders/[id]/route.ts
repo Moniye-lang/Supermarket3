@@ -33,7 +33,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
-    return NextResponse.json(order);
+    const orderDoc = order.toObject ? order.toObject() : { ...order };
+
+    // Hide secret pickupCode from workers and riders (only Admin and Customer owner can see it)
+    if (authUser.role !== "admin" && authUser.id !== (order.customerId ? order.customerId.toString() : "")) {
+      delete orderDoc.pickupCode;
+    }
+
+    return NextResponse.json(orderDoc);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

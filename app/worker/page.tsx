@@ -510,7 +510,7 @@ export default function Worker() {
                 className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between gap-4"
               >
                 <div>
-                  <p className="font-bold text-amber-900 text-sm">Order #{vo.pickupCode} — {vo.pickupName}</p>
+                  <p className="font-bold text-amber-900 text-sm">Order #{vo._id ? vo._id.toString().slice(-6).toUpperCase() : "ORDER"} — {vo.pickupName}</p>
                   <p className="text-xs text-amber-700">
                     ₦{vo.amount?.toLocaleString()} · {vo.collectionMethod} ·{" "}
                     {new Date(vo.createdAt).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
@@ -561,7 +561,7 @@ export default function Worker() {
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Order #{order.pickupCode}</span>
+                        <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Order #{order._id ? order._id.toString().slice(-6).toUpperCase() : "ORDER"}</span>
                         {order.collectionMethod === "delivery" ? (
                           <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded font-bold flex items-center gap-1"><Truck size={12}/> Delivery</span>
                         ) : (
@@ -760,7 +760,7 @@ export default function Worker() {
                       >
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs font-mono font-bold text-gray-400">#{order.pickupCode}</span>
+                            <span className="text-xs font-mono font-bold text-gray-400">#{order._id ? order._id.toString().slice(-6).toUpperCase() : "ORDER"}</span>
                             <span className="bg-emerald-100 text-emerald-800 text-[10px] px-1.5 py-0.5 rounded font-black uppercase">Fulfilled</span>
                           </div>
                           <p className="font-semibold text-gray-800">{order.pickupName}</p>
@@ -815,7 +815,7 @@ export default function Worker() {
               </p>
 
               <div className="bg-gray-50 rounded-2xl p-4 mb-5 border border-gray-100 space-y-1.5 text-sm">
-                <div className="flex justify-between"><span className="text-gray-500">Order Code</span><span className="font-bold text-gray-900">#{paymentPopup.pickupCode}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Order ID</span><span className="font-bold text-gray-900">#{paymentPopup._id ? paymentPopup._id.toString().slice(-6).toUpperCase() : "ORDER"}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">Amount</span><span className="font-bold text-brand-primary">₦{paymentPopup.amount?.toLocaleString()}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">Method</span><span className="font-medium capitalize">{paymentPopup.collectionMethod}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">Items</span><span className="font-medium">{paymentPopup.items?.length} item(s)</span></div>

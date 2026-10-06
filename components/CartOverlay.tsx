@@ -56,6 +56,7 @@ export default function CartOverlay() {
     paymentInstructions: "Please transfer the exact amount and use your full name or Order Code as payment reference.",
   });
   const [copied, setCopied] = useState(false);
+  const [copiedPrice, setCopiedPrice] = useState(false);
 
   // Order submission state
   const [loading, setLoading] = useState(false);
@@ -196,6 +197,14 @@ export default function CartOverlay() {
       navigator.clipboard.writeText(storeSettings.accountNumber);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
+  function copyPrice() {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(String(totalPrice));
+      setCopiedPrice(true);
+      setTimeout(() => setCopiedPrice(false), 2000);
     }
   }
 
@@ -554,8 +563,41 @@ export default function CartOverlay() {
                       </div>
                     </div>
 
+                    <div className="flex justify-between items-center bg-brand-primary/5 dark:bg-brand-primary/10 p-3 rounded-xl border border-brand-primary/20">
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block">Transfer Exact Amount:</span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span
+                            onClick={copyPrice}
+                            className="text-lg font-black text-brand-primary font-display select-all cursor-pointer hover:underline"
+                            title="Click to copy amount"
+                          >
+                            ₦{totalPrice.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={copyPrice}
+                        className="px-2.5 py-1.5 rounded-lg bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary text-xs font-bold transition-all flex items-center gap-1.5 border border-brand-primary/20 cursor-pointer"
+                        title="Copy exact amount to clipboard"
+                      >
+                        {copiedPrice ? (
+                          <>
+                            <Check size={13} className="text-emerald-500" />
+                            <span className="text-emerald-600 font-bold">Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={13} />
+                            <span>Copy Amount</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
                     <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
-                      💡 <strong>Instructions:</strong> Please transfer the exact total <strong className="text-brand-primary font-bold">₦{totalPrice.toLocaleString()}</strong> to the account above.
+                      💡 <strong>Instructions:</strong> Please transfer the exact total <strong onClick={copyPrice} className="text-brand-primary font-bold select-all cursor-pointer hover:underline">₦{totalPrice.toLocaleString()}</strong> to the account above.
                     </p>
                   </div>
 
@@ -573,9 +615,25 @@ export default function CartOverlay() {
             <div className="p-4 sm:p-5 border-t border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 sticky bottom-0 z-20 space-y-3">
               <div className="flex justify-between items-baseline">
                 <span className="text-sm font-bold text-gray-500 dark:text-gray-400">Total Amount</span>
-                <div className="text-right">
-                  <span className="text-2xl font-black text-brand-primary font-display">₦{totalPrice.toLocaleString()}</span>
-                  <span className="block text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Free Store Pickup</span>
+                <div className="flex items-center gap-2">
+                  <div className="text-right">
+                    <span
+                      onClick={copyPrice}
+                      className="text-2xl font-black text-brand-primary font-display select-all cursor-pointer hover:opacity-90"
+                      title="Click to copy amount"
+                    >
+                      ₦{totalPrice.toLocaleString()}
+                    </span>
+                    <span className="block text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Free Store Pickup</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={copyPrice}
+                    className="p-1.5 rounded-lg bg-gray-100 dark:bg-zinc-800 hover:bg-brand-primary/10 text-gray-600 dark:text-gray-300 hover:text-brand-primary transition-colors cursor-pointer"
+                    title="Copy Total Amount"
+                  >
+                    {copiedPrice ? <Check size={15} className="text-emerald-500" /> : <Copy size={15} />}
+                  </button>
                 </div>
               </div>
 

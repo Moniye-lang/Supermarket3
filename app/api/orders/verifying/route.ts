@@ -17,8 +17,16 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
-    const orders = await Order.find({ paymentStatus: "verifying" })
+    let orders = await Order.find({ paymentStatus: "verifying" })
       .sort({ createdAt: -1 });
+
+    if (authUser.role !== "admin") {
+      orders = orders.map((o: any) => {
+        const doc = o.toObject ? o.toObject() : { ...o };
+        delete doc.pickupCode;
+        return doc;
+      });
+    }
 
     return NextResponse.json(orders);
   } catch (err: any) {

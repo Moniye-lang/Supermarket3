@@ -83,6 +83,7 @@ export default function Checkout() {
     paymentInstructions: "Please transfer the exact amount and use your full name or Order Code as payment reference.",
   });
   const [copied, setCopied] = useState(false);
+  const [copiedPrice, setCopiedPrice] = useState(false);
 
   useEffect(() => {
     async function fetchSettings() {
@@ -133,6 +134,14 @@ export default function Checkout() {
       navigator.clipboard.writeText(storeSettings.accountNumber);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
+  function copyPrice() {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(String(orderTotal));
+      setCopiedPrice(true);
+      setTimeout(() => setCopiedPrice(false), 2000);
     }
   }
 
@@ -373,6 +382,21 @@ export default function Checkout() {
                       </button>
                     </div>
                   </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+                    <span className="text-gray-500 font-medium text-xs">Exact Amount:</span>
+                    <div className="flex items-center gap-2">
+                      <span onClick={copyPrice} className="font-mono font-black text-brand-primary text-base tracking-wider select-all cursor-pointer hover:underline" title="Click to copy amount">
+                        ₦{orderTotal.toLocaleString()}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={copyPrice}
+                        className="px-2.5 py-1 text-[11px] font-bold bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+                      >
+                        {copiedPrice ? "Copied! ✓" : "Copy Amount"}
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 <p className="text-[11px] text-gray-600 leading-relaxed italic">
@@ -443,9 +467,21 @@ export default function Checkout() {
                   <span className="text-emerald-600 font-bold">FREE</span>
                 </div>
 
-                <div className="flex justify-between text-lg font-bold text-brand-dark mt-4 pt-4 border-t border-gray-100">
+                <div className="flex justify-between items-center text-lg font-bold text-brand-dark mt-4 pt-4 border-t border-gray-100">
                   <span>Total Due</span>
-                  <span className="text-brand-primary">₦{orderTotal.toLocaleString()}</span>
+                  <div className="flex items-center gap-2">
+                    <span onClick={copyPrice} className="text-brand-primary select-all cursor-pointer hover:underline" title="Click to copy">
+                      ₦{orderTotal.toLocaleString()}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={copyPrice}
+                      className="px-2 py-1 text-xs font-bold bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary rounded-lg transition-colors cursor-pointer"
+                      title="Copy Total Amount"
+                    >
+                      {copiedPrice ? "✓" : "Copy"}
+                    </button>
+                  </div>
                 </div>
               </div>
 

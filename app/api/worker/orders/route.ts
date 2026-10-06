@@ -92,6 +92,15 @@ export async function GET(req: Request) {
         .populate("assignedToWorkerId", "name role status phone");
     }
 
+    // Hide secret pickupCode from workers and riders (only admin can view pickup codes)
+    if (authUser.role !== "admin") {
+      orders = orders.map((o: any) => {
+        const doc = o.toObject ? o.toObject() : { ...o };
+        delete doc.pickupCode;
+        return doc;
+      });
+    }
+
     return NextResponse.json(orders);
   } catch (err: any) {
     console.error("Error fetching worker orders:", err);

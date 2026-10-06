@@ -265,7 +265,7 @@ export default function Navbar() {
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20);
-        window.addEventListener("scroll", handleScroll);
+        window.addEventListener("scroll", handleScroll, { passive: true });
         
         // Initialize dark theme state (default to light mode unless explicitly dark)
         const isDark = localStorage.getItem("theme") === "dark";
