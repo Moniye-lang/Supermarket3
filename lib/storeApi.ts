@@ -65,7 +65,7 @@ export function getStoreApiConfig(): StoreAppConfig {
   const baseUrl = (
     process.env.STORE_API_URL ||
     process.env.STOREAPP_API_URL ||
-    "https://st-epi-dev.azurewebsites.net"
+    "https://storeapp-epi.azurewebsites.net"
   ).trim().replace(/\/$/, "");
 
   const adminKey = (
@@ -316,6 +316,13 @@ export async function getCatalog(params?: {
   return request("/v1/catalog", { method: "GET", params: queryParams });
 }
 
+export function getContinuationTokenForOffset(offset: number): string | undefined {
+  if (!offset || offset <= 0) return undefined;
+  const buf = Buffer.alloc(4);
+  buf.writeInt32LE(offset, 0);
+  return buf.toString("base64");
+}
+
 export async function fetchLiveCatalogProducts(params: {
   page?: number;
   limit?: number;
@@ -323,14 +330,18 @@ export async function fetchLiveCatalogProducts(params: {
   category?: string;
   orderby?: string;
   order?: "asc" | "desc";
+  continuationToken?: string;
 }): Promise<{ products: NormalizedStoreProduct[]; total: number; pages: number; page: number; continuationToken?: string }> {
-  const page = params.page || 1;
-  const limit = params.limit || 50;
+  const page = Math.max(1, params.page || 1);
+  const limit = Math.max(1, params.limit || 12);
+  const offset = (page - 1) * limit;
+  const tokenToUse = params.continuationToken || (offset > 0 ? getContinuationTokenForOffset(offset) : undefined);
 
   const res = await getCatalog({
-    search: params.search,
-    category: params.category && params.category !== "All Departments" ? params.category : undefined,
+    search: params.search && params.search.trim() ? params.search.trim() : undefined,
+    category: params.category && params.category !== "All Departments" ? params.category.trim() : undefined,
     pageSize: limit,
+    continuationToken: tokenToUse,
   });
 
   if (!res.success || !res.data) {

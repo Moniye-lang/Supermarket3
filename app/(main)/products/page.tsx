@@ -65,12 +65,7 @@ function ProductsContent() {
 
       if (searchTerm) params.set("q", searchTerm);
       if (filterCategory && filterCategory !== "All Departments") {
-        const catObj = categoriesData?.find(
-          (c: any) => c.name.toLowerCase() === filterCategory.toLowerCase() ||
-                      c.slug.toLowerCase() === filterCategory.toLowerCase() ||
-                      filterCategory.toLowerCase().includes(c.name.toLowerCase())
-        );
-        params.set("category", catObj ? String(catObj.id) : filterCategory);
+        params.set("category", filterCategory);
       }
       if (sortOption) params.set("sort", sortOption);
 
