@@ -317,12 +317,14 @@ body {
         opacity: 0.82;
         z-index: 20;
     }
-    /* 98%: Exiting offscreen bottom-right */
-    98% {
+    /* 98% to 100%: Exiting offscreen bottom-right */
+    98%, 100% {
         transform: translate3d(calc(-50% + 110px), calc(-50% + 300px), -100px) scale(0.75);
         opacity: 0;
         z-index: 5;
     }
+}
+
 @media (max-width: 768px) {
     .hero-stream-viewport {
         height: 380px;
