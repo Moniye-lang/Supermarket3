@@ -198,7 +198,7 @@ export default function ProductDets() {
                             {product.oldPrice && (
                                 <span className="text-xl text-gray-400 line-through">₦{product.oldPrice.toLocaleString()}</span>
                             )}
-                            {product.discount && (
+                            {Boolean(product.discount && product.discount > 0) && (
                                 <span className="bg-red-100 text-red-600 text-xs font-bold px-2.5 py-1 rounded-full">
                                     {product.discount}% OFF
                                 </span>

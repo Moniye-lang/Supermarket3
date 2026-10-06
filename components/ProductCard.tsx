@@ -55,7 +55,7 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
                             {product.category}
                         </span>
                     )}
-                    {product.discount && (
+                    {Boolean(product.discount && product.discount > 0) && (
                         <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
                             -{product.discount}%
                         </span>
