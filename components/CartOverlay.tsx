@@ -39,13 +39,13 @@ export default function CartOverlay() {
 
   // Customer contact state
   const [customerName, setCustomerName] = useState("");
-  const [phoneNumber, setPhoneNumber]   = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
 
   // Store Hours and Slots
-  const [now, setNow]               = useState<Date>(getNowWAT);
-  const storeOpen                   = useMemo(() => isStoreOpen(now), [now]);
-  const closedMessage               = useMemo(() => nextOpeningMessage(now), [now]);
-  const todaySlots                  = useMemo(() => getTodaySlots(now), [now]);
+  const [now, setNow] = useState<Date>(getNowWAT);
+  const storeOpen = useMemo(() => isStoreOpen(now), [now]);
+  const closedMessage = useMemo(() => nextOpeningMessage(now), [now]);
+  const todaySlots = useMemo(() => getTodaySlots(now), [now]);
   const [pickupSlot, setPickupSlot] = useState(todaySlots[0]?.label ?? "");
 
   // Bank & Store Settings
@@ -166,7 +166,7 @@ export default function CartOverlay() {
 
     return () => {
       if (channel && pusherClient) {
-        try { pusherClient.unsubscribe(`order-${orderId}`); } catch (e) {}
+        try { pusherClient.unsubscribe(`order-${orderId}`); } catch (e) { }
       }
       clearInterval(poll);
     };
@@ -311,11 +311,10 @@ export default function CartOverlay() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setCartStep("cart")}
-                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    cartStep === "cart"
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${cartStep === "cart"
                       ? "bg-brand-primary text-white shadow-xs"
                       : "text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:hover:bg-zinc-800 dark:text-gray-400"
-                  }`}
+                    }`}
                 >
                   <ShoppingBag size={14} />
                   <span>Cart ({totalItems})</span>
@@ -324,13 +323,12 @@ export default function CartOverlay() {
                 <button
                   onClick={() => totalItems > 0 && handleProceedToCheckout()}
                   disabled={totalItems === 0}
-                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    cartStep === "checkout"
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${cartStep === "checkout"
                       ? "bg-brand-primary text-white shadow-xs"
                       : totalItems === 0
-                      ? "text-gray-300 dark:text-zinc-700 cursor-not-allowed"
-                      : "text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:hover:bg-zinc-800 dark:text-gray-400"
-                  }`}
+                        ? "text-gray-300 dark:text-zinc-700 cursor-not-allowed"
+                        : "text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:hover:bg-zinc-800 dark:text-gray-400"
+                    }`}
                 >
                   <CreditCard size={14} />
                   <span>Store Checkout</span>
@@ -477,7 +475,7 @@ export default function CartOverlay() {
                       <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
                       <input
                         type="text"
-                        placeholder="e.g. David Adeniyi"
+                        placeholder="e.g. John Doe"
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
                         className="w-full text-sm bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:border-brand-primary"
@@ -507,11 +505,10 @@ export default function CartOverlay() {
                             key={slot.label}
                             type="button"
                             onClick={() => setPickupSlot(slot.label)}
-                            className={`p-2.5 rounded-xl border text-xs font-bold text-left transition-all ${
-                              pickupSlot === slot.label
+                            className={`p-2.5 rounded-xl border text-xs font-bold text-left transition-all ${pickupSlot === slot.label
                                 ? "bg-brand-primary/10 border-brand-primary text-brand-primary shadow-xs"
                                 : "bg-gray-50 dark:bg-zinc-800/60 border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300 hover:border-gray-300"
-                            }`}
+                              }`}
                           >
                             {slot.label}
                           </button>
