@@ -50,12 +50,14 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   icons: {
     icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.png", type: "image/png", sizes: "512x512" },
+      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/icon-512.png", type: "image/png", sizes: "512x512" },
       { url: "/icon.svg", type: "image/svg+xml" },
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/logo.png", type: "image/png" },
     ],
-    shortcut: "/icon.svg",
-    apple: "/logo.png",
+    shortcut: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
   },
   appleWebApp: {
     capable: true,
