@@ -16,7 +16,7 @@ import {
   getAllSlotsForToday, getNowWAT, STORE_NAME, STORE_ADDRESS
 } from "@/lib/storeHours";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const API_URL = "";
 
 export default function Checkout() {
   const router = useRouter();

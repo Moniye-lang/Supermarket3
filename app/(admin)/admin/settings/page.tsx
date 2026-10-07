@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/Input";
 import { Building, CreditCard, ShieldCheck, CheckCircle, AlertCircle, Loader2, Phone, Mail, MapPin } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const API_URL = "";
 
 export default function AdminSettingsPage() {
   const { token } = useContext(AuthContext);

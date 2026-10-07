@@ -88,7 +88,7 @@ export default function ChatWidget() {
     setIsTyping(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const apiUrl = "";
       const response = await fetch(`${apiUrl}/api/chatbot/chat`, {
         method: "POST",
         headers: {
