@@ -72,7 +72,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
       try {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setCart(parsed);
+          const normalized = parsed
+            .map((item: any) => {
+              const id = String(item.productId || item._id || item.id || "");
+              return {
+                ...item,
+                productId: id,
+                _id: id,
+                id: id,
+                qty: Number(item.qty) || 1,
+                price: Number(item.price) || 0,
+              };
+            })
+            .filter((i: any) => Boolean(i.productId));
+          setCart(normalized);
         }
       } catch {
         // keep local storage safe
@@ -169,52 +182,74 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Add item
   function addToCart(product: any) {
-    if (!product?._id) return;
+    if (!product) return;
+    const rawId = product.productId || product._id || product.id;
+    if (!rawId) return;
+    const id = String(rawId);
 
-    const existing = cart.find((item) => item.productId === product._id);
+    const existingIndex = cart.findIndex(
+      (item) => item.productId === id || item._id === id || item.id === id
+    );
     let updated: CartItem[];
 
-    if (existing) {
-      updated = cart.map((item) =>
-        item.productId === product._id
-          ? { ...item, qty: item.qty + 1 }
+    if (existingIndex > -1) {
+      updated = cart.map((item, idx) =>
+        idx === existingIndex
+          ? { ...item, qty: (Number(item.qty) || 1) + 1 }
           : item
       );
     } else {
-      updated = [
-        ...cart,
-        {
-          productId: product._id,
-          name: product.name || "Unnamed Product",
-          price: product.price || 0,
-          image: product.image || "",
-          qty: 1,
-        },
-      ];
+      const newItem: CartItem = {
+        productId: id,
+        _id: id,
+        id: id,
+        name: product.name || product.title || "Unnamed Product",
+        price: Number(product.price) || 0,
+        image: product.image || (Array.isArray(product.images) ? product.images[0] : "") || "",
+        qty: 1,
+      };
+      updated = [...cart, newItem];
     }
 
     persist(updated);
-    setLastAdded({ name: product.name || "Unnamed Product", image: product.image || "", ts: Date.now() });
+    setLastAdded({
+      name: product.name || product.title || "Unnamed Product",
+      image: product.image || (Array.isArray(product.images) ? product.images[0] : "") || "",
+      ts: Date.now(),
+    });
   }
 
   // Remove one quantity
-  function removeOne(id: string) {
-    const existing = cart.find((item) => item.productId === id);
-    if (!existing) return;
+  function removeOne(rawId: string | number) {
+    if (!rawId) return;
+    const id = String(rawId);
 
-    const updated =
-      existing.qty <= 1
-        ? cart.filter((item) => item.productId !== id)
-        : cart.map((item) =>
-          item.productId === id ? { ...item, qty: item.qty - 1 } : item
-        );
+    const existingIndex = cart.findIndex(
+      (item) => item.productId === id || item._id === id || item.id === id
+    );
+    if (existingIndex === -1) return;
+
+    const existing = cart[existingIndex];
+    let updated: CartItem[];
+
+    if ((Number(existing.qty) || 1) <= 1) {
+      updated = cart.filter((_, idx) => idx !== existingIndex);
+    } else {
+      updated = cart.map((item, idx) =>
+        idx === existingIndex ? { ...item, qty: (Number(item.qty) || 1) - 1 } : item
+      );
+    }
 
     persist(updated);
   }
 
   // Remove item entirely
-  function removeFromCart(id: string) {
-    const updated = cart.filter((item) => item.productId !== id);
+  function removeFromCart(rawId: string | number) {
+    if (!rawId) return;
+    const id = String(rawId);
+    const updated = cart.filter(
+      (item) => item.productId !== id && item._id !== id && item.id !== id
+    );
     persist(updated);
   }
 

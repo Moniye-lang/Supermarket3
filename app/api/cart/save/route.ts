@@ -21,16 +21,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid items format" }, { status: 400 });
     }
 
-    // Ensure each item has full product info
+    // Ensure each item has full product info safely
     const enrichedItems = await Promise.all(
       items.map(async (item: any) => {
-        const product = await Product.findById(item.productId).lean() as any;
+        const prodId = String(item.productId || item._id || item.id || "");
+        let product: any = null;
+        if (prodId.match(/^[0-9a-fA-F]{24}$/)) {
+          try {
+            product = await Product.findById(prodId).lean();
+          } catch {}
+        }
         return {
-          productId: item.productId,
-          name: product?.name || item.name || "Unknown Product",
-          price: product?.price || item.price || 0,
-          image: product?.image || item.image || "",
-          qty: item.qty || 1,
+          productId: prodId,
+          name: item.name || product?.name || "Product",
+          price: Number(item.price ?? product?.price) || 0,
+          image: item.image || product?.image || "",
+          qty: Number(item.qty) || 1,
         };
       })
     );

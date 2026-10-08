@@ -166,6 +166,35 @@ export async function GET(req: Request) {
       try {
         const catalogResult = await fetchLiveCatalogProducts({ page, limit, search: q, category, orderby, order });
         if (catalogResult && Array.isArray(catalogResult.products) && catalogResult.products.length > 0) {
+          try {
+            await dbConnect();
+            const productIds = catalogResult.products.map((p) => String(p.id));
+            const skus = catalogResult.products.map((p) => p.sku).filter(Boolean);
+            const overrides = await Product.find({
+              $or: [{ storeProductId: { $in: productIds } }, { sku: { $in: skus } }],
+            }).lean() as any[];
+
+            if (overrides.length > 0) {
+              const overrideMap = new Map<string, any>();
+              for (const ov of overrides) {
+                if (ov.storeProductId) overrideMap.set(String(ov.storeProductId), ov);
+                if (ov.sku) overrideMap.set(ov.sku, ov);
+              }
+              for (const p of catalogResult.products) {
+                const match = overrideMap.get(String(p.id)) || (p.sku ? overrideMap.get(p.sku) : null);
+                if (match) {
+                  if (match.image) {
+                    p.image = match.image;
+                    p.images = [match.image];
+                  }
+                  if (match.description) p.description = match.description;
+                }
+              }
+            }
+          } catch (mergeErr: any) {
+            console.warn("[Products API] DB image merge error:", mergeErr.message);
+          }
+
           return NextResponse.json(
             { ...catalogResult, source: "store_api" },
             {

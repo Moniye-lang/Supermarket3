@@ -55,6 +55,25 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       try {
         const liveProduct = await fetchLiveCatalogProductById(id);
         if (liveProduct) {
+          // Check if MongoDB has custom image or override for this product
+          try {
+            await dbConnect();
+            const dbOverride = await Product.findOne({
+              $or: [
+                { storeProductId: String(id) },
+                { sku: liveProduct.sku },
+                ...(id.match(/^[0-9a-fA-F]{24}$/) ? [{ _id: id }] : []),
+              ],
+            }).lean() as any;
+            if (dbOverride) {
+              if (dbOverride.image) {
+                liveProduct.image = dbOverride.image;
+                liveProduct.images = [dbOverride.image];
+              }
+              if (dbOverride.description) liveProduct.description = dbOverride.description;
+              if (typeof dbOverride.price === "number") liveProduct.price = dbOverride.price;
+            }
+          } catch {}
           return NextResponse.json(liveProduct);
         }
       } catch (storeErr: any) {
@@ -150,22 +169,45 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       }
     }
 
-    // Also update in MongoDB if present
+    // Always persist to MongoDB (so images, prices, descriptions persist for both DB and StoreApp products)
+    let savedProduct = null;
     try {
       await dbConnect();
       const updateData: any = {};
       if (name) updateData.name = name;
-      if (description) updateData.description = description;
-      if (price) updateData.price = Number(price);
+      if (description !== undefined) updateData.description = description;
+      if (price !== undefined) updateData.price = Number(price);
       if (stock !== undefined) updateData.stock = Number(stock);
-      if (imageUrl) updateData.image = imageUrl;
+      if (imageUrl !== undefined) updateData.image = imageUrl;
+      if (sku) updateData.sku = sku;
 
-      if (id.match(/^[0-9a-fA-F]{24}$/)) {
-        await Product.findByIdAndUpdate(id, updateData);
+      const isMongoId = Boolean(id.match(/^[0-9a-fA-F]{24}$/));
+      const filterConditions: any[] = [
+        { storeProductId: String(id) },
+        { sku: sku || `SKU-${id}` },
+      ];
+      if (isMongoId) {
+        filterConditions.unshift({ _id: id });
       }
-    } catch {}
 
-    return NextResponse.json({ success: true, product: updatedWoo || { id, ...body } });
+      savedProduct = await Product.findOneAndUpdate(
+        { $or: filterConditions },
+        {
+          $set: {
+            ...updateData,
+            storeProductId: String(id),
+          },
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+    } catch (dbErr: any) {
+      console.warn("[Products API] DB update error:", dbErr.message);
+    }
+
+    return NextResponse.json({
+      success: true,
+      product: updatedWoo || savedProduct || { id, ...body },
+    });
   } catch (err: any) {
     console.error("Error in PUT /api/products/[id]:", err);
     return NextResponse.json({ error: err.message || "Failed to update product" }, { status: 500 });

@@ -368,52 +368,61 @@ export default function CartOverlay() {
                     </div>
                   ) : (
                     <div className="space-y-3.5">
-                      {cart.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-gray-50/70 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-800/80 hover:border-gray-200 transition-colors"
-                        >
-                          <div className="w-16 h-16 rounded-xl bg-white dark:bg-zinc-800 border border-gray-100 dark:border-zinc-700 relative overflow-hidden shrink-0 flex items-center justify-center">
-                            {item.image ? (
-                              <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <ShoppingBag size={22} className="text-gray-400" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-sm text-gray-900 dark:text-white truncate">{item.name}</h4>
-                            <p className="text-xs text-brand-primary font-black mt-0.5">₦{item.price.toLocaleString()}</p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <div className="flex items-center bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg p-0.5 shadow-2xs">
-                                <button
-                                  onClick={() => removeOne(item.id)}
-                                  className="w-6 h-6 rounded flex items-center justify-center text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-700"
-                                >
-                                  <Minus size={12} />
-                                </button>
-                                <span className="text-xs font-bold w-6 text-center text-gray-900 dark:text-white">{item.qty}</span>
-                                <button
-                                  onClick={() => addToCart(item)}
-                                  className="w-6 h-6 rounded flex items-center justify-center text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-700"
-                                >
-                                  <Plus size={12} />
-                                </button>
+                      {cart.map((item) => {
+                        const itemId = String(item.productId || item._id || item.id || "");
+                        return (
+                          <div
+                            key={itemId || item.name}
+                            className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-gray-50/70 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-800/80 hover:border-gray-200 transition-colors"
+                          >
+                            <div className="w-16 h-16 rounded-xl bg-white dark:bg-zinc-800 border border-gray-100 dark:border-zinc-700 relative overflow-hidden shrink-0 flex items-center justify-center">
+                              {item.image ? (
+                                <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <ShoppingBag size={22} className="text-gray-400" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-bold text-sm text-gray-900 dark:text-white truncate">{item.name}</h4>
+                              <p className="text-xs text-brand-primary font-black mt-0.5">₦{Number(item.price || 0).toLocaleString()}</p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <div className="flex items-center bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg p-0.5 shadow-2xs">
+                                  <button
+                                    type="button"
+                                    onClick={() => removeOne(itemId)}
+                                    className="w-6 h-6 rounded flex items-center justify-center text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-700 cursor-pointer"
+                                    title="Decrease quantity"
+                                  >
+                                    <Minus size={12} />
+                                  </button>
+                                  <span className="text-xs font-bold w-6 text-center text-gray-900 dark:text-white">{item.qty}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => addToCart(item)}
+                                    className="w-6 h-6 rounded flex items-center justify-center text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-700 cursor-pointer"
+                                    title="Increase quantity"
+                                  >
+                                    <Plus size={12} />
+                                  </button>
+                                </div>
                               </div>
                             </div>
+                            <div className="flex flex-col items-end justify-between h-16 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => removeFromCart(itemId)}
+                                className="text-gray-400 hover:text-red-500 transition-colors p-1 cursor-pointer"
+                                title="Remove item"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                              <span className="text-xs font-extrabold text-gray-900 dark:text-white">
+                                ₦{((Number(item.price) || 0) * (Number(item.qty) || 1)).toLocaleString()}
+                              </span>
+                            </div>
                           </div>
-                          <div className="flex flex-col items-end justify-between h-16 shrink-0">
-                            <button
-                              onClick={() => removeFromCart(item.id)}
-                              className="text-gray-400 hover:text-red-500 transition-colors p-1"
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                            <span className="text-xs font-extrabold text-gray-900 dark:text-white">
-                              ₦{(item.price * item.qty).toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </>

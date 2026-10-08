@@ -2,7 +2,7 @@
 import { useEffect, useState, useContext, useCallback } from "react";
 import {
   Search, Image as ImageIcon, Package, ExternalLink, RefreshCw,
-  Tag, PlusCircle, Edit2, Trash2, X, Check, AlertTriangle
+  Tag, PlusCircle, Edit2, Trash2, X, Check, AlertTriangle, Upload, Camera, Link as LinkIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -28,6 +28,38 @@ const emptyForm: ProductForm = {
   stock: "", sku: "", categoryId: "", imageUrl: "",
 };
 
+// Client-side image compression: optimizes any selected photo into lightweight WebP
+function compressImage(file: File, maxWidth = 800, quality = 0.85): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/webp", quality));
+        } else {
+          resolve(event.target?.result as string);
+        }
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+}
+
 export default function AdminProductsPage() {
   const { token } = useContext(AuthContext);
   const [products, setProducts] = useState<any[]>([]);
@@ -42,6 +74,8 @@ export default function AdminProductsPage() {
   const [modal, setModal] = useState<"create" | "edit" | "delete" | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [form, setForm] = useState<ProductForm>(emptyForm);
+  const [imageMode, setImageMode] = useState<"upload" | "url">("upload");
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
 
@@ -83,6 +117,7 @@ export default function AdminProductsPage() {
 
   function openCreate() {
     setForm(emptyForm);
+    setImageMode("upload");
     setFormError("");
     setSelectedProduct(null);
     setModal("create");
@@ -99,6 +134,7 @@ export default function AdminProductsPage() {
       categoryId: String(product.categories?.[0]?.id || ""),
       imageUrl: product.image || "",
     });
+    setImageMode(product.image?.startsWith("http") ? "url" : "upload");
     setFormError("");
     setSelectedProduct(product);
     setModal("edit");
@@ -113,6 +149,28 @@ export default function AdminProductsPage() {
     setModal(null);
     setSelectedProduct(null);
     setFormError("");
+  }
+
+  async function handleImageFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setFormError("Please select a valid image file (PNG, JPG, or WebP).");
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+      setFormError("");
+      const optimizedDataUrl = await compressImage(file, 800, 0.85);
+      setForm((f) => ({ ...f, imageUrl: optimizedDataUrl }));
+    } catch (err: any) {
+      setFormError("Could not process image: " + (err.message || "Unknown error"));
+    } finally {
+      setUploadingImage(false);
+      e.target.value = "";
+    }
   }
 
   // ─── Submit Handlers ──────────────────────────────────────────────────────────
@@ -406,14 +464,101 @@ export default function AdminProductsPage() {
                     ))}
                   </select>
                 </Field>
-                <Field label="Image URL">
-                  <input className={inputClass} placeholder="https://example.com/image.jpg" value={form.imageUrl} onChange={e => setForm(f => ({ ...f, imageUrl: e.target.value }))} />
-                </Field>
-                {form.imageUrl && (
-                  <div className="w-20 h-20 rounded-xl overflow-hidden border border-gray-200">
-                    <img src={form.imageUrl} alt="preview" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-semibold text-gray-700">Product Image</label>
+                    <div className="flex items-center bg-gray-100 p-0.5 rounded-lg text-xs font-semibold">
+                      <button
+                        type="button"
+                        onClick={() => setImageMode("upload")}
+                        className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1 cursor-pointer ${
+                          imageMode === "upload" ? "bg-white text-gray-900 shadow-xs" : "text-gray-500 hover:text-gray-800"
+                        }`}
+                      >
+                        <Upload size={12} /> Upload Photo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setImageMode("url")}
+                        className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1 cursor-pointer ${
+                          imageMode === "url" ? "bg-white text-gray-900 shadow-xs" : "text-gray-500 hover:text-gray-800"
+                        }`}
+                      >
+                        <LinkIcon size={12} /> Image URL
+                      </button>
+                    </div>
                   </div>
-                )}
+
+                  {imageMode === "upload" ? (
+                    <div>
+                      {form.imageUrl ? (
+                        <div className="flex items-center gap-4 p-3 border border-gray-200 rounded-2xl bg-gray-50/50">
+                          <div className="w-16 h-16 rounded-xl overflow-hidden border border-gray-200 bg-white shrink-0">
+                            <img src={form.imageUrl} alt="preview" className="w-full h-full object-cover" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-gray-900 truncate">Image Selected</p>
+                            <p className="text-[11px] text-emerald-600 font-semibold mt-0.5">Ready to save</p>
+                            <div className="flex items-center gap-3 mt-2">
+                              <label className="text-xs font-bold text-brand-primary hover:underline cursor-pointer flex items-center gap-1">
+                                <Camera size={12} /> Change Photo
+                                <input type="file" accept="image/*" onChange={handleImageFile} className="hidden" />
+                              </label>
+                              <span className="text-gray-300">|</span>
+                              <button
+                                type="button"
+                                onClick={() => setForm((f) => ({ ...f, imageUrl: "" }))}
+                                className="text-xs text-red-500 hover:underline cursor-pointer"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <label className={`border-2 border-dashed border-gray-200 hover:border-brand-primary hover:bg-brand-primary/5 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all ${uploadingImage ? "opacity-50 pointer-events-none" : ""}`}>
+                          <input type="file" accept="image/*" onChange={handleImageFile} className="hidden" />
+                          <div className="w-10 h-10 rounded-full bg-brand-primary/10 text-brand-primary flex items-center justify-center mb-2">
+                            {uploadingImage ? <RefreshCw size={18} className="animate-spin" /> : <Upload size={18} />}
+                          </div>
+                          <span className="text-xs font-bold text-gray-800">
+                            {uploadingImage ? "Optimizing image..." : "Click or tap to choose product photo"}
+                          </span>
+                          <span className="text-[11px] text-gray-400 mt-1">PNG, JPG, or WebP from your computer or phone</span>
+                        </label>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <input
+                        className={inputClass}
+                        placeholder="https://example.com/product-image.jpg"
+                        value={form.imageUrl}
+                        onChange={(e) => setForm((f) => ({ ...f, imageUrl: e.target.value }))}
+                      />
+                      {form.imageUrl && (
+                        <div className="flex items-center gap-3 p-2 bg-gray-50 border border-gray-200 rounded-xl">
+                          <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 bg-white shrink-0">
+                            <img
+                              src={form.imageUrl}
+                              alt="preview"
+                              className="w-full h-full object-cover"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                            />
+                          </div>
+                          <span className="text-xs text-gray-500 truncate flex-1">{form.imageUrl}</span>
+                          <button
+                            type="button"
+                            onClick={() => setForm((f) => ({ ...f, imageUrl: "" }))}
+                            className="text-xs text-red-500 hover:underline cursor-pointer"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <Field label="Description">
                   <textarea className={inputClass + " resize-none"} rows={3} placeholder="Short product description..." value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
                 </Field>

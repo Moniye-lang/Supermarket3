@@ -21,16 +21,24 @@ export async function GET(req: Request, { params }: { params: Promise<{ userId: 
       return NextResponse.json({ items: [] });
     }
 
-    // Auto-refresh product data from DB
+    // Auto-refresh product data from DB safely
     const syncedItems = await Promise.all(
       cart.items.map(async (item: any) => {
-        const product = await Product.findById(item.productId).lean() as any;
+        const prodId = String(item.productId || "");
+        let product: any = null;
+        if (prodId.match(/^[0-9a-fA-F]{24}$/)) {
+          try {
+            product = await Product.findById(prodId).lean();
+          } catch {}
+        }
         return {
-          productId: item.productId,
-          qty: item.qty,
-          name: product?.name || item.name || "Unknown Product",
-          price: product?.price || item.price || 0,
-          image: product?.image || item.image || "",
+          productId: prodId,
+          _id: prodId,
+          id: prodId,
+          qty: Number(item.qty) || 1,
+          name: item.name || product?.name || "Product",
+          price: Number(item.price ?? product?.price) || 0,
+          image: item.image || product?.image || "",
         };
       })
     );

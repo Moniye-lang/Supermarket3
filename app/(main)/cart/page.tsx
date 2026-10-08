@@ -58,56 +58,64 @@ export default function Cart() {
             {/* Cart Items */}
             <div className="lg:col-span-2 space-y-6">
               <AnimatePresence>
-                {cart.map((item: any) => (
-                  <motion.div
-                    key={item.productId || item._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    layout
-                    className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex gap-6 items-center"
-                  >
-                    <div className="w-24 h-24 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0 border border-gray-100">
-                      <img
-                        src={item.image || "/placeholder-food.png"}
-                        alt={item.name}
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-
-                    <div className="flex-grow">
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-bold text-lg text-brand-dark">{item.name}</h3>
-                        <button
-                          onClick={() => removeFromCart(item.productId)}
-                          className="text-gray-400 hover:text-red-500 transition-colors p-1"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                {cart.map((item: any) => {
+                  const itemId = String(item.productId || item._id || item.id || "");
+                  return (
+                    <motion.div
+                      key={itemId || item.name}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      layout
+                      className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex gap-6 items-center"
+                    >
+                      <div className="w-24 h-24 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0 border border-gray-100">
+                        <img
+                          src={item.image || "/placeholder-food.png"}
+                          alt={item.name}
+                          className="w-full h-full object-contain"
+                        />
                       </div>
-                      <p className="text-brand-primary font-bold mb-4">₦{item.price?.toLocaleString()}</p>
 
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center border border-gray-200 rounded-full bg-gray-50">
+                      <div className="flex-grow">
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="font-bold text-lg text-brand-dark">{item.name}</h3>
                           <button
-                            onClick={() => removeOne(item.productId)}
-                            className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-brand-primary transition-colors disabled:opacity-50"
-                            disabled={item.qty <= 1}
+                            type="button"
+                            onClick={() => removeFromCart(itemId)}
+                            className="text-gray-400 hover:text-red-500 transition-colors p-1 cursor-pointer"
+                            title="Remove from cart"
                           >
-                            <Minus size={14} />
-                          </button>
-                          <span className="w-8 text-center font-bold text-sm text-gray-900">{item.qty}</span>
-                          <button
-                            onClick={() => addToCart(item)}
-                            className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-brand-primary transition-colors"
-                          >
-                            <Plus size={14} />
+                            <Trash2 size={18} />
                           </button>
                         </div>
+                        <p className="text-brand-primary font-bold mb-4">₦{Number(item.price || 0).toLocaleString()}</p>
+
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center border border-gray-200 rounded-full bg-gray-50">
+                            <button
+                              type="button"
+                              onClick={() => removeOne(itemId)}
+                              className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-brand-primary transition-colors cursor-pointer"
+                              title="Decrease quantity"
+                            >
+                              <Minus size={14} />
+                            </button>
+                            <span className="w-8 text-center font-bold text-sm text-gray-900">{item.qty}</span>
+                            <button
+                              type="button"
+                              onClick={() => addToCart(item)}
+                              className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-brand-primary transition-colors cursor-pointer"
+                              title="Increase quantity"
+                            >
+                              <Plus size={14} />
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  );
+                })}
               </AnimatePresence>
 
               <div className="flex justify-between items-center pt-4">
