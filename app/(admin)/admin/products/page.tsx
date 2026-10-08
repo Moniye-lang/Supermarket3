@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useContext, useCallback } from "react";
+import { useEffect, useState, useContext, useCallback, useRef } from "react";
 import {
   Search, Image as ImageIcon, Package, ExternalLink, RefreshCw,
   Tag, PlusCircle, Edit2, Trash2, X, Check, AlertTriangle, Upload, Camera, Link as LinkIcon
@@ -28,35 +28,47 @@ const emptyForm: ProductForm = {
   stock: "", sku: "", categoryId: "", imageUrl: "",
 };
 
-// Client-side image compression: optimizes any selected photo into lightweight WebP
+// Client-side image compression: optimizes any selected photo into lightweight JPEG/WebP
 function compressImage(file: File, maxWidth = 800, quality = 0.85): Promise<string> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const reader = new FileReader();
-    reader.readAsDataURL(file);
     reader.onload = (event) => {
+      const rawResult = event.target?.result as string;
+      if (!rawResult) {
+        resolve("");
+        return;
+      }
       const img = new Image();
-      img.src = event.target?.result as string;
       img.onload = () => {
-        let width = img.width;
-        let height = img.height;
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
+        try {
+          let width = img.width;
+          let height = img.height;
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const dataUrl = canvas.toDataURL("image/jpeg", quality);
+            resolve(dataUrl);
+            return;
+          }
+        } catch {
+          // fallback
         }
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL("image/webp", quality));
-        } else {
-          resolve(event.target?.result as string);
-        }
+        resolve(rawResult);
       };
-      img.onerror = (err) => reject(err);
+      img.onerror = () => {
+        resolve(rawResult);
+      };
+      img.src = rawResult;
     };
-    reader.onerror = (err) => reject(err);
+    reader.onerror = () => resolve("");
+    reader.readAsDataURL(file);
   });
 }
 
@@ -78,6 +90,7 @@ export default function AdminProductsPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const authToken = token || (typeof window !== "undefined" ? localStorage.getItem("token") : "");
 
@@ -124,6 +137,11 @@ export default function AdminProductsPage() {
   }
 
   function openEdit(product: any) {
+    const rawImg = product.image || "";
+    // If it's a default placeholder or empty, treat as empty so user sees the upload dropzone
+    const hasRealImg = Boolean(rawImg && !rawImg.includes("placeholder"));
+    const validImg = hasRealImg ? rawImg : "";
+
     setForm({
       name: product.name || "",
       description: product.description || "",
@@ -132,9 +150,9 @@ export default function AdminProductsPage() {
       stock: String(product.stock ?? ""),
       sku: product.sku || "",
       categoryId: String(product.categories?.[0]?.id || ""),
-      imageUrl: product.image || "",
+      imageUrl: validImg,
     });
-    setImageMode(product.image?.startsWith("http") ? "url" : "upload");
+    setImageMode(validImg.startsWith("http") ? "url" : "upload");
     setFormError("");
     setSelectedProduct(product);
     setModal("edit");
@@ -489,21 +507,38 @@ export default function AdminProductsPage() {
                     </div>
                   </div>
 
+                  {/* Hidden native file input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageFile}
+                    className="hidden"
+                  />
+
                   {imageMode === "upload" ? (
                     <div>
                       {form.imageUrl ? (
                         <div className="flex items-center gap-4 p-3 border border-gray-200 rounded-2xl bg-gray-50/50">
-                          <div className="w-16 h-16 rounded-xl overflow-hidden border border-gray-200 bg-white shrink-0">
-                            <img src={form.imageUrl} alt="preview" className="w-full h-full object-cover" />
+                          <div className="w-16 h-16 rounded-xl overflow-hidden border border-gray-200 bg-gray-100 shrink-0 flex items-center justify-center">
+                            <img
+                              src={form.imageUrl}
+                              alt="preview"
+                              className="w-full h-full object-cover"
+                              onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder-food.png"; }}
+                            />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-bold text-gray-900 truncate">Image Selected</p>
                             <p className="text-[11px] text-emerald-600 font-semibold mt-0.5">Ready to save</p>
                             <div className="flex items-center gap-3 mt-2">
-                              <label className="text-xs font-bold text-brand-primary hover:underline cursor-pointer flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                className="text-xs font-bold text-brand-primary hover:underline cursor-pointer flex items-center gap-1"
+                              >
                                 <Camera size={12} /> Change Photo
-                                <input type="file" accept="image/*" onChange={handleImageFile} className="hidden" />
-                              </label>
+                              </button>
                               <span className="text-gray-300">|</span>
                               <button
                                 type="button"
@@ -516,8 +551,10 @@ export default function AdminProductsPage() {
                           </div>
                         </div>
                       ) : (
-                        <label className={`border-2 border-dashed border-gray-200 hover:border-brand-primary hover:bg-brand-primary/5 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all ${uploadingImage ? "opacity-50 pointer-events-none" : ""}`}>
-                          <input type="file" accept="image/*" onChange={handleImageFile} className="hidden" />
+                        <div
+                          onClick={() => !uploadingImage && fileInputRef.current?.click()}
+                          className={`border-2 border-dashed border-gray-200 hover:border-brand-primary hover:bg-brand-primary/5 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all ${uploadingImage ? "opacity-50 pointer-events-none" : ""}`}
+                        >
                           <div className="w-10 h-10 rounded-full bg-brand-primary/10 text-brand-primary flex items-center justify-center mb-2">
                             {uploadingImage ? <RefreshCw size={18} className="animate-spin" /> : <Upload size={18} />}
                           </div>
@@ -525,7 +562,7 @@ export default function AdminProductsPage() {
                             {uploadingImage ? "Optimizing image..." : "Click or tap to choose product photo"}
                           </span>
                           <span className="text-[11px] text-gray-400 mt-1">PNG, JPG, or WebP from your computer or phone</span>
-                        </label>
+                        </div>
                       )}
                     </div>
                   ) : (
