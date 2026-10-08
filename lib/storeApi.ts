@@ -323,6 +323,17 @@ export function getContinuationTokenForOffset(offset: number): string | undefine
   return buf.toString("base64");
 }
 
+// In-memory cache for search queries to provide reliable multi-page pagination
+interface SearchCacheItem {
+  products: any[];
+  totalCount: number;
+  nextToken?: string;
+  timestamp: number;
+}
+
+const searchResultsCache = new Map<string, SearchCacheItem>();
+const SEARCH_CACHE_MAX_AGE_MS = 60 * 1000; // 60 seconds
+
 export async function fetchLiveCatalogProducts(params: {
   page?: number;
   limit?: number;
@@ -334,11 +345,130 @@ export async function fetchLiveCatalogProducts(params: {
 }): Promise<{ products: NormalizedStoreProduct[]; total: number; pages: number; page: number; continuationToken?: string }> {
   const page = Math.max(1, params.page || 1);
   const limit = Math.max(1, params.limit || 12);
+  const isSearch = Boolean(params.search && params.search.trim());
+
+  // ── SEARCH MODE ─────────────────────────────────────────────────────────────
+  // StoreApp's search index uses internal cursors rather than raw row byte offsets.
+  // Passing an offset token for search queries causes the API to ignore it and repeat page 1.
+  // We fetch matching products (up to 200 per call), cache them, and paginate accurately.
+  if (isSearch) {
+    const searchTerm = params.search!.trim();
+    const category = params.category && params.category !== "All Departments" ? params.category.trim() : undefined;
+    const cacheKey = `${searchTerm.toLowerCase()}::${category || ""}::${params.orderby || ""}::${params.order || ""}`;
+
+    const now = Date.now();
+    let cached = searchResultsCache.get(cacheKey);
+    if (cached && now - cached.timestamp > SEARCH_CACHE_MAX_AGE_MS) {
+      searchResultsCache.delete(cacheKey);
+      cached = undefined;
+    }
+
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+
+    if (!cached) {
+      const firstRes = await getCatalog({
+        search: searchTerm,
+        category,
+        pageSize: 200,
+      });
+
+      if (!firstRes.success || !firstRes.data) {
+        throw new Error(firstRes.error || "Failed to search catalog from StoreApp Integration API");
+      }
+
+      const envelope = firstRes.data;
+      const payload = (envelope && typeof envelope === "object" && envelope.data) ? envelope.data : envelope;
+      let rawList: any[] = [];
+      let totalCount = 0;
+      let nextToken: string | undefined = undefined;
+
+      if (Array.isArray(payload)) {
+        rawList = payload;
+        totalCount = payload.length;
+      } else if (payload && typeof payload === "object") {
+        if (Array.isArray(payload.products)) rawList = payload.products;
+        else if (Array.isArray(payload.data)) rawList = payload.data;
+        else if (Array.isArray(payload.items)) rawList = payload.items;
+
+        totalCount = payload.totalCount || payload.total || rawList.length;
+        nextToken = payload.continuationToken || undefined;
+      }
+
+      cached = {
+        products: rawList,
+        totalCount,
+        nextToken,
+        timestamp: now,
+      };
+
+      if (searchResultsCache.size > 100) {
+        const expiredThreshold = now - SEARCH_CACHE_MAX_AGE_MS;
+        for (const [k, v] of searchResultsCache.entries()) {
+          if (v.timestamp < expiredThreshold) searchResultsCache.delete(k);
+        }
+      }
+      searchResultsCache.set(cacheKey, cached);
+    }
+
+    // If requested page requires more items and a next continuation token exists, fetch next batches
+    while (cached.products.length < endIndex && cached.nextToken) {
+      const nextRes = await getCatalog({
+        search: searchTerm,
+        category,
+        pageSize: 200,
+        continuationToken: cached.nextToken,
+      });
+
+      if (!nextRes.success || !nextRes.data) break;
+      const envelope = nextRes.data;
+      const payload = (envelope && typeof envelope === "object" && envelope.data) ? envelope.data : envelope;
+      let batchList: any[] = [];
+      let nextToken: string | undefined = undefined;
+
+      if (Array.isArray(payload)) {
+        batchList = payload;
+      } else if (payload && typeof payload === "object") {
+        if (Array.isArray(payload.products)) batchList = payload.products;
+        else if (Array.isArray(payload.data)) batchList = payload.data;
+        else if (Array.isArray(payload.items)) batchList = payload.items;
+        nextToken = payload.continuationToken || undefined;
+      }
+
+      if (batchList.length === 0) break;
+      cached.products = cached.products.concat(batchList);
+      cached.nextToken = nextToken;
+      cached.timestamp = Date.now();
+    }
+
+    let processed = [...cached.products];
+    if (params.orderby === "price") {
+      processed.sort((a, b) => {
+        const pA = Number(a.price) || 0;
+        const pB = Number(b.price) || 0;
+        return params.order === "desc" ? pB - pA : pA - pB;
+      });
+    }
+
+    const pagedRaw = processed.slice(startIndex, endIndex);
+    const products = pagedRaw.map(normalizeStoreProduct).filter(Boolean);
+    const totalPages = Math.ceil(cached.totalCount / limit) || 1;
+
+    return {
+      products,
+      total: cached.totalCount,
+      pages: totalPages,
+      page,
+      continuationToken: cached.nextToken,
+    };
+  }
+
+  // ── STANDARD BROWSE MODE (No Search) ────────────────────────────────────────
+  // Standard catalog browsing uses 4-byte LE integer row offset continuation tokens.
   const offset = (page - 1) * limit;
   const tokenToUse = params.continuationToken || (offset > 0 ? getContinuationTokenForOffset(offset) : undefined);
 
   const res = await getCatalog({
-    search: params.search && params.search.trim() ? params.search.trim() : undefined,
     category: params.category && params.category !== "All Departments" ? params.category.trim() : undefined,
     pageSize: limit,
     continuationToken: tokenToUse,
