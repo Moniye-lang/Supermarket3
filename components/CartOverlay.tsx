@@ -487,6 +487,67 @@ export default function CartOverlay() {
                     </div>
                   </div>
 
+                  {/* Products in Supermarket Checkout Summary */}
+                  {cart.length > 0 ? (
+                    <div className="bg-white dark:bg-zinc-850 border border-gray-200 dark:border-zinc-700 rounded-2xl p-4 shadow-2xs space-y-3">
+                      <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-zinc-800">
+                        <div className="flex items-center gap-2">
+                          <ShoppingBag size={15} className="text-brand-primary" />
+                          <h4 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider">
+                            Products in Checkout ({totalItems})
+                          </h4>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setCartStep("cart")}
+                          className="text-xs font-bold text-brand-primary hover:underline cursor-pointer flex items-center gap-1"
+                        >
+                          Modify Basket
+                        </button>
+                      </div>
+
+                      <div className="divide-y divide-gray-100 dark:divide-zinc-800 max-h-56 overflow-y-auto pr-1">
+                        {cart.map((item) => {
+                          const itemId = String(item.productId || item._id || item.id || "");
+                          return (
+                            <div key={itemId || item.name} className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-12 h-12 rounded-xl bg-gray-50 dark:bg-zinc-800 border border-gray-100 dark:border-zinc-700 overflow-hidden shrink-0 flex items-center justify-center">
+                                  {item.image ? (
+                                    <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <ShoppingBag size={18} className="text-gray-400" />
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{item.name}</p>
+                                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                                    Qty: <strong className="text-gray-900 dark:text-white font-bold">{item.qty}</strong> × ₦{Number(item.price || 0).toLocaleString()}
+                                  </p>
+                                </div>
+                              </div>
+                              <span className="text-xs font-extrabold text-brand-primary dark:text-white shrink-0">
+                                ₦{((Number(item.price) || 0) * (Number(item.qty) || 1)).toLocaleString()}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center bg-gray-50 dark:bg-zinc-800/60 rounded-2xl border border-gray-200 dark:border-zinc-700 space-y-2">
+                      <ShoppingBag size={28} className="mx-auto text-gray-400" />
+                      <p className="text-xs font-bold text-gray-700 dark:text-gray-300">No products in checkout</p>
+                      <button
+                        type="button"
+                        onClick={() => { closeCart(); router.push("/products"); }}
+                        className="text-xs font-bold text-brand-primary underline cursor-pointer"
+                      >
+                        Browse supermarket products
+                      </button>
+                    </div>
+                  )}
+
                   {/* Customer Information */}
                   <div className="space-y-3.5">
                     <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">

@@ -182,10 +182,36 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // Auto-restore pending cart item after sign-in
+  useEffect(() => {
+    if ((token || user) && typeof window !== "undefined") {
+      try {
+        const pending = localStorage.getItem("pending_cart_product");
+        if (pending) {
+          const item = JSON.parse(pending);
+          localStorage.removeItem("pending_cart_product");
+          if (item) {
+            addToCart(item);
+            if (item.openCheckout) {
+              openCart("checkout");
+            } else {
+              openCart("cart");
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Failed restoring pending cart product:", err);
+      }
+    }
+  }, [token, user]);
+
   // Add item
   function addToCart(product: any) {
     if (!token && !user) {
       if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("pending_cart_product", JSON.stringify(product));
+        } catch {}
         router.push("/signin");
       }
       return;
@@ -195,6 +221,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!rawId) return;
     const id = String(rawId);
 
+    const addQty = Math.max(1, Number(product.qty) || 1);
     const existingIndex = cart.findIndex(
       (item) => item.productId === id || item._id === id || item.id === id
     );
@@ -203,7 +230,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (existingIndex > -1) {
       updated = cart.map((item, idx) =>
         idx === existingIndex
-          ? { ...item, qty: (Number(item.qty) || 1) + 1 }
+          ? { ...item, qty: (Number(item.qty) || 1) + addQty }
           : item
       );
     } else {
@@ -214,7 +241,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         name: product.name || product.title || "Unnamed Product",
         price: Number(product.price) || 0,
         image: product.image || (Array.isArray(product.images) ? product.images[0] : "") || "",
-        qty: 1,
+        qty: addQty,
       };
       updated = [...cart, newItem];
     }

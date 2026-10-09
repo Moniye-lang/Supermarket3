@@ -76,12 +76,23 @@ export default function ProductDets() {
     }, [id]);
 
     const handleAddToCart = () => {
-        if (!token) return router.push("/signin");
+        if (!token && !user) {
+            try {
+                localStorage.setItem("pending_cart_product", JSON.stringify({ ...product, qty }));
+            } catch {}
+            return router.push("/signin");
+        }
         addToCart({ ...product, qty });
+        openCart("cart");
     };
 
     const handleBuyNow = () => {
-        if (!token) return router.push("/signin");
+        if (!token && !user) {
+            try {
+                localStorage.setItem("pending_cart_product", JSON.stringify({ ...product, qty, openCheckout: true }));
+            } catch {}
+            return router.push("/signin");
+        }
         addToCart({ ...product, qty });
         openCart("checkout");
     };
@@ -278,11 +289,22 @@ export default function ProductDets() {
                                     product={p}
                                     onViewDetails={(prod) => router.push(`/product/${prod._id}`)}
                                     onAddToCart={() => {
-                                        if (!token && !user) return router.push("/signin");
+                                        if (!token && !user) {
+                                            try {
+                                                localStorage.setItem("pending_cart_product", JSON.stringify({ ...p, qty: 1 }));
+                                            } catch {}
+                                            return router.push("/signin");
+                                        }
                                         addToCart({ ...p, qty: 1 });
+                                        openCart("cart");
                                     }}
                                     onBuyNow={() => {
-                                        if (!token && !user) return router.push("/signin");
+                                        if (!token && !user) {
+                                            try {
+                                                localStorage.setItem("pending_cart_product", JSON.stringify({ ...p, qty: 1, openCheckout: true }));
+                                            } catch {}
+                                            return router.push("/signin");
+                                        }
                                         addToCart({ ...p, qty: 1 });
                                         openCart("checkout");
                                     }}

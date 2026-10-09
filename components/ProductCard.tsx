@@ -47,6 +47,9 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
 
     const handleAddToCart = () => {
         if (!user && !token) {
+            try {
+                localStorage.setItem("pending_cart_product", JSON.stringify(product));
+            } catch {}
             router.push("/signin");
             return;
         }
@@ -54,11 +57,15 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
             onAddToCart(product);
         } else {
             addToCart(product);
+            openCart("cart");
         }
     };
 
     const handleBuyNow = () => {
         if (!user && !token) {
+            try {
+                localStorage.setItem("pending_cart_product", JSON.stringify({ ...product, openCheckout: true }));
+            } catch {}
             router.push("/signin");
             return;
         }

@@ -59,9 +59,7 @@ export default function Checkout() {
       router.replace("/signin");
       return;
     }
-    openCart("checkout");
-    router.replace("/products");
-  }, [openCart, router, token, user]);
+  }, [router, token, user]);
 
   useEffect(() => {
     if (user) {
@@ -416,22 +414,35 @@ export default function Checkout() {
 
               {/* Items List */}
               <div className="space-y-3 mb-6 max-h-60 overflow-y-auto pr-2 divide-y divide-gray-50">
-                {items.map((item: any, idx: number) => (
-                  <div key={idx} className="pt-2.5 first:pt-0 flex justify-between items-center text-sm">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-gray-100">
-                        <img src={item.image || "/placeholder.png"} alt="" className="w-full h-full object-cover" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-gray-800 font-medium truncate max-w-[130px]">{item.name}</p>
-                        <p className="text-xs text-gray-400 font-semibold">Qty: {item.qty}</p>
-                      </div>
-                    </div>
-                    <span className="font-bold text-gray-900 shrink-0">
-                      ₦{((Number(item.price) || 0) * (Number(item.qty) || 1)).toLocaleString()}
-                    </span>
+                {items.length === 0 ? (
+                  <div className="py-6 text-center space-y-2">
+                    <p className="text-sm font-semibold text-gray-500">Your cart is empty.</p>
+                    <button
+                      type="button"
+                      onClick={() => router.push("/products")}
+                      className="text-xs font-bold text-brand-primary hover:underline cursor-pointer"
+                    >
+                      Browse supermarket products
+                    </button>
                   </div>
-                ))}
+                ) : (
+                  items.map((item: any, idx: number) => (
+                    <div key={idx} className="pt-2.5 first:pt-0 flex justify-between items-center text-sm">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-gray-100">
+                          <img src={item.image || "/placeholder.png"} alt="" className="w-full h-full object-cover" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-gray-800 font-medium truncate max-w-[130px]">{item.name}</p>
+                          <p className="text-xs text-gray-400 font-semibold">Qty: {item.qty}</p>
+                        </div>
+                      </div>
+                      <span className="font-bold text-gray-900 shrink-0">
+                        ₦{((Number(item.price) || 0) * (Number(item.qty) || 1)).toLocaleString()}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
 
               {/* Pickup Slot Pill */}

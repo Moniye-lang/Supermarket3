@@ -126,8 +126,12 @@ export default function ContactUs() {
                   <Clock size={22} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-brand-dark text-base sm:text-lg mb-1">Store Hours</h3>
-                  <p className="text-sm text-gray-600">Mon - Sat: 8:00 AM - 8:00 PM<br />Sun: 1:00 PM - 8:00 PM</p>
+                  <h3 className="font-bold text-brand-dark text-base sm:text-lg mb-1">Pickup &amp; Store Hours</h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    Mon - Sat: 9:00 AM - 8:00 PM<br />
+                    Sun: 1:00 PM - 8:00 PM<br />
+                    <span className="text-emerald-700 font-bold text-xs mt-1 inline-block">Online Orders Accepted 24/7 Anytime</span>
+                  </p>
                 </div>
               </div>
             </div>
