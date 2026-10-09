@@ -29,7 +29,7 @@ const emptyForm: ProductForm = {
 };
 
 // Client-side image compression: optimizes any selected photo into lightweight JPEG/WebP
-function compressImage(file: File, maxWidth = 800, quality = 0.85): Promise<string> {
+function compressImage(file: File, maxDim = 800, quality = 0.8): Promise<string> {
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -43,9 +43,14 @@ function compressImage(file: File, maxWidth = 800, quality = 0.85): Promise<stri
         try {
           let width = img.width;
           let height = img.height;
-          if (width > maxWidth) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
           }
           const canvas = document.createElement("canvas");
           canvas.width = width;
@@ -97,7 +102,13 @@ export default function AdminProductsPage() {
   const loadProducts = useCallback(async (currentPage = 1) => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/api/products?page=${currentPage}&limit=20`);
+      const res = await fetch(`${API_URL}/api/products?page=${currentPage}&limit=20&_t=${Date.now()}`, {
+        cache: "no-store",
+        headers: {
+          "Pragma": "no-cache",
+          "Cache-Control": "no-cache",
+        },
+      });
       const data = await res.json();
       setProducts(data.products || []);
       setTotalPages(data.pages || 1);
@@ -181,7 +192,11 @@ export default function AdminProductsPage() {
     try {
       setUploadingImage(true);
       setFormError("");
-      const optimizedDataUrl = await compressImage(file, 800, 0.85);
+      // Show instant preview immediately so user sees their selection with zero wait
+      const instantPreview = URL.createObjectURL(file);
+      setForm((f) => ({ ...f, imageUrl: instantPreview }));
+
+      const optimizedDataUrl = await compressImage(file, 800, 0.8);
       setForm((f) => ({ ...f, imageUrl: optimizedDataUrl }));
     } catch (err: any) {
       setFormError("Could not process image: " + (err.message || "Unknown error"));
@@ -215,6 +230,9 @@ export default function AdminProductsPage() {
       });
       const data = await res.json();
       if (!res.ok) { setFormError(data.error || "Failed to create product"); return; }
+      if (data.product) {
+        setProducts((prev) => [data.product, ...prev]);
+      }
       closeModal();
       loadProducts(page);
     } catch (err: any) {
@@ -230,10 +248,13 @@ export default function AdminProductsPage() {
     setSubmitting(true);
     setFormError("");
     try {
-      const res = await fetch(`${API_URL}/api/products/${selectedProduct.id}`, {
+      const targetId = selectedProduct._id || selectedProduct.id;
+      const res = await fetch(`${API_URL}/api/products/${targetId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
         body: JSON.stringify({
+          _id: selectedProduct._id,
+          id: selectedProduct.id,
           name: form.name,
           description: form.description,
           price: Number(form.price),
@@ -246,6 +267,32 @@ export default function AdminProductsPage() {
       });
       const data = await res.json();
       if (!res.ok) { setFormError(data.error || "Failed to update product"); return; }
+
+      // Instantly reflect changes in local state with ZERO delay
+      setProducts((prev) =>
+        prev.map((p) => {
+          const isMatch =
+            (selectedProduct._id && p._id === selectedProduct._id) ||
+            (selectedProduct.id && p.id === selectedProduct.id) ||
+            (selectedProduct.sku && p.sku === selectedProduct.sku);
+          if (isMatch) {
+            return {
+              ...p,
+              name: form.name,
+              description: form.description,
+              price: Number(form.price),
+              regularPrice: Number(form.price),
+              salePrice: form.salePrice ? Number(form.salePrice) : undefined,
+              stock: form.stock !== "" ? Number(form.stock) : p.stock,
+              sku: form.sku,
+              image: form.imageUrl || p.image,
+              images: form.imageUrl ? [form.imageUrl] : p.images,
+            };
+          }
+          return p;
+        })
+      );
+
       closeModal();
       loadProducts(page);
     } catch (err: any) {
@@ -258,12 +305,14 @@ export default function AdminProductsPage() {
   async function handleDelete() {
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_URL}/api/products/${selectedProduct.id}`, {
+      const targetId = selectedProduct._id || selectedProduct.id;
+      const res = await fetch(`${API_URL}/api/products/${targetId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${authToken}` },
       });
       const data = await res.json();
       if (!res.ok) { alert(data.error || "Failed to delete product"); return; }
+      setProducts((prev) => prev.filter((p) => p._id !== targetId && p.id !== targetId));
       closeModal();
       loadProducts(page);
     } catch (err: any) {
@@ -359,7 +408,14 @@ export default function AdminProductsPage() {
                     <td className="p-4 pl-6 flex items-center gap-4">
                       <div className="w-12 h-12 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden shrink-0 flex items-center justify-center">
                         {p.image ? (
-                          <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                          <img
+                            src={p.image}
+                            alt={p.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "/placeholder-food.png";
+                            }}
+                          />
                         ) : (
                           <ImageIcon className="text-gray-400" size={20} />
                         )}

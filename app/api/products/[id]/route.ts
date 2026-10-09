@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { fetchWooProductById, updateWooProduct, deleteWooProduct, isWooConfigured, WooProduct } from "@/lib/woocommerce";
-import { isStoreApiConfigured, fetchLiveCatalogProductById } from "@/lib/storeApi";
+import { isStoreApiConfigured, fetchLiveCatalogProductById, clearStoreApiSearchCache } from "@/lib/storeApi";
 import { verifyAdmin } from "@/lib/authMiddleware";
 import dbConnect from "@/lib/mongodb";
 import Product from "@/lib/models/Product";
 import { DEFAULT_PRODUCTS } from "@/lib/defaultProducts";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 function normalizeSingleDbProduct(p: any): WooProduct {
   const idStr = p._id ? p._id.toString() : p.id || "1";
@@ -74,7 +77,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
               if (typeof dbOverride.price === "number") liveProduct.price = dbOverride.price;
             }
           } catch {}
-          return NextResponse.json(liveProduct);
+          return NextResponse.json(liveProduct, {
+            headers: {
+              "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+            },
+          });
         }
       } catch (storeErr: any) {
         console.warn("[Products API] Store API single product fetch error, falling back:", storeErr.message);
@@ -86,7 +93,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       try {
         const product = await fetchWooProductById(id);
         if (product) {
-          return NextResponse.json(product);
+          return NextResponse.json(product, {
+            headers: {
+              "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+            },
+          });
         }
       } catch (err: any) {
         console.warn("[Products API] WooCommerce single product fetch error, falling back to DB:", err.message);
@@ -104,7 +115,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       }
 
       if (dbProduct) {
-        return NextResponse.json(normalizeSingleDbProduct(dbProduct));
+        return NextResponse.json(normalizeSingleDbProduct(dbProduct), {
+          headers: {
+            "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+          },
+        });
       }
     } catch (dbErr: any) {
       console.warn("[Products API] DB lookup error:", dbErr.message);
@@ -123,7 +138,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
           image: fallbackItem.image,
           description: fallbackItem.description,
           stock: fallbackItem.stock,
-        })
+        }),
+        {
+          headers: {
+            "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+          },
+        }
       );
     }
 
@@ -144,7 +164,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     const { id } = await params;
     const body = await req.json();
-    const { name, description, price, salePrice, stock, sku, categoryId, imageUrl } = body;
+    const { name, description, price, salePrice, stock, sku, categoryId, imageUrl, _id: bodyMongoId } = body;
 
     let updatedWoo = null;
     if (isWooConfigured()) {
@@ -189,6 +209,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       if (isMongoId) {
         filterConditions.unshift({ _id: id });
       }
+      if (bodyMongoId && bodyMongoId.match(/^[0-9a-fA-F]{24}$/)) {
+        filterConditions.unshift({ _id: bodyMongoId });
+      }
 
       savedProduct = await Product.findOneAndUpdate(
         { $or: filterConditions },
@@ -200,6 +223,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         },
         { upsert: true, new: true, setDefaultsOnInsert: true }
       );
+
+      clearStoreApiSearchCache();
     } catch (dbErr: any) {
       console.warn("[Products API] DB update error:", dbErr.message);
     }
@@ -236,6 +261,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       if (id.match(/^[0-9a-fA-F]{24}$/)) {
         await Product.findByIdAndDelete(id);
       }
+      clearStoreApiSearchCache();
     } catch {}
 
     return NextResponse.json({ success: true });

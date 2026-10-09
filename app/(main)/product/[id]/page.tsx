@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { CartContext } from "@/context/CartContext";
 import { AuthContext } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
-import { Minus, Plus, ShoppingCart, Star, Store, ShieldCheck, ArrowLeft, Share2 } from "lucide-react";
+import { Minus, Plus, ShoppingCart, Store, ShieldCheck, ArrowLeft, Share2 } from "lucide-react";
 import { motion } from "framer-motion";
 import ProductCard from "@/components/ProductCard";
 
@@ -30,8 +30,8 @@ export default function ProductDets() {
             try {
                 setLoading(true);
 
-                const targetUrl = `/api/products/${id}`;
-                const res = await fetch(targetUrl);
+                const targetUrl = `/api/products/${id}?_t=${Date.now()}`;
+                const res = await fetch(targetUrl, { cache: "no-store" });
                 if (!res.ok) throw new Error(`Server responded with status: ${res.status}`);
 
                 const data = await res.json();
@@ -49,7 +49,7 @@ export default function ProductDets() {
 
                     // Fetch related products from own API
                     if (data.category) {
-                        const relatedRes = await fetch(`/api/products?category=${encodeURIComponent(data.category)}&limit=5`);
+                        const relatedRes = await fetch(`/api/products?category=${encodeURIComponent(data.category)}&limit=5&_t=${Date.now()}`, { cache: "no-store" });
 
                         if (relatedRes.ok) {
                             const relatedData = await relatedRes.json();
@@ -163,12 +163,6 @@ export default function ProductDets() {
                                 {product.name}
                             </h1>
                             <div className="flex items-center gap-4 text-sm text-gray-500">
-                                <div className="flex items-center gap-1 text-yellow-500">
-                                    <Star size={18} fill="currentColor" />
-                                    <span className="font-bold text-gray-900">4.8</span>
-                                </div>
-                                <span>(128 Reviews)</span>
-                                <span className="w-1 h-1 bg-gray-300 rounded-full" />
                                 <span className={`inline-flex items-center gap-1.5 font-semibold text-sm px-3 py-1 rounded-full border ${
                                     product.stock === 0 || product.stockStatus === "Out of Stock"
                                         ? "bg-red-50 text-red-700 border-red-200"

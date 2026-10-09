@@ -334,6 +334,10 @@ interface SearchCacheItem {
 const searchResultsCache = new Map<string, SearchCacheItem>();
 const SEARCH_CACHE_MAX_AGE_MS = 60 * 1000; // 60 seconds
 
+export function clearStoreApiSearchCache() {
+  searchResultsCache.clear();
+}
+
 export async function fetchLiveCatalogProducts(params: {
   page?: number;
   limit?: number;

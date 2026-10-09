@@ -69,12 +69,13 @@ function ProductsContent() {
       }
       if (sortOption) params.set("sort", sortOption);
 
-      const res = await fetch(`/api/products?${params.toString()}`);
+      const res = await fetch(`/api/products?${params.toString()}`, { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to fetch products");
       return await res.json();
     },
     placeholderData: (previousData) => previousData,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 5,
+    refetchOnWindowFocus: true,
   });
 
   const rawProducts = queryData?.products || [];

@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { fetchWooProducts, createWooProduct, isWooConfigured, WooProduct } from "@/lib/woocommerce";
-import { isStoreApiConfigured, fetchLiveCatalogProducts } from "@/lib/storeApi";
+import { isStoreApiConfigured, fetchLiveCatalogProducts, clearStoreApiSearchCache } from "@/lib/storeApi";
 import { verifyAdmin } from "@/lib/authMiddleware";
 import dbConnect from "@/lib/mongodb";
 import Product from "@/lib/models/Product";
 import { DEFAULT_PRODUCTS, DefaultProductItem } from "@/lib/defaultProducts";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 function normalizeDbProduct(p: any): WooProduct {
   const idStr = p._id ? p._id.toString() : p.id || Math.random().toString();
@@ -199,7 +202,7 @@ export async function GET(req: Request) {
             { ...catalogResult, source: "store_api" },
             {
               headers: {
-                "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+                "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
               },
             }
           );
@@ -218,7 +221,7 @@ export async function GET(req: Request) {
             { ...wooResult, source: "woocommerce" },
             {
               headers: {
-                "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+                "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
               },
             }
           );
@@ -232,7 +235,7 @@ export async function GET(req: Request) {
     const dbResult = await fetchDbProducts({ page, limit, search: q, category, orderby, order });
     return NextResponse.json(dbResult, {
       headers: {
-        "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120",
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
       },
     });
   } catch (err: any) {
@@ -291,13 +294,16 @@ export async function POST(req: Request) {
         price: Number(price),
         stock: Number(stock) || 0,
         category: category || "General",
+        sku: sku || "",
         image: imageUrl || "",
       });
+      clearStoreApiSearchCache();
       return NextResponse.json(
         { success: true, product: wooProduct || normalizeDbProduct(newProduct) },
         { status: 201 }
       );
     } catch {
+      clearStoreApiSearchCache();
       return NextResponse.json(
         { success: true, product: wooProduct || { name, price, stock } },
         { status: 201 }
