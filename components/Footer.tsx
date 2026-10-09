@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { MapPin, Phone, Mail, ArrowRight } from "lucide-react";
+import { MapPin, Phone, Mail, ArrowRight, Check } from "lucide-react";
 import { FaFacebookF, FaInstagram, FaTwitter, FaGithub } from "react-icons/fa";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
@@ -27,6 +28,17 @@ const fdata = [
 ];
 
 export default function Footer() {
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [subscribed, setSubscribed] = useState(false);
+
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsletterEmail.trim()) return;
+    setSubscribed(true);
+    setNewsletterEmail("");
+    setTimeout(() => setSubscribed(false), 4000);
+  };
+
   return (
     <footer className="bg-brand-dark text-white pt-24 pb-12 border-t border-white/5 relative overflow-hidden">
       {/* Background pattern/glow */}
@@ -54,15 +66,25 @@ export default function Footer() {
 
             <div className="space-y-3">
               <h5 className="font-medium text-white/90">Subscribe to our newsletter</h5>
-              <div className="flex gap-2 max-w-sm">
-                <Input
-                  placeholder="Email address"
-                  className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-brand-primary/50"
-                />
-                <Button size="icon" className="shrink-0 rounded-lg">
-                  <ArrowRight size={18} />
-                </Button>
-              </div>
+              {subscribed ? (
+                <div className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-sm font-semibold max-w-sm">
+                  <Check size={16} /> Thank you! You&apos;re subscribed.
+                </div>
+              ) : (
+                <form onSubmit={handleSubscribe} className="flex gap-2 max-w-sm">
+                  <Input
+                    type="email"
+                    required
+                    value={newsletterEmail}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewsletterEmail(e.target.value)}
+                    placeholder="Email address"
+                    className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-brand-primary/50"
+                  />
+                  <Button type="submit" size="icon" className="shrink-0 rounded-lg cursor-pointer" aria-label="Subscribe to newsletter">
+                    <ArrowRight size={18} />
+                  </Button>
+                </form>
+              )}
             </div>
           </div>
 
@@ -96,16 +118,20 @@ export default function Footer() {
                 <span className="mt-1 leading-relaxed">Ayegoro Junction,<br />Kolapo Ishola Estate,<br />Akobo, Ibadan</span>
               </li>
               <li className="flex items-center gap-4 text-gray-400 text-sm group">
-                <div className="p-2 bg-white/5 rounded-lg group-hover:bg-brand-primary/20 transition-colors">
-                  <Phone size={18} className="text-brand-primary" />
-                </div>
-                <span className="group-hover:text-white transition-colors">08023434790</span>
+                <a href="tel:08023434790" className="flex items-center gap-4 group-hover:text-white transition-colors cursor-pointer">
+                  <div className="p-2 bg-white/5 rounded-lg group-hover:bg-brand-primary/20 transition-colors">
+                    <Phone size={18} className="text-brand-primary" />
+                  </div>
+                  <span>08023434790</span>
+                </a>
               </li>
               <li className="flex items-center gap-4 text-gray-400 text-sm group">
-                <div className="p-2 bg-white/5 rounded-lg group-hover:bg-brand-primary/20 transition-colors">
-                  <Mail size={18} className="text-brand-primary" />
-                </div>
-                <span className="group-hover:text-white transition-colors">amstores@gmail.com</span>
+                <a href="mailto:amstores@gmail.com" className="flex items-center gap-4 group-hover:text-white transition-colors cursor-pointer">
+                  <div className="p-2 bg-white/5 rounded-lg group-hover:bg-brand-primary/20 transition-colors">
+                    <Mail size={18} className="text-brand-primary" />
+                  </div>
+                  <span>amstores@gmail.com</span>
+                </a>
               </li>
             </ul>
           </div>
@@ -115,12 +141,12 @@ export default function Footer() {
             <h4 className="font-display text-lg font-semibold mb-6 text-white">Follow Us</h4>
             <div className="flex gap-3 mb-8">
               {[
-                { icon: <FaTwitter size={18} key="tw" />, label: "Twitter" }, 
-                { icon: <FaFacebookF size={18} key="fb" />, label: "Facebook" }, 
-                { icon: <FaInstagram size={18} key="ig" />, label: "Instagram" }, 
-                { icon: <FaGithub size={18} key="gh" />, label: "Github" }
+                { icon: <FaTwitter size={18} key="tw" />, label: "Twitter", href: "https://twitter.com" }, 
+                { icon: <FaFacebookF size={18} key="fb" />, label: "Facebook", href: "https://facebook.com" }, 
+                { icon: <FaInstagram size={18} key="ig" />, label: "Instagram", href: "https://instagram.com" }, 
+                { icon: <FaGithub size={18} key="gh" />, label: "Github", href: "https://github.com" }
               ].map((item, i) => (
-                <a key={i} href="#" aria-label={item.label} className="w-10 h-10 rounded-lg bg-white/5 hover:bg-brand-primary hover:text-white flex items-center justify-center text-gray-300 transition-all hover:-translate-y-1">
+                <a key={i} href={item.href} target="_blank" rel="noopener noreferrer" aria-label={item.label} className="w-10 h-10 rounded-lg bg-white/5 hover:bg-brand-primary hover:text-white flex items-center justify-center text-gray-300 transition-all hover:-translate-y-1">
                   {item.icon}
                 </a>
               ))}
@@ -129,10 +155,10 @@ export default function Footer() {
             {/* Mini Gallery */}
             <div className="grid grid-cols-3 gap-2">
               {fdata && fdata.slice(0, 3).map((item, i) => (
-                <div key={item.id || i} className="relative aspect-square rounded-md overflow-hidden group cursor-pointer">
+                <Link key={item.id || i} href="/products" className="relative aspect-square rounded-md overflow-hidden group cursor-pointer block">
                   <Image src={item.img} alt="Gallery" fill sizes="100px" className="object-cover group-hover:scale-110 transition-transform duration-500" />
                   <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
-                </div>
+                </Link>
               ))}
             </div>
           </div>
