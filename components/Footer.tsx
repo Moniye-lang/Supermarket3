@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { MapPin, Phone, Mail, ArrowRight } from "lucide-react";
+import { MapPin, Phone, Mail, ArrowRight, Check } from "lucide-react";
 import { FaFacebookF, FaInstagram, FaTwitter, FaGithub } from "react-icons/fa";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
@@ -27,6 +28,9 @@ const fdata = [
 ];
 
 export default function Footer() {
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [subscribed, setSubscribed] = useState(false);
+
   return (
     <footer className="bg-brand-dark text-white pt-24 pb-12 border-t border-white/5 relative overflow-hidden">
       {/* Background pattern/glow */}

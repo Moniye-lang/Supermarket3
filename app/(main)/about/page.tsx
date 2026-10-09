@@ -1,7 +1,9 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence, useInView, animate } from "framer-motion";
-import { Award, Users, ShoppingBag, Store, Star, CheckCircle, ChevronLeft, ChevronRight, Quote } from "lucide-react";
+import { Award, Users, ShoppingBag, Store, Star, CheckCircle, ChevronLeft, ChevronRight, Quote, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 
 function CountUpNumber({ value, duration = 2, suffix = "" }: { value: number; duration?: number; suffix?: string }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -286,6 +288,32 @@ export default function About() {
               </div>
             </div>
 
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-brand-dark text-white text-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-brand-primary/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="container mx-auto px-6 relative z-10 max-w-3xl space-y-6">
+          <h2 className="text-3xl sm:text-5xl font-display font-extrabold text-white">
+            Ready to Shop Fresh?
+          </h2>
+          <p className="text-gray-300 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
+            Order online anytime 24/7 and enjoy fast in-store pickup at Akobo, Ibadan. Mon–Sat 9am–8pm, Sun 1pm–8pm.
+          </p>
+          <div className="flex flex-wrap justify-center gap-4 pt-2">
+            <Link href="/products">
+              <Button size="lg" className="rounded-full px-8 py-6 text-base font-bold bg-brand-primary hover:bg-brand-primary-hover text-white shadow-xl shadow-brand-primary/30 group">
+                <span>Start Shopping</span>
+                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+            <Link href="/contact">
+              <Button variant="outline" size="lg" className="rounded-full px-8 py-6 text-base font-bold border-white/20 text-white hover:bg-white/10">
+                Contact Store
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

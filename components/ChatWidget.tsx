@@ -20,11 +20,12 @@ const AM_BOT_RESPONSES: Record<string, string | string[]> = {
     "Hello! Looking for something special? I'm here to help you navigate our store.",
     "Hey! I'm AM-Bot. Ready to help you find the best deals at AMstores!"
   ],
-  shipping: "We offer standard and express shipping. Orders above ₦100k get free standard shipping! Delivery usually takes 30-45 minutes within Ibadan.",
+  shipping: "We offer express in-store pickup and doorstep delivery across Ibadan. Pickup is 100% free!",
+  pickup: "You can place orders anytime 24/7! In-store pickup is open Monday to Saturday from 9:00 AM – 8:00 PM, and Sundays from 1:00 PM – 8:00 PM at our Akobo, Ibadan station.",
   returns: "Our return policy allows you to return items within 30 days of purchase. Make sure to keep the receipt and original packaging.",
   tracking: "You can track your order in the 'Order' section once you're logged in.",
   contact: "You can reach our support team at support@amstores.com or call us at 0802 343 4790.",
-  default: "That's a great question! While I'm still learning, I can help you with store hours, shipping, returns, or finding products. Would you like to speak with a human agent?"
+  default: "That's a great question! I can help you with store hours, pickup times, shipping, returns, or finding products. Would you like to speak with a human agent?"
 };
 
 interface Message {
@@ -65,6 +66,7 @@ export default function ChatWidget() {
       const arr = AM_BOT_RESPONSES.greetings as string[];
       return arr[Math.floor(Math.random() * arr.length)];
     }
+    if (text.includes("pickup") || text.includes("hour") || text.includes("time") || text.includes("open") || text.includes("close")) return AM_BOT_RESPONSES.pickup as string;
     if (text.includes("ship") || text.includes("delivery")) return AM_BOT_RESPONSES.shipping as string;
     if (text.includes("return") || text.includes("refund")) return AM_BOT_RESPONSES.returns as string;
     if (text.includes("track") || text.includes("where is my order")) return AM_BOT_RESPONSES.tracking as string;
