@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Mail, Lock, ArrowRight } from "lucide-react";
+import { Mail, Lock, ArrowRight, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import { useGoogleLogin } from "@react-oauth/google";
 import { AuthContext } from "@/context/AuthContext";
@@ -165,7 +165,16 @@ export default function SignIn() {
   }
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-brand-light relative overflow-hidden px-4">
+    <div className="min-h-screen w-full flex items-center justify-center bg-brand-light relative overflow-hidden px-4 py-12">
+      {/* Floating Back to Home button */}
+      <Link
+        href="/"
+        className="absolute top-5 left-5 md:top-8 md:left-8 z-30 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur-md border border-gray-200 text-gray-700 hover:text-brand-primary text-sm font-semibold shadow-sm hover:shadow transition-all group"
+      >
+        <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform text-brand-primary" />
+        <span>Back to Home</span>
+      </Link>
+
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-brand-primary/5 rounded-full blur-[100px]" />
         <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-brand-secondary/5 rounded-full blur-[120px]" />
@@ -199,7 +208,17 @@ export default function SignIn() {
             <div className="relative flex justify-center text-sm"><span className="bg-white/80 px-2 text-gray-500">Or continue with</span></div>
           </div>
 
-          <button type="button" onClick={() => handleGoogleLogin()} className="w-full flex items-center justify-center gap-3 py-4 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors text-gray-700 font-medium shadow-sm">
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                handleGoogleLogin();
+              } catch (err: any) {
+                setError("Google Sign In is temporarily unavailable. Please sign in with your email and password.");
+              }
+            }}
+            className="w-full flex items-center justify-center gap-3 py-4 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors text-gray-700 font-medium shadow-sm"
+          >
             <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-6 h-6" />
             Sign in with Google
           </button>

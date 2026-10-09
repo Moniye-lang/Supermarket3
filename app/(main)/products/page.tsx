@@ -84,13 +84,19 @@ function ProductsContent() {
   // Apply price range client-side filter
   const displayedProducts = rawProducts.filter((p: any) => p.price <= priceRange);
 
-  const handleAddToCart = (product: any) => addToCart(product);
-  const handleBuyNow = (product: any) => {
-    addToCart(product);
+  const handleAddToCart = (product: any) => {
     if (!user && !token) {
       router.push("/signin");
       return;
     }
+    addToCart(product);
+  };
+  const handleBuyNow = (product: any) => {
+    if (!user && !token) {
+      router.push("/signin");
+      return;
+    }
+    addToCart(product);
     openCart("checkout");
   };
 

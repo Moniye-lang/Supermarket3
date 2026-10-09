@@ -277,7 +277,15 @@ export default function ProductDets() {
                                     key={p._id}
                                     product={p}
                                     onViewDetails={(prod) => router.push(`/product/${prod._id}`)}
-                                    onAddToCart={() => addToCart({ ...p, qty: 1 })}
+                                    onAddToCart={() => {
+                                        if (!token && !user) return router.push("/signin");
+                                        addToCart({ ...p, qty: 1 });
+                                    }}
+                                    onBuyNow={() => {
+                                        if (!token && !user) return router.push("/signin");
+                                        addToCart({ ...p, qty: 1 });
+                                        openCart("checkout");
+                                    }}
                                 />
                             ))}
                         </div>

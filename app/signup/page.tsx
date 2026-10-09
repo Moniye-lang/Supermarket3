@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Mail, Lock, User, ArrowRight, CheckCircle } from "lucide-react";
+import { Mail, Lock, User, ArrowRight, CheckCircle, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AuthContext } from "@/context/AuthContext";
 
@@ -71,7 +71,16 @@ export default function SignUp() {
   }
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-brand-light relative overflow-hidden px-4">
+    <div className="min-h-screen w-full flex items-center justify-center bg-brand-light relative overflow-hidden px-4 py-12">
+      {/* Floating Back to Home button */}
+      <Link
+        href="/"
+        className="absolute top-5 left-5 md:top-8 md:left-8 z-30 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur-md border border-gray-200 text-gray-700 hover:text-brand-primary text-sm font-semibold shadow-sm hover:shadow transition-all group"
+      >
+        <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform text-brand-primary" />
+        <span>Back to Home</span>
+      </Link>
+
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute top-[10%] left-[-5%] w-[500px] h-[500px] bg-brand-primary/5 rounded-full blur-[100px]" />
         <div className="absolute bottom-[10%] right-[-10%] w-[600px] h-[600px] bg-brand-secondary/5 rounded-full blur-[120px]" />

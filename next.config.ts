@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
   compress: true,
   reactStrictMode: true,
   env: {
+    NEXT_PUBLIC_GOOGLE_CLIENT_ID:
+      process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+      process.env.GOOGLE_CLIENT_ID ||
+      "455163140146-9vtlqvab4d209ihur94mcfqe7154dta2.apps.googleusercontent.com",
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:
       process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
       process.env.GOOGLE_MAPS_API_KEY ||

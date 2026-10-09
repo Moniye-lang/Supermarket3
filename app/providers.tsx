@@ -13,7 +13,9 @@ const PushNotificationInit = dynamic(() => import("@/components/PushNotification
 export default function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
 
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+  const googleClientId =
+    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+    "455163140146-9vtlqvab4d209ihur94mcfqe7154dta2.apps.googleusercontent.com";
 
   return (
     <GoogleOAuthProvider clientId={googleClientId}>
