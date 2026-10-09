@@ -267,45 +267,37 @@ export default function Checkout() {
 
               {/* Pickup Slot Grid */}
               <div className="space-y-3 pt-2">
-                <div className="flex items-center gap-2">
-                  <Clock size={16} className="text-brand-primary" />
-                  <p className="text-sm font-bold text-gray-800">
-                    Select Pickup Time Slot
-                    <span className="ml-2 text-xs font-normal text-gray-400">
-                      (WAT {now.toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit", hour12: true })})
-                    </span>
-                  </p>
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <Clock size={16} className="text-brand-primary" />
+                    <p className="text-sm font-bold text-gray-800">
+                      Select Pickup Time Slot
+                      <span className="ml-2 text-xs font-normal text-gray-400">
+                        (WAT {now.toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit", hour12: true })})
+                      </span>
+                    </p>
+                  </div>
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                    Orders Open 24/7
+                  </span>
                 </div>
 
-                {todaySlots.length === 0 ? (
-                  <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-500 text-center">
-                    All scheduled slots for today have passed. Pickup remains available until 8:00 PM closing.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                    {getAllSlotsForToday(now).map((slot) => {
-                      const available = todaySlots.some((s) => s.label === slot.label);
-                      return (
-                        <button
-                          key={slot.label}
-                          type="button"
-                          disabled={!available}
-                          onClick={() => available && setPickupSlot(slot.label)}
-                          className={`px-3 py-3 rounded-xl text-xs font-semibold border-2 transition-all text-center
-                            ${pickupSlot === slot.label
-                              ? "border-brand-primary bg-brand-primary text-white shadow-md shadow-brand-primary/20"
-                              : available
-                              ? "border-gray-200 text-gray-700 hover:border-brand-primary/40 bg-white"
-                              : "border-dashed border-gray-200 text-gray-300 cursor-not-allowed bg-gray-50"
-                            }`}
-                        >
-                          {slot.label}
-                          {!available && <span className="block text-[9px] opacity-60 mt-0.5">Passed</span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  {todaySlots.map((slot) => (
+                    <button
+                      key={slot.label}
+                      type="button"
+                      onClick={() => setPickupSlot(slot.label)}
+                      className={`px-3 py-3 rounded-xl text-xs font-semibold border-2 transition-all text-center cursor-pointer ${
+                        pickupSlot === slot.label
+                          ? "border-brand-primary bg-brand-primary text-white shadow-md shadow-brand-primary/20"
+                          : "border-gray-200 text-gray-700 hover:border-brand-primary/40 bg-white"
+                      }`}
+                    >
+                      {slot.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </section>
 

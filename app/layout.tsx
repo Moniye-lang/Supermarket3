@@ -50,14 +50,14 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/icon.png", type: "image/png", sizes: "512x512" },
-      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
-      { url: "/icon-512.png", type: "image/png", sizes: "512x512" },
-      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico?v=3", sizes: "any" },
+      { url: "/icon.png?v=3", type: "image/png", sizes: "512x512" },
+      { url: "/icon-192.png?v=3", type: "image/png", sizes: "192x192" },
+      { url: "/icon-512.png?v=3", type: "image/png", sizes: "512x512" },
+      { url: "/icon.svg?v=3", type: "image/svg+xml" },
     ],
-    shortcut: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
+    shortcut: "/favicon.ico?v=3",
+    apple: "/apple-touch-icon.png?v=3",
   },
   appleWebApp: {
     capable: true,
@@ -136,14 +136,14 @@ const jsonLd = {
         {
           "@type": "OpeningHoursSpecification",
           dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-          opens: "08:00",
-          closes: "21:00",
+          opens: "09:00",
+          closes: "20:00",
         },
         {
           "@type": "OpeningHoursSpecification",
           dayOfWeek: "Sunday",
-          opens: "10:00",
-          closes: "19:00",
+          opens: "13:00",
+          closes: "20:00",
         },
       ],
       currenciesAccepted: "NGN",
@@ -178,6 +178,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
       <head>
+        <link rel="icon" href="/favicon.ico?v=3" sizes="any" />
+        <link rel="icon" href="/icon.png?v=3" type="image/png" sizes="512x512" />
+        <link rel="icon" href="/icon-192.png?v=3" type="image/png" sizes="192x192" />
+        <link rel="shortcut icon" href="/favicon.ico?v=3" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

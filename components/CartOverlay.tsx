@@ -478,7 +478,10 @@ export default function CartOverlay() {
                     <div>
                       <p className="font-extrabold text-sm text-gray-900 dark:text-white">Store Pickup Station</p>
                       <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{STORE_NAME} — {STORE_ADDRESS}</p>
-                      <a href="tel:08023434790" className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+                      <p className="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold mt-1">
+                        Pickup: Mon–Sat 9am–8pm · Sun 1pm–8pm · Order Anytime 24/7
+                      </p>
+                      <a href="tel:08023434790" className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-600 dark:text-gray-400 hover:text-emerald-600 mt-1">
                         <PhoneCall size={11} /> Call Frontdesk: 08023434790
                       </a>
                     </div>
@@ -513,9 +516,14 @@ export default function CartOverlay() {
 
                   {/* Pickup Time Slot */}
                   <div className="space-y-2">
-                    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-                      <Clock size={13} /> Pickup Time Slot (Today)
-                    </h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                        <Clock size={13} /> Select Pickup Time
+                      </h3>
+                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200/50">
+                        Orders Open 24/7
+                      </span>
+                    </div>
                     {todaySlots.length > 0 ? (
                       <div className="grid grid-cols-2 gap-2">
                         {todaySlots.map((slot) => (
