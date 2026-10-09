@@ -7,6 +7,7 @@ import User from "@/lib/models/User";
 import { verifyAuth, verifyAdmin } from "@/lib/authMiddleware";
 import { sendPushToUser } from "@/lib/subscriptions";
 import pusher from "@/lib/pusher";
+import { isStoreApiConfigured, createOrder } from "@/lib/storeApi";
 
 function generateCode(): string {
   return Math.floor(1000 + Math.random() * 9000).toString();
@@ -135,6 +136,44 @@ export async function POST(req: Request) {
     });
 
     await order.save();
+
+    // Push order to central StoreApp POS / cashier screen
+    if (isStoreApiConfigured()) {
+      try {
+        const storeItems = detailed.map((it: any) => {
+          let pIdNum = parseInt(String(it.productId).replace(/\D/g, "").slice(-6), 10);
+          if (isNaN(pIdNum) || pIdNum <= 0) pIdNum = 1;
+          return {
+            productId: pIdNum,
+            quantity: Number(it.qty) || 1,
+            unitPrice: Number(it.price) || 0,
+          };
+        });
+
+        const storePushRes = await createOrder({
+          externalRef: order.pickupCode || orderId,
+          storeId: 1,
+          customerName: customerName.trim(),
+          items: storeItems,
+          payments: [
+            {
+              mode: (paymentMethod === "card" ? "card" : paymentMethod === "cash" ? "cash" : "bank") as any,
+              amount,
+              reference: order.pickupCode || orderId,
+            },
+          ],
+          comments: `Storefront Pickup Order - Ref: ${order.pickupCode || orderId}`,
+        });
+
+        if (storePushRes.success && storePushRes.data) {
+          console.log(`[StoreApp] Order #${order.pickupCode} successfully pushed to StoreApp POS (Receipt: ${storePushRes.data?.storeAppReceipt || storePushRes.data?.orderId})`);
+        } else {
+          console.warn(`[StoreApp] Order push warning:`, storePushRes.error || storePushRes.data);
+        }
+      } catch (storeApiErr: any) {
+        console.error(`[StoreApp] Failed pushing order #${order.pickupCode} to StoreApp:`, storeApiErr.message);
+      }
+    }
 
     // Broadcast new order to admins and workers via global Socket.io instance
     const io = (global as any).io;

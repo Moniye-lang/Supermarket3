@@ -95,7 +95,7 @@ export function isStoreApiConfigured(): boolean {
   return Boolean(baseUrl && apiKey);
 }
 
-function buildHeaders(overrideKey?: string): Record<string, string> {
+function buildHeaders(overrideKey?: string, idempotencyKey?: string): Record<string, string> {
   const { apiKey, adminKey, tenantId } = getStoreApiConfig();
   const keyToUse = overrideKey || apiKey || adminKey;
   const headers: Record<string, string> = {
@@ -112,6 +112,10 @@ function buildHeaders(overrideKey?: string): Record<string, string> {
     headers["X-Tenant-Id"] = tenantId;
   }
 
+  if (idempotencyKey) {
+    headers["Idempotency-Key"] = idempotencyKey;
+  }
+
   return headers;
 }
 
@@ -122,6 +126,7 @@ async function request<T = any>(
     body?: any;
     params?: Record<string, string | number | boolean | undefined>;
     authKey?: string;
+    idempotencyKey?: string;
   } = {}
 ): Promise<{ success: boolean; data: T; error?: string; status: number }> {
   const { baseUrl, apiKey, adminKey } = getStoreApiConfig();
@@ -147,10 +152,12 @@ async function request<T = any>(
     });
   }
 
+  const autoIdempotency = options.idempotencyKey || (options.method === "POST" ? `IDEM-${Date.now()}-${Math.random().toString(36).substring(2, 9)}` : undefined);
+
   try {
     const res = await fetch(url.toString(), {
       method: options.method || "GET",
-      headers: buildHeaders(options.authKey),
+      headers: buildHeaders(options.authKey, autoIdempotency),
       body: options.body ? JSON.stringify(options.body) : undefined,
       cache: "no-store",
     });
@@ -536,7 +543,7 @@ export async function syncCatalog(payload?: { fullSync?: boolean; items?: any[] 
 // ─────────────────────────────────────────────────────────────────────────────
 export async function createOrder(orderPayload: {
   externalRef: string;
-  storeId: number;
+  storeId?: number;
   customerId?: number;
   customerName?: string;
   items: { productId: number; quantity: number; unitPrice: number; discount?: number }[];
@@ -544,7 +551,15 @@ export async function createOrder(orderPayload: {
   comments?: string;
   webhookUrl?: string;
 }) {
-  return request("/v1/orders", { method: "POST", body: orderPayload });
+  const payload = {
+    storeId: 1,
+    ...orderPayload,
+  };
+  return request("/v1/orders", {
+    method: "POST",
+    body: payload,
+    idempotencyKey: orderPayload.externalRef || `ORDER-${Date.now()}`,
+  });
 }
 
 export async function getOrders(params?: { status?: string; page?: number; pageSize?: number; limit?: number }) {
