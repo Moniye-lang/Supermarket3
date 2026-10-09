@@ -166,6 +166,14 @@ export default function Home() {
                 title="1-Click Call on Arrival"
                 desc="Call our store frontdesk with a single tap on arrival and our team will bring your items out."
               />
+              <div className="pt-4">
+                <Link href="/products">
+                  <Button size="lg" aria-label="Order for Pickup Now" className="rounded-full px-8 py-6 text-base font-bold bg-brand-primary hover:bg-brand-primary-hover text-white shadow-xl shadow-brand-primary/30 group">
+                    <span>Order for In-Store Pickup</span>
+                    <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -217,14 +225,17 @@ export default function Home() {
                   sizes="(max-width: 1024px) 100vw, 50vw"
                   className="relative z-10 object-cover rounded-[2rem] shadow-xl"
                 />
-                <div className="absolute -bottom-6 -left-6 z-20 bg-white p-6 rounded-2xl shadow-xl max-w-[250px] border border-gray-100 hidden md:block">
+                <a
+                  href="tel:08023434790"
+                  className="absolute -bottom-6 -left-6 z-20 bg-white p-6 rounded-2xl shadow-xl max-w-[250px] border border-gray-100 hidden md:block hover:shadow-2xl transition-all hover:scale-[1.02] cursor-pointer"
+                >
                   <div className="flex items-center gap-3 mb-2">
                     <Phone className="text-brand-primary w-5 h-5" />
                     <span className="font-bold text-gray-900">Need Help?</span>
                   </div>
                   <p className="text-sm text-gray-600 mb-2">Call our customer support for quick orders.</p>
                   <p className="font-bold text-brand-primary text-lg">0802 343 4790</p>
-                </div>
+                </a>
               </div>
 
             </div>

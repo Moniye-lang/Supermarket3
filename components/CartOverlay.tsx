@@ -50,9 +50,9 @@ export default function CartOverlay() {
 
   // Bank & Store Settings
   const [storeSettings, setStoreSettings] = useState({
-    accountName: "AMStores Retail Ltd",
-    accountNumber: "0123456789",
-    bankName: "Guaranty Trust Bank (GTB)",
+    accountName: "Agbeni Mercantile Stores ltd supermarket",
+    accountNumber: "6428191020",
+    bankName: "Opay",
     paymentInstructions: "Please transfer the exact amount and use your full name or Order Code as payment reference.",
   });
   const [copied, setCopied] = useState(false);
@@ -97,14 +97,14 @@ export default function CartOverlay() {
   useEffect(() => {
     async function fetchSettings() {
       try {
-        const res = await fetch(`${API_URL}/api/settings/public`);
+        const res = await fetch(`${API_URL}/api/settings?t=${Date.now()}`, { cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json();
         if (data.bankName || data.accountNumber) {
           setStoreSettings({
-            accountName: data.accountName || "AMStores Retail Ltd",
-            accountNumber: data.accountNumber || "0123456789",
-            bankName: data.bankName || "Guaranty Trust Bank (GTB)",
+            accountName: data.accountName || "Agbeni Mercantile Stores ltd supermarket",
+            accountNumber: data.accountNumber || "6428191020",
+            bankName: data.bankName || "Opay",
             paymentInstructions: data.paymentInstructions || "Please transfer the exact amount and use your full name or Order Code as payment reference.",
           });
         }

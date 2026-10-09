@@ -1,8 +1,12 @@
 "use client";
+import { useState, useContext } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ShoppingCart, Eye, Heart, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/Button";
+import { CartContext } from "@/context/CartContext";
+import { AuthContext } from "@/context/AuthContext";
 
 interface Product {
     _id: string;
@@ -28,6 +32,43 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDetails }: ProductCardProps) {
+    const router = useRouter();
+    const { addToCart, openCart } = useContext(CartContext);
+    const { user, token } = useContext(AuthContext);
+    const [wishlisted, setWishlisted] = useState(false);
+
+    const handleViewDetails = () => {
+        if (onViewDetails) {
+            onViewDetails(product);
+        } else {
+            router.push(`/product/${product._id}`);
+        }
+    };
+
+    const handleAddToCart = () => {
+        if (!user && !token) {
+            router.push("/signin");
+            return;
+        }
+        if (onAddToCart) {
+            onAddToCart(product);
+        } else {
+            addToCart(product);
+        }
+    };
+
+    const handleBuyNow = () => {
+        if (!user && !token) {
+            router.push("/signin");
+            return;
+        }
+        if (onBuyNow) {
+            onBuyNow(product);
+        } else {
+            addToCart(product);
+            openCart("checkout");
+        }
+    };
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -38,7 +79,7 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
             className="group relative bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-2xl hover:shadow-brand-primary/10 transition-all duration-300 h-full flex flex-col"
         >
             {/* Image Container */}
-            <div className="relative aspect-square overflow-hidden bg-gray-50">
+            <div className="relative aspect-square overflow-hidden bg-gray-50 cursor-pointer" onClick={handleViewDetails}>
                 <img
                     src={product.image || "/placeholder-food.png"}
                     onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder-food.png"; }}
@@ -48,7 +89,7 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
                 />
 
                 {/* Badges */}
-                <div className="absolute top-3 left-3 flex flex-col gap-2">
+                <div className="absolute top-3 left-3 flex flex-col gap-2 pointer-events-none">
                     {product.category && (
                         <span className="bg-white/90 backdrop-blur text-brand-dark text-xs font-bold px-3 py-1 rounded-full shadow-sm">
                             {product.category}
@@ -62,7 +103,7 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
                 </div>
 
                 {/* Stock Badge – bottom-left corner */}
-                <div className="absolute bottom-3 left-3">
+                <div className="absolute bottom-3 left-3 pointer-events-none">
                     {product.stockStatus === "Out of Stock" || product.stock === 0 ? (
                         <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
                             Out of Stock
@@ -71,8 +112,16 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
                 </div>
 
                 {/* Wishlist Button */}
-                <button aria-label="Add to wishlist" className="absolute top-3 right-3 p-2 rounded-full bg-white/80 hover:bg-white text-gray-700 hover:text-red-500 transition-colors shadow-sm opacity-0 group-hover:opacity-100 transform translate-x-4 group-hover:translate-x-0 duration-300">
-                    <Heart size={18} />
+                <button
+                    type="button"
+                    aria-label="Add to wishlist"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setWishlisted((prev) => !prev);
+                    }}
+                    className="absolute top-3 right-3 p-2 rounded-full bg-white/80 hover:bg-white text-gray-700 hover:text-red-500 transition-colors shadow-sm opacity-0 group-hover:opacity-100 transform translate-x-4 group-hover:translate-x-0 duration-300 z-10 cursor-pointer"
+                >
+                    <Heart size={18} className={wishlisted ? "fill-red-500 text-red-500" : ""} />
                 </button>
 
                 {/* Overlay Actions */}
@@ -82,8 +131,11 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
                             variant="glass"
                             size="icon"
                             aria-label="View Details"
-                            className="bg-white text-brand-dark hover:text-brand-primary rounded-full h-10 w-10"
-                            onClick={() => onViewDetails && onViewDetails(product)}
+                            className="bg-white text-brand-dark hover:text-brand-primary rounded-full h-10 w-10 cursor-pointer"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewDetails();
+                            }}
                         >
                             <Eye size={20} />
                         </Button>
@@ -91,8 +143,11 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
                             variant="primary"
                             size="icon"
                             aria-label="Add to cart"
-                            className="rounded-full h-10 w-10 shadow-lg shadow-brand-primary/30"
-                            onClick={() => onAddToCart && onAddToCart(product)}
+                            className="rounded-full h-10 w-10 shadow-lg shadow-brand-primary/30 cursor-pointer"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleAddToCart();
+                            }}
                         >
                             <ShoppingCart size={20} />
                         </Button>
@@ -105,7 +160,7 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
                 <div className="flex-grow">
                     <h3
                         className="font-display font-semibold text-lg text-brand-dark mb-1 line-clamp-1 group-hover:text-brand-primary transition-colors cursor-pointer"
-                        onClick={() => onViewDetails && onViewDetails(product)}
+                        onClick={handleViewDetails}
                     >
                         {product.name || product.title}
                     </h3>
@@ -128,9 +183,9 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
                             size="sm"
                             variant="outline"
                             aria-label={`Add ${product.name || product.title || "product"} to cart`}
-                            className="h-8 px-2 text-xs flex items-center gap-1 border border-brand-primary/30 text-gray-800"
+                            className="h-8 px-2 text-xs flex items-center gap-1 border border-brand-primary/30 text-gray-800 cursor-pointer"
                             disabled={product.stockStatus === "Out of Stock" || product.stock === 0}
-                            onClick={() => onAddToCart && onAddToCart(product)}
+                            onClick={handleAddToCart}
                         >
                             <ShoppingCart size={14} /> Add
                         </Button>
@@ -138,9 +193,9 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
                             size="sm"
                             variant="primary"
                             aria-label={`Buy ${product.name || product.title || "product"} now`}
-                            className="h-8 px-3 text-xs"
+                            className="h-8 px-3 text-xs cursor-pointer"
                             disabled={product.stockStatus === "Out of Stock" || product.stock === 0}
-                            onClick={() => onBuyNow && onBuyNow(product)}
+                            onClick={handleBuyNow}
                         >
                             Buy Now
                         </Button>

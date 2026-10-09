@@ -77,9 +77,9 @@ export default function Checkout() {
     accountName: string;
     paymentInstructions: string;
   }>({
-    bankName: "Zenith Bank",
-    accountNumber: "1012345678",
-    accountName: "AMStores Limited",
+    bankName: "Opay",
+    accountNumber: "6428191020",
+    accountName: "Agbeni Mercantile Stores ltd supermarket",
     paymentInstructions: "Please transfer the exact amount and use your full name or Order Code as payment reference.",
   });
   const [copied, setCopied] = useState(false);
@@ -88,13 +88,13 @@ export default function Checkout() {
   useEffect(() => {
     async function fetchSettings() {
       try {
-        const res = await fetch(`${API_URL}/api/settings`);
+        const res = await fetch(`${API_URL}/api/settings?t=${Date.now()}`, { cache: "no-store" });
         const data = await res.json();
         if (res.ok && data.accountNumber) {
           setStoreSettings({
-            bankName: data.bankName || "Zenith Bank",
-            accountNumber: data.accountNumber || "1012345678",
-            accountName: data.accountName || "AMStores Limited",
+            bankName: data.bankName || "Opay",
+            accountNumber: data.accountNumber || "6428191020",
+            accountName: data.accountName || "Agbeni Mercantile Stores ltd supermarket",
             paymentInstructions: data.paymentInstructions || "Please transfer the exact amount and use your full name or Order Code as payment reference.",
           });
         }
