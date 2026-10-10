@@ -155,7 +155,13 @@ export default function Cart() {
 
                 <Button
                   className="w-full py-6 text-lg shadow-brand-primary/25 shadow-xl cursor-pointer"
-                  onClick={() => openCart("checkout")}
+                  onClick={() => {
+                    if (!user && !token) {
+                      router.push("/signin");
+                      return;
+                    }
+                    openCart("checkout");
+                  }}
                 >
                   Proceed to Checkout <ArrowRight size={18} className="ml-2" />
                 </Button>

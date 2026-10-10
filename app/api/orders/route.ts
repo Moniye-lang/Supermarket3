@@ -48,23 +48,13 @@ export async function POST(req: Request) {
     const isDocFormat = body.customer !== undefined || body.orderId !== undefined;
 
     const authUser = await verifyAuth(req);
-    let customerId: any = authUser?.id;
-
-    if (!customerId) {
-      // Find or create guest user so the order can be placed and tracked without friction
-      let guestUser = await User.findOne({ email: "guest@amstores.ng" });
-      if (!guestUser) {
-        guestUser = await User.create({
-          name: "Guest Customer",
-          email: "guest@amstores.ng",
-          passwordHash: "$2a$10$e7d4Z8qLw5C8Yn6R9o3s4uL9k8J7h6G5f4D3s2A1z0XyWvUtSrQp.",
-          isVerified: true,
-          role: "customer",
-          phone: "08012345678",
-        });
-      }
-      customerId = guestUser._id;
+    if (!authUser || !authUser.id) {
+      return NextResponse.json(
+        { error: "Authentication required. Please sign in to place an order." },
+        { status: 401 }
+      );
     }
+    const customerId = authUser.id;
 
     let rawItems: any[] = [];
     let deliveryAddress = "";
@@ -182,70 +172,87 @@ export async function POST(req: Request) {
 
     await order.save();
 
-    // Push order to central StoreApp POS / cashier screen
-    if (isStoreApiConfigured()) {
-      try {
-        const storeItems = detailed.map((it: any) => {
-          let pIdNum = parseInt(String(it.productId).replace(/\D/g, "").slice(-6), 10);
-          if (isNaN(pIdNum) || pIdNum <= 0) pIdNum = 1;
-          return {
-            productId: pIdNum,
-            quantity: Number(it.qty) || 1,
-            unitPrice: Number(it.price) || 0,
-          };
-        });
+    // 1. Broadcast immediately to admins and workers via global Socket.io instance
+    const orderPayload = {
+      _id: order._id.toString(),
+      id: order._id.toString(),
+      customerId: order.customerId?.toString(),
+      pickupName: order.pickupName || customerName.trim(),
+      pickupCode: order.pickupCode,
+      amount: order.amount,
+      items: detailed,
+      collectionMethod: order.collectionMethod,
+      paymentMethod: order.paymentMethod,
+      paymentStatus: order.paymentStatus,
+      status: order.status,
+      assignmentStatus: order.assignmentStatus,
+      deliveryAddress: order.deliveryAddress,
+      customerPhone: order.customerPhone,
+      createdAt: order.createdAt,
+    };
 
-        const storePushRes = await createOrder({
-          externalRef: order.pickupCode || orderId,
-          storeId: 1,
-          customerName: customerName.trim(),
-          items: storeItems,
-          payments: [
-            {
-              mode: (paymentMethod === "card" ? "card" : paymentMethod === "cash" ? "cash" : "bank") as any,
-              amount,
-              reference: order.pickupCode || orderId,
-            },
-          ],
-          comments: `Storefront Pickup Order - Ref: ${order.pickupCode || orderId}`,
-        });
-
-        if (storePushRes.success && storePushRes.data) {
-          console.log(`[StoreApp] Order #${order.pickupCode} successfully pushed to StoreApp POS (Receipt: ${storePushRes.data?.storeAppReceipt || storePushRes.data?.orderId})`);
-        } else {
-          console.warn(`[StoreApp] Order push warning:`, storePushRes.error || storePushRes.data);
-        }
-      } catch (storeApiErr: any) {
-        console.error(`[StoreApp] Failed pushing order #${order.pickupCode} to StoreApp:`, storeApiErr.message);
-      }
-    }
-
-    // Broadcast new order to admins and workers via global Socket.io instance
     const io = (global as any).io;
     if (io) {
-      io.emit("paymentVerificationRequest", order);
-      io.emit("orderCreated", order);
+      io.emit("paymentVerificationRequest", orderPayload);
+      io.emit("orderCreated", orderPayload);
     }
 
-    // Broadcast via Pusher to admin-orders channel for real-time frontend updates
+    // 2. Broadcast via Pusher to admin-orders channel for real-time frontend updates
     try {
-      await pusher.trigger("admin-orders", "orderCreated", order);
-      await pusher.trigger("admin-orders", "paymentVerificationRequest", order);
+      await pusher.trigger("admin-orders", "orderCreated", orderPayload);
+      await pusher.trigger("admin-orders", "paymentVerificationRequest", orderPayload);
       console.log(`[Pusher] Triggered orderCreated & paymentVerificationRequest for order #${order.pickupCode}`);
     } catch (pushErr: any) {
       console.error("[Pusher] Failed to broadcast order creation:", pushErr.message);
     }
 
-    // Let's notify admin/worker about payment verification request via Push
-    const staffMembers = await User.find({ role: { $in: ["admin", "worker"] } });
-    for (const staff of staffMembers) {
-      await sendPushToUser(
-        staff._id.toString(),
-        "💰 Payment verification needed",
-        `Order #${order.pickupCode} needs payment confirmation.`,
-        staff.role === 'admin' ? '/admin' : '/worker'
-      ).catch((err) => console.error("Push error:", err.message));
+    // 3. Push order to central StoreApp POS / cashier screen asynchronously (never block notifications)
+    if (isStoreApiConfigured()) {
+      const storeItems = detailed.map((it: any) => {
+        let pIdNum = parseInt(String(it.productId).replace(/\D/g, "").slice(-6), 10);
+        if (isNaN(pIdNum) || pIdNum <= 0) pIdNum = 1;
+        return {
+          productId: pIdNum,
+          quantity: Number(it.qty) || 1,
+          unitPrice: Number(it.price) || 0,
+        };
+      });
+
+      createOrder({
+        externalRef: order.pickupCode || orderId,
+        storeId: 1,
+        customerName: customerName.trim(),
+        items: storeItems,
+        payments: [
+          {
+            mode: (paymentMethod === "card" ? "card" : paymentMethod === "cash" ? "cash" : "bank") as any,
+            amount,
+            reference: order.pickupCode || orderId,
+          },
+        ],
+        comments: `Storefront Pickup Order - Ref: ${order.pickupCode || orderId}`,
+      }).then((storePushRes) => {
+        if (storePushRes.success && storePushRes.data) {
+          console.log(`[StoreApp] Order #${order.pickupCode} successfully pushed to StoreApp POS (Receipt: ${storePushRes.data?.storeAppReceipt || storePushRes.data?.orderId})`);
+        } else {
+          console.warn(`[StoreApp] Order push warning:`, storePushRes.error || storePushRes.data);
+        }
+      }).catch((storeApiErr: any) => {
+        console.error(`[StoreApp] Failed pushing order #${order.pickupCode} to StoreApp:`, storeApiErr.message);
+      });
     }
+
+    // 4. Notify admin/worker about payment verification request via Web Push
+    User.find({ role: { $in: ["admin", "worker"] } }).then((staffMembers) => {
+      for (const staff of staffMembers) {
+        sendPushToUser(
+          staff._id.toString(),
+          "💰 Payment verification needed",
+          `Order #${order.pickupCode} needs payment confirmation.`,
+          staff.role === 'admin' ? '/admin' : '/worker'
+        ).catch((err) => console.error("Push error:", err.message));
+      }
+    }).catch(() => {});
 
     if (isDocFormat) {
       return NextResponse.json({

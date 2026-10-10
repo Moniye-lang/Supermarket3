@@ -11,6 +11,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { CartContext } from "@/context/CartContext";
 import { AuthContext } from "@/context/AuthContext";
+import pusherClient from "@/lib/pusher-client";
+import PaymentVerificationModal from "@/components/cart/PaymentVerificationModal";
 import {
   isStoreOpen, nextOpeningMessage, getTodaySlots,
   getAllSlotsForToday, getNowWAT, STORE_NAME, STORE_ADDRESS
@@ -51,6 +53,14 @@ export default function Checkout() {
   const items = cart;
   const subtotal = totalPrice;
   const orderTotal = subtotal; // Store pickup has 0 delivery fee
+
+  useEffect(() => {
+    const activeToken = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (!activeToken && !user && !ctxToken) {
+      router.replace("/signin");
+      return;
+    }
+  }, [router, user, ctxToken]);
 
   useEffect(() => {
     if (user) {
@@ -99,9 +109,91 @@ export default function Checkout() {
   const [error, setError] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
 
+  // Payment verification live modal state
+  const [verificationOrder, setVerificationOrder] = useState<{
+    id: string;
+    code: string;
+    amount: number;
+    status: "verifying" | "accepted" | "declined";
+  } | null>(null);
+  const [verificationCountdown, setVerificationCountdown] = useState(3);
+
   // Completed Animation state
   const [successOrder, setSuccessOrder] = useState<{ id: string; code: string; amount: number } | null>(null);
   const [countdown, setCountdown] = useState(3);
+
+  // Pusher + polling listener for live payment verification
+  useEffect(() => {
+    if (!verificationOrder || verificationOrder.status !== "verifying") return;
+
+    const orderId = verificationOrder.id;
+    let channel: any = null;
+
+    if (pusherClient) {
+      try {
+        channel = pusherClient.subscribe(`order-${orderId}`);
+        channel.bind("order:status", ({ status }: { status: string }) => {
+          if (status === "packing" || status === "paid") {
+            setVerificationOrder((prev) => (prev ? { ...prev, status: "accepted" } : null));
+          } else if (status === "payment_declined" || status === "cancelled") {
+            setVerificationOrder((prev) => (prev ? { ...prev, status: "declined" } : null));
+          }
+        });
+        channel.bind("orderUpdated", (order: any) => {
+          if (order.paymentStatus === "paid" || order.status === "packing") {
+            setVerificationOrder((prev) => (prev ? { ...prev, status: "accepted" } : null));
+          } else if (order.paymentStatus === "declined" || order.status === "payment_declined") {
+            setVerificationOrder((prev) => (prev ? { ...prev, status: "declined" } : null));
+          }
+        });
+      } catch (e) {
+        console.error("Pusher subscription error:", e);
+      }
+    }
+
+    const poll = setInterval(async () => {
+      try {
+        const authToken = (typeof window !== "undefined" ? localStorage.getItem("token") : null) || ctxToken;
+        const res = await fetch(`${API_URL}/api/orders/${orderId}`, {
+          headers: { Authorization: `Bearer ${authToken}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.paymentStatus === "paid" || data.status === "packing") {
+            setVerificationOrder((prev) => (prev ? { ...prev, status: "accepted" } : null));
+          } else if (data.paymentStatus === "declined" || data.status === "payment_declined") {
+            setVerificationOrder((prev) => (prev ? { ...prev, status: "declined" } : null));
+          }
+        }
+      } catch (err) {
+        // silent catch
+      }
+    }, 3500);
+
+    return () => {
+      if (channel && pusherClient) {
+        try { pusherClient.unsubscribe(`order-${orderId}`); } catch (e) {}
+      }
+      clearInterval(poll);
+    };
+  }, [verificationOrder?.id, verificationOrder?.status, ctxToken]);
+
+  // Once accepted, count down and route to order tracking
+  useEffect(() => {
+    if (!verificationOrder || verificationOrder.status !== "accepted") return;
+    setVerificationCountdown(3);
+    const interval = setInterval(() => {
+      setVerificationCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          router.push(`/order?id=${verificationOrder.id}`);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [verificationOrder?.status, verificationOrder?.id, router]);
 
   useEffect(() => {
     if (!successOrder) return;
@@ -209,7 +301,12 @@ export default function Checkout() {
         localStorage.setItem("orderId", id);
       }
       clearCart();
-      setSuccessOrder({ id, code: orderCode, amount: orderTotal });
+      setVerificationOrder({
+        id,
+        code: orderCode,
+        amount: orderTotal,
+        status: "verifying",
+      });
     } catch (err) {
       console.error("[Checkout] Order placement error:", err);
       setError("Network error. Please try again.");
@@ -591,6 +688,18 @@ export default function Checkout() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Live Payment Verification Modal ── */}
+      <AnimatePresence>
+        {verificationOrder && (
+          <PaymentVerificationModal
+            verificationOrder={verificationOrder}
+            countdown={verificationCountdown}
+            onClose={() => setVerificationOrder(null)}
+            onNavigateToOrder={() => router.push(`/order?id=${verificationOrder.id}`)}
+          />
         )}
       </AnimatePresence>
 

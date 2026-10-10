@@ -55,6 +55,11 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
     };
 
     const handleBuyNow = () => {
+        if (!user && !token) {
+            addToCart(product);
+            router.push("/signin");
+            return;
+        }
         if (onBuyNow) {
             onBuyNow(product);
         } else {

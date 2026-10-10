@@ -81,6 +81,11 @@ export default function ProductDets() {
     };
 
     const handleBuyNow = () => {
+        if (!token && !user) {
+            addToCart({ ...product, qty });
+            router.push("/signin");
+            return;
+        }
         addToCart({ ...product, qty });
         openCart("checkout");
     };
@@ -281,6 +286,11 @@ export default function ProductDets() {
                                         openCart("cart");
                                     }}
                                     onBuyNow={() => {
+                                        if (!token && !user) {
+                                            addToCart({ ...p, qty: 1 });
+                                            router.push("/signin");
+                                            return;
+                                        }
                                         addToCart({ ...p, qty: 1 });
                                         openCart("checkout");
                                     }}

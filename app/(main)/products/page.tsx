@@ -89,6 +89,11 @@ function ProductsContent() {
     openCart("cart");
   };
   const handleBuyNow = (product: any) => {
+    if (!user && !token) {
+      addToCart(product);
+      router.push("/signin");
+      return;
+    }
     addToCart(product);
     openCart("checkout");
   };

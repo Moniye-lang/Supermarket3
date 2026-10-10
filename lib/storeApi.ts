@@ -160,6 +160,7 @@ async function request<T = any>(
       headers: buildHeaders(options.authKey, autoIdempotency),
       body: options.body ? JSON.stringify(options.body) : undefined,
       cache: "no-store",
+      signal: AbortSignal.timeout(3500),
     });
 
     const text = await res.text();

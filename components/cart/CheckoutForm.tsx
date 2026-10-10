@@ -1,8 +1,7 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
-import { User, Phone, Clock, CreditCard, Copy, Check, AlertCircle, ShoppingBag, Sparkles } from "lucide-react";
+import { User, Phone, Clock, CreditCard, Copy, Check, AlertCircle, ShoppingBag } from "lucide-react";
 
 interface CartItem {
   productId: string;
@@ -59,16 +58,6 @@ export default function CheckoutForm({
 }: CheckoutFormProps) {
   return (
     <div className="space-y-6">
-      {/* ── Instant Checkout Info Banner ── */}
-      <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800 rounded-2xl p-3 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
-        <span className="flex items-center gap-1.5 font-medium">
-          <Sparkles size={14} className="text-emerald-600 shrink-0" />
-          <span>Instant Checkout (No login required)</span>
-        </span>
-        <Link href="/signin" className="font-bold text-brand-primary underline hover:opacity-80">
-          Sign In
-        </Link>
-      </div>
 
       {/* ── Order Preview Mini-Bar ── */}
       <div className="bg-gray-50 dark:bg-zinc-800/60 rounded-2xl p-4 border border-gray-200/80 dark:border-zinc-700/80 space-y-3">

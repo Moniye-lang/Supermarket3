@@ -29,6 +29,7 @@ export default function AdminOrdersPage() {
   const [verifyingOrders, setVerifyingOrders] = useState<any[]>([]);
   const [paymentPopup, setPaymentPopup] = useState<any>(null);
   const [paymentActionLoading, setPaymentActionLoading] = useState(false);
+  const dismissedPopupIdsRef = useRef<Set<string>>(new Set());
 
   // Goods status
   const [goodsStatusModal, setGoodsStatusModal] = useState<any>(null);
@@ -106,12 +107,27 @@ export default function AdminOrdersPage() {
 
   const loadVerifyingOrders = useCallback(async () => {
     const currentToken = token || localStorage.getItem("token");
+    if (!currentToken) return;
     try {
-      const res = await fetch(`${API_URL}/api/orders/verifying`, {
+      const res = await fetch(`${API_URL}/api/orders/verifying?_t=${Date.now()}`, {
         headers: { Authorization: `Bearer ${currentToken}` }
       });
       const data = await res.json();
-      if (res.ok) setVerifyingOrders(Array.isArray(data) ? data : []);
+      if (res.ok && Array.isArray(data)) {
+        setVerifyingOrders(data);
+        if (data.length > 0) {
+          const unhandled = data.find((o: any) => !dismissedPopupIdsRef.current.has(String(o._id || o.id)));
+          if (unhandled) {
+            setPaymentPopup((curr: any) => {
+              if (!curr) {
+                playChime();
+                return unhandled;
+              }
+              return curr;
+            });
+          }
+        }
+      }
     } catch (err) {
       console.error("Error fetching verifying orders:", err);
     }
@@ -179,8 +195,11 @@ export default function AdminOrdersPage() {
     const handleUpdate = () => { loadOrders(true); loadVerifyingOrders(); };
     const handleNewOrder = () => { loadOrders(true); loadVerifyingOrders(); playChime(); };
     const handlePaymentVerification = (order: any) => {
+      if (!order) return;
+      const orderIdStr = String(order._id || order.id || "");
+      dismissedPopupIdsRef.current.delete(orderIdStr);
       setVerifyingOrders(prev => {
-        const exists = prev.find((o: any) => o._id === order._id);
+        const exists = prev.find((o: any) => String(o._id || o.id) === orderIdStr);
         return exists ? prev : [order, ...prev];
       });
       setPaymentPopup(order);
@@ -193,13 +212,21 @@ export default function AdminOrdersPage() {
     channel.bind("paymentVerificationRequest", handlePaymentVerification);
     channel.bind("workerStatusChanged", () => loadWorkers());
 
-    pollIntervalRef.current = setInterval(() => { loadOrders(true); loadVerifyingOrders(); }, 30000);
+    // 6-second polling ensures immediate update on store screen
+    pollIntervalRef.current = setInterval(() => { loadOrders(true); loadVerifyingOrders(); }, 6000);
 
     return () => {
       pusherClient.unsubscribe("admin-orders");
       clearInterval(pollIntervalRef.current);
     };
   }, [token, loadOrders, loadWorkers, loadVerifyingOrders]);
+
+  const handleDismissPopup = (orderId?: string) => {
+    if (orderId) {
+      dismissedPopupIdsRef.current.add(String(orderId));
+    }
+    setPaymentPopup(null);
+  };
 
   async function handleManualRefresh() {
     setIsRefreshing(true);
@@ -693,11 +720,11 @@ export default function AdminOrdersPage() {
       {/* PAYMENT VERIFICATION POPUP */}
       <AnimatePresence>
         {paymentPopup && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-              onClick={() => !paymentActionLoading && setPaymentPopup(null)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => !paymentActionLoading && handleDismissPopup(paymentPopup._id || paymentPopup.id)}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -707,9 +734,9 @@ export default function AdminOrdersPage() {
               className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md relative z-10 border border-gray-100 text-gray-700"
             >
               <button
-                onClick={() => setPaymentPopup(null)}
+                onClick={() => handleDismissPopup(paymentPopup._id || paymentPopup.id)}
                 disabled={paymentActionLoading}
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-905 bg-gray-100 rounded-full p-2 cursor-pointer"
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 bg-gray-100 rounded-full p-2 cursor-pointer"
               >
                 <X size={18} />
               </button>

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -31,6 +31,7 @@ export default function Worker() {
   const [verifyingOrders, setVerifyingOrders] = useState<any[]>([]);
   const [paymentPopup, setPaymentPopup] = useState<any>(null); // order awaiting accept/decline
   const [paymentActionLoading, setPaymentActionLoading] = useState(false);
+  const dismissedPopupIdsRef = useRef<Set<string>>(new Set());
 
   // Goods status update
   const [goodsStatusModal, setGoodsStatusModal] = useState<any>(null); // order to update goods status
@@ -177,12 +178,26 @@ export default function Worker() {
   const fetchVerifyingOrders = useCallback(async () => {
     try {
       const token = localStorage.getItem("workerToken") || localStorage.getItem("token");
-      const res = await fetch(`${API_URL}/api/orders/verifying`, {
+      if (!token) return;
+      const res = await fetch(`${API_URL}/api/orders/verifying?_t=${Date.now()}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
-      if (res.ok) {
-        setVerifyingOrders(Array.isArray(data) ? data : []);
+      if (res.ok && Array.isArray(data)) {
+        setVerifyingOrders(data);
+        if (data.length > 0) {
+          // Auto-popup the newest order that hasn't been manually dismissed
+          const unhandled = data.find((o: any) => !dismissedPopupIdsRef.current.has(String(o._id || o.id)));
+          if (unhandled) {
+            setPaymentPopup((curr: any) => {
+              if (!curr) {
+                playChime();
+                return unhandled;
+              }
+              return curr;
+            });
+          }
+        }
       }
     } catch (err) {
       console.error("Error fetching verifying orders:", err);
@@ -200,25 +215,31 @@ export default function Worker() {
     }
   }, [router, fetchOrders, fetchVerifyingOrders, fetchCompletedOrders]);
 
-  // Real-time Pusher listeners + polling
+  // Real-time Pusher listeners + frequent 6s polling
   useEffect(() => {
     const channel = pusherClient.subscribe("admin-orders");
 
-    const handleNewOrder = () => { fetchOrders(); playChime(); };
+    const handleNewOrder = () => { fetchOrders(); fetchVerifyingOrders(); playChime(); };
     const handleOrderStatus = ({ orderId, status }: { orderId: string; status: string }) => {
+      const targetId = String(orderId);
       if (status === "delivered" || status === "picked_up" || status === "completed" || status === "cancelled") {
-        setOrders(prev => prev.filter(o => o._id !== orderId));
-        setVerifyingOrders(prev => prev.filter(o => o._id !== orderId));
-        if (paymentPopup && paymentPopup._id === orderId) setPaymentPopup(null);
-      } else if (status === "packing") {
-        fetchOrders(); fetchVerifyingOrders();
+        setOrders(prev => prev.filter(o => String(o._id) !== targetId));
+        setVerifyingOrders(prev => prev.filter(o => String(o._id) !== targetId));
+        setPaymentPopup((curr: any) => (curr && String(curr._id || curr.id) === targetId ? null : curr));
+      } else if (status === "packing" || status === "paid") {
+        fetchOrders();
+        fetchVerifyingOrders();
+        setPaymentPopup((curr: any) => (curr && String(curr._id || curr.id) === targetId ? null : curr));
       } else {
-        setOrders(prev => prev.map(o => o._id === orderId ? { ...o, status } : o));
+        setOrders(prev => prev.map(o => String(o._id) === targetId ? { ...o, status } : o));
       }
     };
     const handlePaymentVerification = (order: any) => {
+      if (!order) return;
+      const orderIdStr = String(order._id || order.id || "");
+      dismissedPopupIdsRef.current.delete(orderIdStr);
       setVerifyingOrders(prev => {
-        const exists = prev.find(o => o._id === order._id);
+        const exists = prev.find(o => String(o._id || o.id) === orderIdStr);
         if (!exists) return [order, ...prev];
         return prev;
       });
@@ -226,7 +247,9 @@ export default function Worker() {
       playChime();
     };
     const handleOrderUpdated = (updatedOrder: any) => {
-      setOrders(prev => prev.map(o => o._id === updatedOrder._id ? updatedOrder : o));
+      if (!updatedOrder) return;
+      const orderIdStr = String(updatedOrder._id || updatedOrder.id || "");
+      setOrders(prev => prev.map(o => String(o._id || o.id) === orderIdStr ? updatedOrder : o));
       if (updatedOrder.paymentStatus === "verifying") fetchVerifyingOrders();
     };
 
@@ -235,13 +258,21 @@ export default function Worker() {
     channel.bind("paymentVerificationRequest", handlePaymentVerification);
     channel.bind("orderUpdated", handleOrderUpdated);
 
-    const pollInterval = setInterval(() => { fetchOrders(); fetchVerifyingOrders(); }, 30000);
+    // Fast 6-second polling ensures immediate in-store response even if socket disconnects
+    const pollInterval = setInterval(() => { fetchOrders(); fetchVerifyingOrders(); }, 6000);
 
     return () => {
       pusherClient.unsubscribe("admin-orders");
       clearInterval(pollInterval);
     };
-  }, [fetchOrders, fetchVerifyingOrders, paymentPopup]);
+  }, [fetchOrders, fetchVerifyingOrders]);
+
+  const handleDismissPopup = (orderId?: string) => {
+    if (orderId) {
+      dismissedPopupIdsRef.current.add(String(orderId));
+    }
+    setPaymentPopup(null);
+  };
 
   // Handle payment accept/decline
   async function handlePaymentAction(order: any, action: "accept" | "decline") {
@@ -785,11 +816,11 @@ export default function Worker() {
       {/* PAYMENT VERIFICATION POPUP */}
       <AnimatePresence>
         {paymentPopup && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-              onClick={() => !paymentActionLoading && setPaymentPopup(null)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => !paymentActionLoading && handleDismissPopup(paymentPopup._id || paymentPopup.id)}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -799,9 +830,9 @@ export default function Worker() {
               className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md relative z-10 border border-gray-100"
             >
               <button
-                onClick={() => setPaymentPopup(null)}
+                onClick={() => handleDismissPopup(paymentPopup._id || paymentPopup.id)}
                 disabled={paymentActionLoading}
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-905 bg-gray-100 rounded-full p-2"
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 bg-gray-100 rounded-full p-2 cursor-pointer"
               >
                 <X size={18} />
               </button>
