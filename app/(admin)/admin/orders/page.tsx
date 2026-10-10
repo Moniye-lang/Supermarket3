@@ -746,11 +746,11 @@ export default function AdminOrdersPage() {
               </div>
               <h2 className="text-xl font-bold text-center text-gray-900 mb-1">Payment Verification</h2>
               <p className="text-center text-gray-500 text-sm mb-5">
-                Customer <strong className="text-gray-800">{paymentPopup.pickupName}</strong> claims to have paid for their order.
+                Customer <strong className="text-gray-800">{paymentPopup.pickupName || paymentPopup.customerName || "Customer"}</strong> claims to have paid for their order.
               </p>
 
               <div className="bg-gray-50 rounded-2xl p-4 mb-5 border border-gray-100 space-y-1.5 text-sm">
-                <div className="flex justify-between"><span className="text-gray-500">Order Code</span><span className="font-bold text-gray-900">#{paymentPopup.pickupCode}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Order Code</span><span className="font-bold text-gray-900">#{paymentPopup.pickupCode || (paymentPopup._id ? paymentPopup._id.toString().slice(-6).toUpperCase() : "ORDER")}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">Amount</span><span className="font-bold text-brand-primary">₦{paymentPopup.amount?.toLocaleString()}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">Method</span><span className="font-medium capitalize">{paymentPopup.collectionMethod}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">Items</span><span className="font-medium">{paymentPopup.items?.length} item(s)</span></div>
