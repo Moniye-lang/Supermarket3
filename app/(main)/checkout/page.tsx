@@ -145,14 +145,27 @@ export default function Checkout() {
 
   function handlePlaceOrder() {
     setError("");
-    if (!token && !user) {
+    const activeToken = typeof window !== "undefined" ? (localStorage.getItem("token") || token) : token;
+    if (!activeToken && !user) {
       setError("Please sign in to place your order");
       router.push("/signin");
       return;
     }
-    if (!customerName.trim()) { setError("Please enter your full name"); return; }
-    if (!phoneNumber.trim()) { setError("Please enter your phone number so store staff can reach you"); return; }
-    if (!pickupSlot && todaySlots.length > 0) { setError("Please select a pickup time slot"); return; }
+    const resolvedName = customerName.trim() || user?.name || "Customer";
+    if (!customerName.trim() && user?.name) {
+      setCustomerName(user.name);
+    }
+    if (!phoneNumber.trim()) {
+      if (user?.phone) {
+        setPhoneNumber(user.phone);
+      } else {
+        setError("Please enter your phone number so store staff can reach you");
+        return;
+      }
+    }
+    if (!pickupSlot && todaySlots.length > 0) {
+      setPickupSlot(todaySlots[0]?.label);
+    }
     if (!items.length) { setError("Your cart is empty"); return; }
     setShowConfirm(true);
   }
@@ -516,7 +529,7 @@ export default function Checkout() {
       {/* Payment Confirmation Modal */}
       <AnimatePresence>
         {showConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -587,7 +600,7 @@ export default function Checkout() {
       {/* ── Payment Success & Order Completed Animation Screen ── */}
       <AnimatePresence>
         {successOrder && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 select-none">
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6 select-none">
             {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}

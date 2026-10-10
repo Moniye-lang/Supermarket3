@@ -8,7 +8,7 @@ import { AuthContext } from "@/context/AuthContext";
 import pusherClient from "@/lib/pusher-client";
 import {
   X, ShoppingBag, ArrowRight, ArrowLeft,
-  CreditCard, ShieldCheck, Copy, Check, Lock, LogIn, Loader2
+  CreditCard, ShieldCheck, Copy, Check, Lock, LogIn, Loader2, AlertCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -61,7 +61,6 @@ export default function CartOverlay() {
   // Order submission state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showConfirm, setShowConfirm] = useState(false);
 
   // Real-time verification state (Verifying with Worker -> Accepted / Declined)
   const [verificationOrder, setVerificationOrder] = useState<{
@@ -215,83 +214,91 @@ export default function CartOverlay() {
     setCartStep("checkout");
   }
 
-  function handleInitiateCheckout() {
+  async function handleInitiateCheckout() {
     setError("");
-    if (!user && !token) {
+    const activeToken = typeof window !== "undefined" ? (localStorage.getItem("token") || token) : token;
+    if (!user && !activeToken) {
       setError("Please sign in to complete your checkout.");
       closeCart();
       router.push("/signin");
       return;
     }
-    if (!customerName.trim()) { setError("Please enter your full name"); return; }
-    if (!phoneNumber.trim()) { setError("Please enter your phone number so store staff can reach you"); return; }
-    if (!pickupSlot && todaySlots.length > 0) { setError("Please select a pickup time slot"); return; }
-    if (!cart.length) { setError("Your cart is empty"); return; }
-    setShowConfirm(true);
-  }
 
-  async function handleConfirmOrder() {
-    if (!user && !token) {
-      setError("Please sign in to complete your order.");
-      setShowConfirm(false);
-      closeCart();
-      router.push("/signin");
+    const resolvedName = customerName.trim() || user?.name || user?.email?.split("@")[0] || "Customer";
+    const resolvedPhone = phoneNumber.trim() || user?.phone || "";
+
+    if (!resolvedName) {
+      setError("Please enter your full name for pickup.");
+      return;
+    }
+    if (!resolvedPhone) {
+      setError("Please enter your phone number so our attendants can reach you at pickup.");
+      return;
+    }
+    if (!cart.length) {
+      setError("Your cart is empty. Please add items before checking out.");
       return;
     }
 
-    setShowConfirm(false);
+    const resolvedSlot = pickupSlot || todaySlots[0]?.label || "Store Pickup — Anytime Today";
+    const currentTotal = totalPrice;
+
     setLoading(true);
 
     try {
-      const pickupTimeText = pickupSlot ? `Pickup Station (Time: ${pickupSlot})` : `Store Pickup — Today`;
-      const authToken = localStorage.getItem("token") || token;
-
+      const pickupTimeText = `Pickup Station (Time: ${resolvedSlot})`;
       const res = await fetch(`${API_URL}/api/orders`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
+          Authorization: `Bearer ${activeToken}`,
         },
         body: JSON.stringify({
-          customerName,
+          customerName: resolvedName,
           collectionMethod: "pickup",
           deliveryAddress: pickupTimeText,
-          customerPhone: phoneNumber,
+          customerPhone: resolvedPhone,
           paymentMethod: "manual_transfer",
           items: cart.map((i: any) => ({
             productId: i.productId || i._id || i.id,
             name: i.name || i.title || "Product",
             image: i.image || (Array.isArray(i.images) ? i.images[0] : ""),
             qty: Number(i.qty) || 1,
+            price: Number(i.price) || 0,
           })),
         }),
       });
 
       const data = await res.json();
       setLoading(false);
-      if (!res.ok) { setError(data.error || "Order placement failed"); return; }
+      if (!res.ok) {
+        setError(data.error || "Order placement failed. Please verify your items.");
+        return;
+      }
 
       const id = data.order?._id || data._id;
       const orderCode = data.order?.pickupCode || data.pickupCode || data.code || (id ? id.slice(-6).toUpperCase() : "N/A");
       localStorage.setItem("orderId", id);
       clearCart();
 
-      // Put customer into live waiting state until worker confirms
+      // Immediately launch the live payment verification popup
       setVerificationOrder({
         id,
         code: orderCode,
-        amount: totalPrice,
+        amount: currentTotal,
         status: "verifying",
       });
-    } catch (err) {
-      setError("Network error. Please try again.");
+    } catch (err: any) {
+      console.error("[Checkout] Order placement error:", err);
+      setError("Network connection issue. Please check your connection and retry.");
       setLoading(false);
     }
   }
 
   return (
-    <AnimatePresence>
-      {isCartOpen && (
+    <>
+      <AnimatePresence>
+        {isCartOpen && (
         <div className="fixed inset-0 z-[90] flex justify-end">
           {/* Backdrop */}
           <motion.div
@@ -484,7 +491,13 @@ export default function CartOverlay() {
                   </button>
                 </div>
               ) : (
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2.5">
+                  {error && (
+                    <div className="p-3 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-xl text-xs flex items-center gap-2">
+                      <AlertCircle size={16} className="shrink-0 text-red-500" />
+                      <span className="font-semibold">{error}</span>
+                    </div>
+                  )}
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -519,59 +532,24 @@ export default function CartOverlay() {
           </motion.div>
         </div>
       )}
-
-      {/* Confirm Order Modal */}
-      <AnimatePresence>
-        {showConfirm && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 16 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 16 }}
-              className="bg-white dark:bg-zinc-900 rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-gray-100 dark:border-zinc-800 text-center space-y-4"
-            >
-              <div className="w-14 h-14 rounded-2xl bg-brand-primary/10 text-brand-primary flex items-center justify-center mx-auto">
-                <ShieldCheck size={28} />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Confirm Payment Transfer</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                  Have you transferred <strong className="text-brand-primary font-bold">₦{totalPrice.toLocaleString()}</strong> to AMStores bank account? Our store team will verify it live.
-                </p>
-              </div>
-
-              <div className="flex gap-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowConfirm(false)}
-                  className="flex-1 py-3 rounded-xl border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300 font-bold text-xs hover:bg-gray-50 transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmOrder}
-                  className="flex-1 py-3 rounded-xl bg-brand-primary hover:bg-brand-primary-hover text-white font-bold text-xs transition-colors shadow-md cursor-pointer"
-                >
-                  Yes, Confirm
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Live Payment Verification Modal */}
-      <PaymentVerificationModal
-        verificationOrder={verificationOrder}
-        countdown={countdown}
-        onClose={() => setVerificationOrder(null)}
-        onNavigateToOrder={() => {
-          closeCart();
-          setVerificationOrder(null);
-          router.push("/order");
-        }}
-      />
     </AnimatePresence>
+
+    {/* Live Payment Verification Modal Popup */}
+    <AnimatePresence>
+      {verificationOrder && (
+        <PaymentVerificationModal
+          key="payment-verification-popup"
+          verificationOrder={verificationOrder}
+          countdown={countdown}
+          onClose={() => setVerificationOrder(null)}
+          onNavigateToOrder={() => {
+            closeCart();
+            setVerificationOrder(null);
+            router.push("/order");
+          }}
+        />
+      )}
+    </AnimatePresence>
+  </>
   );
 }
