@@ -8,6 +8,7 @@ import { verifyAuth, verifyAdmin } from "@/lib/authMiddleware";
 import { sendPushToUser } from "@/lib/subscriptions";
 import pusher from "@/lib/pusher";
 import { isStoreApiConfigured, createOrder } from "@/lib/storeApi";
+import { DEFAULT_PRODUCTS } from "@/lib/defaultProducts";
 
 function generateCode(): string {
   return Math.floor(1000 + Math.random() * 9000).toString();
@@ -28,7 +29,8 @@ export async function GET(req: Request) {
       .sort({ createdAt: -1 })
       .populate("assignedToWorkerId", "name role status phone")
       .populate("reassignmentHistory.assignedWorkerId", "name role")
-      .populate("reassignmentHistory.assignedBy", "name role");
+      .populate("reassignmentHistory.assignedBy", "name role")
+      .lean();
 
     return NextResponse.json(orders);
   } catch (err: any) {
@@ -92,28 +94,48 @@ export async function POST(req: Request) {
     const detailed = [];
 
     for (const it of rawItems) {
-      const pId = it.productId || it._id || it.id;
-      let itemPrice = typeof it.price === "number" ? it.price : 0;
-      let itemName = it.name || it.title || "Product";
-      let itemImage = typeof it.image === "string" ? it.image : (Array.isArray(it.images) ? it.images[0] : "");
+      const pId = String(it.productId || it._id || it.id || "");
+      if (!pId) continue;
 
-      if ((!itemPrice || itemName === "Product") && mongoose.Types.ObjectId.isValid(pId)) {
-        const p = await Product.findById(pId);
-        if (p) {
-          itemPrice = itemPrice || p.price;
-          if (itemName === "Product") itemName = p.name;
-          if (!itemImage) itemImage = p.image;
-        }
+      let dbProduct: any = null;
+      if (mongoose.Types.ObjectId.isValid(pId)) {
+        dbProduct = await Product.findById(pId).lean();
+      }
+      if (!dbProduct) {
+        dbProduct = await Product.findOne({ $or: [{ storeProductId: pId }, { sku: pId }] }).lean();
+      }
+      if (!dbProduct) {
+        dbProduct = DEFAULT_PRODUCTS.find((dp) => dp.id === pId);
       }
 
-      const itemQty = Number(it.qty || it.quantity) || 1;
+      if (!dbProduct) {
+        return NextResponse.json(
+          { error: `Item not found or unavailable in store catalog: ${it.name || pId}` },
+          { status: 400 }
+        );
+      }
+
+      // Authoritative pricing & details derived strictly from database / catalog
+      const itemPrice = Number(dbProduct.price);
+      if (isNaN(itemPrice) || itemPrice < 0) {
+        return NextResponse.json(
+          { error: `Invalid pricing detected for item: ${dbProduct.name}` },
+          { status: 400 }
+        );
+      }
+
+      const itemName = dbProduct.name || it.name || "Product";
+      const itemImage = dbProduct.image || (Array.isArray(it.images) ? it.images[0] : (it.image || ""));
+      const itemQty = Math.max(1, Math.floor(Number(it.qty || it.quantity) || 1));
+
       detailed.push({
         productId: pId,
         name: itemName,
         image: itemImage,
         qty: itemQty,
-        price: itemPrice
+        price: itemPrice,
       });
+
       amount += itemPrice * itemQty;
     }
 

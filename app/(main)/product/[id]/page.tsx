@@ -152,7 +152,7 @@ export default function ProductDets() {
                                         onClick={() => setActiveImage(idx)}
                                         className={`w-20 h-20 rounded-xl border-2 flex-shrink-0 bg-white p-2 transition-all ${activeImage === idx ? "border-brand-primary ring-2 ring-brand-primary/20" : "border-gray-200 hover:border-gray-300"}`}
                                     >
-                                        <img src={img} alt="" className="w-full h-full object-contain" />
+                                        <img src={img} alt="" loading="lazy" decoding="async" className="w-full h-full object-contain" />
                                     </button>
                                 ))}
                             </div>

@@ -92,6 +92,7 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
                     onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder-food.png"; }}
                     alt={product.name || product.title}
                     decoding="async"
+                    loading="lazy"
                     className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
                 />
 

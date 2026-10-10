@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useEffect, useState, useContext, ReactNode } from "react";
+import { createContext, useEffect, useState, useContext, useRef, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { AuthContext } from "./AuthContext";
 
@@ -51,12 +51,25 @@ export const CartContext = createContext<CartContextType>({
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const { user, token } = useContext(AuthContext);
+  const { user, token, loading: authLoading } = useContext(AuthContext);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastAdded, setLastAdded] = useState<{ name: string; image?: string; ts: number } | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [cartStep, setCartStep] = useState<"cart" | "checkout">("cart");
+
+  // Automatically clear cart completely whenever user signs out
+  const prevUserRef = useRef(user);
+  useEffect(() => {
+    if (prevUserRef.current && !user && !token) {
+      setCart([]);
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("cart");
+        localStorage.removeItem("pending_cart_product");
+      }
+    }
+    prevUserRef.current = user;
+  }, [user, token]);
 
   const openCart = (step: "cart" | "checkout" = "cart") => {
     setCartStep(step);
@@ -97,9 +110,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Load from backend if logged in
   useEffect(() => {
-    // If auth is still loading, do not make premature decisions or wipe local cart
-    const authIsLoading = (AuthContext as any)?._currentValue?.loading;
-    
+    // If auth is still loading, wait before making backend decisions
+    if (authLoading) return;
+
     async function loadCart() {
       if (!token || !user?._id) {
         setLoading(false);
@@ -147,7 +160,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
 
     loadCart();
-  }, [user?._id, token]);
+  }, [user?._id, token, authLoading]);
 
   // Totals
   const totalItems = cart.reduce((acc, item) => acc + (item.qty || 0), 0);
@@ -290,6 +303,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Clear cart
   function clearCart() {
+    setCart([]);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("cart");
+      localStorage.removeItem("pending_cart_product");
+    }
     persist([]);
   }
 

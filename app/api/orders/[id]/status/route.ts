@@ -52,7 +52,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     const clientUrl = process.env.NEXTAUTH_URL || process.env.CLIENT_URL || "";
-    await sendPushToUser(order.customerId.toString(), title, body, `${clientUrl}/order`).catch((e) => {
+    await sendPushToUser(order.customerId.toString(), title, body, `${clientUrl}/order?id=${order._id}`).catch((e) => {
       console.error("[Push] sendPushToUser failed:", e?.message || e);
     });
 

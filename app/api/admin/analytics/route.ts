@@ -34,18 +34,39 @@ export async function GET(req: Request) {
       previousStart = new Date(currentStart.getTime() - (7 * 24 * 60 * 60 * 1000));
     }
 
-    // Core Stats
-    const totalUsers = await User.countDocuments({ role: "customer" });
-    const totalWorkers = await User.countDocuments({ role: { $in: ["worker", "rider"] } });
-    const totalProducts = await Product.countDocuments();
-    const lowStockProducts = await Product.find({ stock: { $lt: 10 } }).limit(5);
-    
-    // Period Analysis
-    const currentOrders = await Order.find({ createdAt: { $gte: currentStart } });
-    const previousOrders = await Order.find({ createdAt: { $gte: previousStart, $lt: currentStart } });
+    // Parallel Core Stats & Period Orders Query (Runs in parallel instead of sequential waterfalls)
+    const [
+      totalUsers,
+      totalWorkers,
+      totalProducts,
+      lowStockProducts,
+      currentOrders,
+      previousOrders,
+      totalOrders,
+      totalRevenueAgg,
+      pendingOrders,
+      newUsersCurrent,
+      newUsersPrevious,
+    ] = await Promise.all([
+      User.countDocuments({ role: "customer" }),
+      User.countDocuments({ role: { $in: ["worker", "rider"] } }),
+      Product.countDocuments(),
+      Product.find({ stock: { $lt: 10 } }).select("name stock _id").limit(5).lean(),
+      Order.find({ createdAt: { $gte: currentStart } })
+        .select("amount createdAt items status")
+        .lean(),
+      Order.find({ createdAt: { $gte: previousStart, $lt: currentStart } })
+        .select("amount")
+        .lean(),
+      Order.countDocuments(),
+      Order.aggregate([{ $group: { _id: null, total: { $sum: "$amount" } } }]),
+      Order.countDocuments({ fulfilled: false }),
+      User.countDocuments({ role: "customer", createdAt: { $gte: currentStart } }),
+      User.countDocuments({ role: "customer", createdAt: { $gte: previousStart, $lt: currentStart } }),
+    ]);
 
-    const currentRevenue = currentOrders.reduce((sum, o) => sum + (o.amount || 0), 0);
-    const previousRevenue = previousOrders.reduce((sum, o) => sum + (o.amount || 0), 0);
+    const currentRevenue = (currentOrders as any[]).reduce((sum, o) => sum + (o.amount || 0), 0);
+    const previousRevenue = (previousOrders as any[]).reduce((sum, o) => sum + (o.amount || 0), 0);
     
     const currentOrderCount = currentOrders.length;
     const previousOrderCount = previousOrders.length;
@@ -70,7 +91,7 @@ export async function GET(req: Request) {
         ? d.getHours() + ":00" 
         : d.toISOString().split('T')[0];
       
-      const matchingOrders = currentOrders.filter(o => {
+      const matchingOrders = (currentOrders as any[]).filter(o => {
         const od = new Date(o.createdAt);
         if (period === "daily") return od.getHours() === d.getHours() && od.toDateString() === d.toDateString();
         return od.toISOString().split('T')[0] === dateStr;
@@ -84,8 +105,8 @@ export async function GET(req: Request) {
     const productStats: Record<string, { qty: number; revenue: number; name: string; image: string }> = {};
     const categoryStats: Record<string, { revenue: number; qty: number }> = {};
 
-    currentOrders.forEach(order => {
-      order.items.forEach((item: any) => {
+    (currentOrders as any[]).forEach(order => {
+      (order.items || []).forEach((item: any) => {
         const pid = String(item.productId || item._id || "unknown");
         const name = item.name || item.title || "Product";
         const image = item.image || "";
@@ -109,18 +130,22 @@ export async function GET(req: Request) {
       .sort((a, b) => productStats[b].revenue - productStats[a].revenue)
       .slice(0, 5);
     
-    const topProducts = await Promise.all(topProductIds.map(async id => {
-      let product = null;
-      if (mongoose.Types.ObjectId.isValid(id)) {
-        product = await Product.findById(id);
-      }
+    // Batch lookup all top products in one query rather than N sequential finds
+    const validIds = topProductIds.filter(id => mongoose.Types.ObjectId.isValid(id));
+    const dbTopProducts: any[] = validIds.length > 0
+      ? await Product.find({ _id: { $in: validIds } }).select("name image").lean()
+      : [];
+    const productMap = new Map<string, any>(dbTopProducts.map(p => [p._id.toString(), p]));
+
+    const topProducts = topProductIds.map(id => {
+      const product = productMap.get(id);
       return {
-        name: product ? product.name : (productStats[id].name || `Product #${id}`),
-        image: product ? product.image : productStats[id].image,
-        sales: productStats[id].qty,
-        revenue: productStats[id].revenue
+        name: product ? product.name : (productStats[id]?.name || `Product #${id}`),
+        image: product ? product.image : productStats[id]?.image,
+        sales: productStats[id]?.qty || 0,
+        revenue: productStats[id]?.revenue || 0,
       };
-    }));
+    });
 
     // Category Revenue Breakdown
     const categoryColors: Record<string, string> = {
@@ -150,29 +175,28 @@ export async function GET(req: Request) {
       fill: categoryColors[name] || fallbackColors[idx % fallbackColors.length],
     }));
 
+    const totalRevenue = totalRevenueAgg?.[0]?.total || 0;
+
     return NextResponse.json({
       summary: {
         totalUsers,
         totalWorkers,
         totalProducts,
-        totalOrders: await Order.countDocuments(),
-        totalRevenue: (await Order.find()).reduce((sum, o) => sum + (o.amount || 0), 0),
-        pendingOrders: await Order.countDocuments({ fulfilled: false }),
+        totalOrders,
+        totalRevenue,
+        pendingOrders,
       },
       period: {
         revenue: currentRevenue,
         revenueGrowth,
         orders: currentOrderCount,
         orderGrowth,
-        newUsers: await User.countDocuments({ role: "customer", createdAt: { $gte: currentStart } }),
-        newUserGrowth: calculateGrowth(
-          await User.countDocuments({ role: "customer", createdAt: { $gte: currentStart } }),
-          await User.countDocuments({ role: "customer", createdAt: { $gte: previousStart, $lt: currentStart } })
-        )
+        newUsers: newUsersCurrent,
+        newUserGrowth: calculateGrowth(newUsersCurrent, newUsersPrevious)
       },
       trendData,
       topProducts,
-      lowStockProducts: lowStockProducts.map(p => ({ name: p.name, stock: p.stock, id: p._id })),
+      lowStockProducts: (lowStockProducts as any[]).map(p => ({ name: p.name, stock: p.stock, id: p._id })),
       categoryDistribution,
     });
   } catch (err: any) {

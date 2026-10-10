@@ -39,7 +39,10 @@ app.prepare().then(async () => {
 
   const io = new IOServer(httpServer, {
     cors: {
-      origin: "*",
+      origin: (origin, callback) => {
+        // Allow all origins with dynamic reflect for credentials compatibility
+        callback(null, origin || "*");
+      },
       methods: ["GET", "POST"],
       credentials: true
     },
@@ -154,14 +157,16 @@ app.prepare().then(async () => {
   const moveStep = 0.0005;
 
   setInterval(() => {
-    simulatedLat += (Math.random() - 0.5) * moveStep;
-    simulatedLng += (Math.random() - 0.5) * moveStep;
+    if (io.engine && io.engine.clientsCount > 0) {
+      simulatedLat += (Math.random() - 0.5) * moveStep;
+      simulatedLng += (Math.random() - 0.5) * moveStep;
 
-    io.emit("riderLocation", {
-      lat: simulatedLat,
-      lng: simulatedLng,
-    });
-  }, 2000);
+      io.emit("riderLocation", {
+        lat: simulatedLat,
+        lng: simulatedLng,
+      });
+    }
+  }, 3000);
 
   httpServer.listen(port, () => {
     console.log(`🚀 Custom Server running on port ${port}`);

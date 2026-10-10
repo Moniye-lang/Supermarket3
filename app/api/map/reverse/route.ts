@@ -17,7 +17,7 @@ export async function GET(req: Request) {
 
     const googleKey =
       process.env.GOOGLE_MAPS_API_KEY ||
-      process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+      process.env.NEXT_GOOGLE_MAPS_API_KEY;
 
     const locationiqKey =
       process.env.LOCATIONIQ_API_KEY ||

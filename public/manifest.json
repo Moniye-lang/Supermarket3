@@ -17,5 +17,21 @@
       "type": "image/png"
     }
   ],
+  "shortcuts": [
+    {
+      "name": "Admin Portal",
+      "short_name": "Admin",
+      "description": "AMStores Admin Operations",
+      "url": "/admin",
+      "icons": [{ "src": "/icon-192.png?v=3", "sizes": "192x192" }]
+    },
+    {
+      "name": "My Orders",
+      "short_name": "Orders",
+      "description": "Track active grocery orders",
+      "url": "/order",
+      "icons": [{ "src": "/icon-192.png?v=3", "sizes": "192x192" }]
+    }
+  ],
   "gcm_sender_id": "103953800507"
 }

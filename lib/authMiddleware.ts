@@ -20,7 +20,8 @@ export async function verifyAuth(req: Request): Promise<DecodedUser | null> {
     const authHeader = req.headers.get("authorization") || req.headers.get("token");
     if (!authHeader) return null;
 
-    const token = authHeader.split(" ")[1];
+    const rawHeader = authHeader.trim();
+    const token = rawHeader.startsWith("Bearer ") ? rawHeader.slice(7).trim() : rawHeader;
     if (!token) return null;
 
     const blacklisted = await isBlacklisted(token);

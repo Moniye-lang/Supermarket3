@@ -167,6 +167,8 @@ export default function About() {
                 <img
                   src={feature.image}
                   alt={feature.title}
+                  loading="lazy"
+                  decoding="async"
                   className="relative w-full h-[240px] sm:h-[360px] md:h-[420px] lg:h-[480px] object-cover rounded-3xl sm:rounded-[2rem] shadow-xl z-10"
                 />
               </motion.div>

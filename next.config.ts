@@ -9,7 +9,17 @@ const nextConfig: NextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
   compress: true,
+  poweredByHeader: false,
   reactStrictMode: true,
+  experimental: {
+    optimizePackageImports: [
+      "lucide-react",
+      "react-icons",
+      "recharts",
+      "framer-motion",
+      "@tanstack/react-query",
+    ],
+  },
   env: {
     NEXT_PUBLIC_GOOGLE_CLIENT_ID:
       process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||

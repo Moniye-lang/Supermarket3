@@ -93,7 +93,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       const customerPayload = {
         title: '✅ Payment Confirmed!',
         body: `Your payment for order #${orderCode} has been received! We are now packing your order.`,
-        url: `${clientUrl}/order`
+        url: `${clientUrl}/order?id=${order._id}`
       };
       await sendPushToUser(order.customerId.toString(), customerPayload.title, customerPayload.body, customerPayload.url).catch(() => {});
 
@@ -146,7 +146,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       const customerPayload = {
         title: '❌ Payment Verification Failed',
         body: `Your payment was not verified. Please check and try again.`,
-        url: `${clientUrl}/order`
+        url: `${clientUrl}/order?id=${order._id}`
       };
       await sendPushToUser(order.customerId.toString(), customerPayload.title, customerPayload.body, customerPayload.url).catch(() => {});
 

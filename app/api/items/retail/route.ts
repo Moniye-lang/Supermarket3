@@ -22,11 +22,13 @@ export async function GET(req: Request) {
 
     const skip = (page - 1) * size;
 
-    const products = await Product.find(query)
-      .skip(skip)
-      .limit(size);
-
-    const total = await Product.countDocuments(query);
+    const [products, total] = await Promise.all([
+      Product.find(query)
+        .skip(skip)
+        .limit(size)
+        .lean(),
+      Product.countDocuments(query),
+    ]);
 
     const formattedItems = products.map((p: any) => ({
       productId: p._id.toString(),

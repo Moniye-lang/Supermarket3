@@ -13,13 +13,14 @@ import {
 
 function FulfillmentProgressBar({ status, orderType }: { status: string; orderType: string }) {
   let percentage = 0;
+  const isCompleted = status === "delivered" || status === "picked_up" || status === "completed";
   if (status === "payment_pending" || status === "payment_declined" || status === "cancelled") {
     percentage = 15;
   } else if (status === "packing") {
     percentage = 50;
   } else if (status === "delivery_here" || status === "ready_for_pickup") {
     percentage = 80;
-  } else if (status === "delivered" || status === "picked_up" || status === "completed") {
+  } else if (isCompleted) {
     percentage = 100;
   } else {
     percentage = 30;
@@ -28,15 +29,25 @@ function FulfillmentProgressBar({ status, orderType }: { status: string; orderTy
   return (
     <div className="w-full mb-8">
       <div className="flex justify-between items-center mb-2">
-        <span className="text-[11px] font-bold text-brand-muted uppercase tracking-wider">Fulfillment Status</span>
-        <span className="text-xs font-extrabold text-brand-primary">{percentage}% Complete</span>
+        <span className="text-[11px] font-bold text-brand-muted uppercase tracking-wider flex items-center gap-1.5">
+          Fulfillment Status
+          {isCompleted && (
+            <span className="text-emerald-600 font-extrabold flex items-center gap-0.5 lowercase text-xs">
+              · completed <CheckCircle size={13} className="text-emerald-500 stroke-[3px]" />
+            </span>
+          )}
+        </span>
+        <span className={`text-xs font-extrabold flex items-center gap-1 ${isCompleted ? "text-emerald-600" : "text-brand-primary"}`}>
+          {percentage}% Complete
+          {isCompleted && <CheckCircle size={13} className="text-emerald-600 stroke-[3px]" />}
+        </span>
       </div>
       <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden p-[2px] border border-gray-100">
         <motion.div 
           initial={{ width: 0 }}
           animate={{ width: `${percentage}%` }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="h-full bg-gradient-to-r from-brand-primary to-amber-500 rounded-full"
+          className={`h-full rounded-full transition-colors duration-500 ${isCompleted ? "bg-emerald-500 shadow-md shadow-emerald-500/30" : "bg-gradient-to-r from-brand-primary to-amber-500"}`}
         />
       </div>
     </div>
@@ -111,7 +122,7 @@ function StatusBanner({ order, orderType }: { order: any; orderType: string }) {
 }
 
 function ProgressStepper({ order, orderType }: { order: any; orderType: string }) {
-  const isCompleted = order.fulfilled || order.status === "delivered" || order.status === "picked_up";
+  const isCompleted = order.fulfilled || order.status === "delivered" || order.status === "picked_up" || order.status === "completed";
   const isCancelled = order.status === "cancelled" || order.status === "payment_declined";
   const steps = orderType === "pickup" ? STATUS_STEPS_PICKUP : STATUS_STEPS_DELIVERY;
   const currentIdx = isCompleted ? steps.length - 1 : getStepIndex(order.status, orderType);
@@ -121,30 +132,33 @@ function ProgressStepper({ order, orderType }: { order: any; orderType: string }
   return (
     <div className="flex items-center gap-0 w-full pt-2">
       {steps.map((step, idx) => {
-        const done = idx < currentIdx;
-        const active = idx === currentIdx;
+        const isDone = idx < currentIdx || (idx === currentIdx && isCompleted);
+        const isActive = idx === currentIdx && !isCompleted;
+
         return (
           <div key={step.key} className="flex items-center flex-1 min-w-0">
             <div className="flex flex-col items-center flex-1 min-w-0 relative">
               {/* Stepper Node */}
               <div className={`w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all duration-500 shrink-0 relative z-10 ${
-                done    ? "bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/10" :
-                active  ? "bg-brand-primary border-brand-primary text-white shadow-lg shadow-brand-primary/25" :
-                          "bg-white border-gray-200 text-brand-muted"
+                isDone
+                  ? "bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/25 ring-2 ring-emerald-500/20"
+                  : isActive
+                  ? "bg-brand-primary border-brand-primary text-white shadow-lg shadow-brand-primary/25"
+                  : "bg-white border-gray-200 text-brand-muted"
               }`}>
-                {active && (
+                {isActive && (
                   <span className="absolute -inset-1 rounded-full border border-brand-primary animate-ping opacity-60" />
                 )}
-                {done ? (
-                  <CheckCircle size={16} className="stroke-[3px]" />
+                {isDone ? (
+                  <CheckCircle size={18} className="stroke-[3px] text-white" />
                 ) : (
                   <span className="text-xs font-bold">{idx + 1}</span>
                 )}
               </div>
               {/* Stepper Label */}
               <p className={`text-[10px] font-extrabold mt-2 text-center tracking-wide uppercase truncate w-full px-1 ${
-                done ? "text-emerald-600" :
-                active ? "text-brand-primary font-black" :
+                isDone ? "text-emerald-600" :
+                isActive ? "text-brand-primary font-black" :
                 "text-brand-muted"
               }`}>{step.label}</p>
             </div>
@@ -154,7 +168,7 @@ function ProgressStepper({ order, orderType }: { order: any; orderType: string }
                 <div className="h-1 w-full bg-gray-100 rounded-full" />
                 <motion.div 
                   initial={{ width: 0 }}
-                  animate={{ width: done ? "100%" : "0%" }}
+                  animate={{ width: isDone ? "100%" : "0%" }}
                   transition={{ duration: 0.5 }}
                   className="absolute inset-0 h-1 bg-emerald-500 rounded-full" 
                 />
@@ -615,6 +629,19 @@ export default function Order() {
                       <InfoGrid order={order} orderType={orderType} />
                     </div>
 
+
+                    {/* Completed Celebration Card */}
+                    {isCompleted && (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-5 flex items-center gap-3.5 shadow-sm text-emerald-900">
+                        <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20">
+                          <CheckCircle size={22} className="stroke-[2.5px]" />
+                        </div>
+                        <div>
+                          <p className="font-extrabold text-sm text-emerald-800">Order Completed Successfully</p>
+                          <p className="text-xs text-emerald-600 mt-0.5">Thank you for shopping with AMStores! All items fulfilled.</p>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Collection confirmations */}
                     {canConfirm && (

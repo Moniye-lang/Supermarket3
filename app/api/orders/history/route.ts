@@ -14,7 +14,8 @@ export async function GET(req: Request) {
     }
 
     const orders = await Order.find({ customerId: authUser.id })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     return NextResponse.json(orders);
   } catch (err: any) {

@@ -27,6 +27,10 @@ export async function GET() {
       storePhone: settings.storePhone || "08023434790",
       storeEmail: settings.storeEmail || "amstores@gmail.com",
       storeAddress: settings.storeAddress || "Ayegoro Junction, Kolapo Ishola Estate, Akobo, Ibadan",
+    }, {
+      headers: {
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+      },
     });
   } catch (err: any) {
     return NextResponse.json({

@@ -257,7 +257,7 @@ function MobileBottomNav({ pathname, totalItems, user, onLogout }: MobileBottomN
 export default function Navbar() {
     const [scrolled, setScrolled] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-    const { totalItems, openCart } = useContext(CartContext);
+    const { totalItems, openCart, clearCart } = useContext(CartContext);
     const { user, logout } = useContext(AuthContext);
     const pathname = usePathname();
 
@@ -292,6 +292,7 @@ export default function Navbar() {
     };
 
     const handleLogout = () => {
+        clearCart();
         logout();
         setShowLogoutConfirm(false);
     };

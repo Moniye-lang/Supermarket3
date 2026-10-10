@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     const providedCode = String(code).trim().toUpperCase();
 
     if (expectedCode !== providedCode) {
-      return NextResponse.json({ error: `Incorrect code entered. Expected "${expectedCode}", got "${providedCode}".` }, { status: 400 });
+      return NextResponse.json({ error: "Invalid confirmation code. Please verify the 4-digit code provided by the customer." }, { status: 400 });
     }
 
     const newStatus = order.collectionMethod === "delivery" ? "delivered" : "picked_up";
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
       const body = isPickup
         ? `Your order #${orderCode} has been confirmed as picked up from AMStores. Thank you!`
         : `Your order #${orderCode} was successfully delivered. Thank you!`;
-      await sendPushToUser(order.customerId.toString(), title, body, `${clientUrl}/order`).catch(() => {});
+      await sendPushToUser(order.customerId.toString(), title, body, `${clientUrl}/order?id=${order._id}`).catch(() => {});
     }
 
     // Broadcast to all connected clients via Socket.io

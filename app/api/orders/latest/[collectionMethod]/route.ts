@@ -32,7 +32,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ collecti
       order = await Order.findOne({
         _id: orderIdParam,
         ...customerMatch
-      }).populate("assignedToWorkerId", "name role status phone");
+      }).populate("assignedToWorkerId", "name role status phone").lean();
     }
 
     // 2. Look for the most recent active / unfulfilled order for this customer:
@@ -47,21 +47,24 @@ export async function GET(req: Request, { params }: { params: Promise<{ collecti
       }
       order = await Order.findOne(activeQuery)
         .sort({ createdAt: -1 })
-        .populate("assignedToWorkerId", "name role status phone");
+        .populate("assignedToWorkerId", "name role status phone")
+        .lean();
     }
 
     // 3. If collectionMethod was specified and no active order found, try matching that collectionMethod:
     if (!order && collectionMethod && collectionMethod !== "any" && collectionMethod !== "all") {
       order = await Order.findOne({ ...customerMatch, collectionMethod })
         .sort({ createdAt: -1 })
-        .populate("assignedToWorkerId", "name role status phone");
+        .populate("assignedToWorkerId", "name role status phone")
+        .lean();
     }
 
     // 4. Absolute fallback: the most recent order ever placed by this user:
     if (!order) {
       order = await Order.findOne(customerMatch)
         .sort({ createdAt: -1 })
-        .populate("assignedToWorkerId", "name role status phone");
+        .populate("assignedToWorkerId", "name role status phone")
+        .lean();
     }
 
     if (!order) {

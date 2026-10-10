@@ -7,16 +7,17 @@ import { CartContext } from "@/context/CartContext";
 import { AuthContext } from "@/context/AuthContext";
 import pusherClient from "@/lib/pusher-client";
 import {
-  X, ShoppingBag, Plus, Minus, Trash2, ArrowRight, ArrowLeft,
-  Store, Clock, MapPin, PhoneCall, ShieldCheck, CreditCard,
-  CheckCircle, Copy, Check, Sparkles, User, Phone, Lock, AlertCircle,
-  Loader2, BellRing, AlertTriangle, RefreshCw, LogIn, UserPlus
+  X, ShoppingBag, ArrowRight, ArrowLeft,
+  CreditCard, ShieldCheck, Copy, Check, Lock, LogIn, Loader2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  isStoreOpen, nextOpeningMessage, getTodaySlots,
-  getAllSlotsForToday, getNowWAT, STORE_NAME, STORE_ADDRESS
+  nextOpeningMessage, getTodaySlots, getNowWAT
 } from "@/lib/storeHours";
+
+import CartDrawerItemList from "./cart/CartDrawerItemList";
+import CheckoutForm from "./cart/CheckoutForm";
+import PaymentVerificationModal from "./cart/PaymentVerificationModal";
 
 const API_URL = "";
 
@@ -43,7 +44,6 @@ export default function CartOverlay() {
 
   // Store Hours and Slots
   const [now, setNow] = useState<Date>(getNowWAT);
-  const storeOpen = useMemo(() => isStoreOpen(now), [now]);
   const closedMessage = useMemo(() => nextOpeningMessage(now), [now]);
   const todaySlots = useMemo(() => getTodaySlots(now), [now]);
   const [pickupSlot, setPickupSlot] = useState(todaySlots[0]?.label ?? "");
@@ -121,7 +121,6 @@ export default function CartOverlay() {
 
     const orderId = verificationOrder.id;
 
-    // 1. Pusher listener for instant real-time worker confirmation
     let channel: any = null;
     if (pusherClient) {
       try {
@@ -145,7 +144,6 @@ export default function CartOverlay() {
       }
     }
 
-    // 2. Resilient polling check every 3.5s in case of connection fluctuations
     const poll = setInterval(async () => {
       try {
         const authToken = localStorage.getItem("token") || token;
@@ -260,12 +258,10 @@ export default function CartOverlay() {
           deliveryAddress: pickupTimeText,
           customerPhone: phoneNumber,
           paymentMethod: "manual_transfer",
-          deliveryFee: 0,
           items: cart.map((i: any) => ({
             productId: i.productId || i._id || i.id,
             name: i.name || i.title || "Product",
             image: i.image || (Array.isArray(i.images) ? i.images[0] : ""),
-            price: Number(i.price) || 0,
             qty: Number(i.qty) || 1,
           })),
         }),
@@ -315,119 +311,62 @@ export default function CartOverlay() {
             transition={{ type: "spring", damping: 28, stiffness: 280 }}
             className="relative w-full max-w-lg bg-white dark:bg-zinc-900 shadow-2xl z-10 flex flex-col h-full border-l border-gray-100 dark:border-zinc-800"
           >
-            {/* ── Header ── */}
+            {/* Header */}
             <div className="p-4 sm:p-5 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md sticky top-0 z-20">
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={() => setCartStep("cart")}
-                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${cartStep === "cart"
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    cartStep === "cart"
                       ? "bg-brand-primary text-white shadow-xs"
                       : "text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:hover:bg-zinc-800 dark:text-gray-400"
-                    }`}
+                  }`}
                 >
                   <ShoppingBag size={14} />
-                  <span>Cart ({totalItems})</span>
+                  <span>Basket ({totalItems})</span>
                 </button>
                 <span className="text-gray-300 dark:text-zinc-700">/</span>
                 <button
+                  type="button"
                   onClick={() => totalItems > 0 && handleProceedToCheckout()}
                   disabled={totalItems === 0}
-                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${cartStep === "checkout"
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    cartStep === "checkout"
                       ? "bg-brand-primary text-white shadow-xs"
                       : totalItems === 0
-                        ? "text-gray-300 dark:text-zinc-700 cursor-not-allowed"
-                        : "text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:hover:bg-zinc-800 dark:text-gray-400"
-                    }`}
+                      ? "text-gray-300 dark:text-zinc-700 cursor-not-allowed"
+                      : "text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:hover:bg-zinc-800 dark:text-gray-400"
+                  }`}
                 >
                   <CreditCard size={14} />
                   <span>Store Checkout</span>
                 </button>
               </div>
               <button
+                type="button"
                 onClick={closeCart}
-                className="w-9 h-9 rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-500 hover:text-gray-900 dark:hover:text-white flex items-center justify-center transition-colors"
+                className="w-9 h-9 rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-500 hover:text-gray-900 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer"
               >
                 <X size={18} />
               </button>
             </div>
 
-            {/* ── Drawer Body ── */}
+            {/* Drawer Body */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
               {cartStep === "cart" ? (
-                /* STEP 1: CART ITEMS */
-                <>
-                  {cart.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20 text-center">
-                      <div className="w-20 h-20 bg-brand-primary/10 rounded-full flex items-center justify-center text-brand-primary mb-4">
-                        <ShoppingBag size={36} />
-                      </div>
-                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">Your Cart is Empty</h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-xs">
-                        Browse our supermarket shelves and add fresh items to your basket.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3.5">
-                      {cart.map((item) => {
-                        const itemId = String(item.productId || item._id || item.id || "");
-                        return (
-                          <div
-                            key={itemId || item.name}
-                            className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-gray-50/70 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-800/80 hover:border-gray-200 transition-colors"
-                          >
-                            <div className="w-16 h-16 rounded-xl bg-white dark:bg-zinc-800 border border-gray-100 dark:border-zinc-700 relative overflow-hidden shrink-0 flex items-center justify-center">
-                              {item.image ? (
-                                <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                              ) : (
-                                <ShoppingBag size={22} className="text-gray-400" />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-bold text-sm text-gray-900 dark:text-white truncate">{item.name}</h4>
-                              <p className="text-xs text-brand-primary font-black mt-0.5">₦{Number(item.price || 0).toLocaleString()}</p>
-                              <div className="flex items-center gap-2 mt-2">
-                                <div className="flex items-center bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg p-0.5 shadow-2xs">
-                                  <button
-                                    type="button"
-                                    onClick={() => removeOne(itemId)}
-                                    className="w-6 h-6 rounded flex items-center justify-center text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-700 cursor-pointer"
-                                    title="Decrease quantity"
-                                  >
-                                    <Minus size={12} />
-                                  </button>
-                                  <span className="text-xs font-bold w-6 text-center text-gray-900 dark:text-white">{item.qty}</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => addToCart(item)}
-                                    className="w-6 h-6 rounded flex items-center justify-center text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-700 cursor-pointer"
-                                    title="Increase quantity"
-                                  >
-                                    <Plus size={12} />
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex flex-col items-end justify-between h-16 shrink-0">
-                              <button
-                                type="button"
-                                onClick={() => removeFromCart(itemId)}
-                                className="text-gray-400 hover:text-red-500 transition-colors p-1 cursor-pointer"
-                                title="Remove item"
-                              >
-                                <Trash2 size={15} />
-                              </button>
-                              <span className="text-xs font-extrabold text-gray-900 dark:text-white">
-                                ₦{((Number(item.price) || 0) * (Number(item.qty) || 1)).toLocaleString()}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </>
+                <CartDrawerItemList
+                  cart={cart}
+                  addToCart={addToCart}
+                  removeOne={removeOne}
+                  removeFromCart={removeFromCart}
+                  clearCart={clearCart}
+                  onBrowseProducts={() => {
+                    closeCart();
+                    router.push("/products");
+                  }}
+                />
               ) : (!user && !token) ? (
-                /* STEP 2 (GATED): SIGN IN REQUIRED */
                 <div className="space-y-6 py-6 text-center">
                   <div className="w-16 h-16 rounded-3xl bg-brand-primary/10 text-brand-primary flex items-center justify-center mx-auto shadow-sm">
                     <Lock size={30} />
@@ -445,251 +384,49 @@ export default function CartOverlay() {
 
                   <div className="space-y-3 pt-2">
                     <button
+                      type="button"
                       onClick={() => {
                         closeCart();
                         router.push("/signin");
                       }}
-                      className="w-full py-4 rounded-2xl bg-brand-primary hover:bg-brand-primary-hover text-white font-extrabold text-sm transition-all shadow-lg shadow-brand-primary/25 flex items-center justify-center gap-2 cursor-pointer"
+                      className="w-full py-4 rounded-2xl bg-brand-primary hover:bg-brand-primary-hover text-white font-extrabold text-sm transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      <LogIn size={18} />
-                      <span>Sign In to Continue</span>
+                      <LogIn size={16} />
+                      <span>Sign In to Your Account</span>
                     </button>
-
                     <button
-                      onClick={() => {
-                        closeCart();
-                        router.push("/signup");
-                      }}
-                      className="w-full py-3.5 rounded-2xl border border-gray-200 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 text-gray-700 dark:text-gray-300 font-bold text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                      type="button"
+                      onClick={() => setCartStep("cart")}
+                      className="w-full py-3 rounded-2xl border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300 font-bold text-xs hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                     >
-                      <UserPlus size={18} />
-                      <span>Create New Account</span>
+                      Back to Basket
                     </button>
                   </div>
                 </div>
               ) : (
-                /* STEP 2: CHECKOUT INFO & BANK DETAILS */
-                <div className="space-y-6">
-                  {/* Store Station Badge */}
-                  <div className="bg-gradient-to-r from-red-50/80 to-orange-50/80 dark:from-red-950/30 dark:to-orange-950/30 border border-red-100 dark:border-red-900/40 rounded-2xl p-4 flex items-start gap-3.5">
-                    <div className="w-10 h-10 rounded-xl bg-brand-primary text-white flex items-center justify-center shrink-0 shadow-sm">
-                      <Store size={20} />
-                    </div>
-                    <div>
-                      <p className="font-extrabold text-sm text-gray-900 dark:text-white">Store Pickup Station</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{STORE_NAME} — {STORE_ADDRESS}</p>
-                      <p className="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold mt-1">
-                        Pickup: Mon–Sat 9am–8pm · Sun 1pm–8pm · Order Anytime 24/7
-                      </p>
-                      <a href="tel:08023434790" className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-600 dark:text-gray-400 hover:text-emerald-600 mt-1">
-                        <PhoneCall size={11} /> Call Frontdesk: 08023434790
-                      </a>
-                    </div>
-                  </div>
-
-                  {/* Products in Supermarket Checkout Summary */}
-                  {cart.length > 0 ? (
-                    <div className="bg-white dark:bg-zinc-850 border border-gray-200 dark:border-zinc-700 rounded-2xl p-4 shadow-2xs space-y-3">
-                      <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-zinc-800">
-                        <div className="flex items-center gap-2">
-                          <ShoppingBag size={15} className="text-brand-primary" />
-                          <h4 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider">
-                            Products in Checkout ({totalItems})
-                          </h4>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setCartStep("cart")}
-                          className="text-xs font-bold text-brand-primary hover:underline cursor-pointer flex items-center gap-1"
-                        >
-                          Modify Basket
-                        </button>
-                      </div>
-
-                      <div className="divide-y divide-gray-100 dark:divide-zinc-800 max-h-56 overflow-y-auto pr-1">
-                        {cart.map((item) => {
-                          const itemId = String(item.productId || item._id || item.id || "");
-                          return (
-                            <div key={itemId || item.name} className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-3">
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="w-12 h-12 rounded-xl bg-gray-50 dark:bg-zinc-800 border border-gray-100 dark:border-zinc-700 overflow-hidden shrink-0 flex items-center justify-center">
-                                  {item.image ? (
-                                    <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                                  ) : (
-                                    <ShoppingBag size={18} className="text-gray-400" />
-                                  )}
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{item.name}</p>
-                                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-                                    Qty: <strong className="text-gray-900 dark:text-white font-bold">{item.qty}</strong> × ₦{Number(item.price || 0).toLocaleString()}
-                                  </p>
-                                </div>
-                              </div>
-                              <span className="text-xs font-extrabold text-brand-primary dark:text-white shrink-0">
-                                ₦{((Number(item.price) || 0) * (Number(item.qty) || 1)).toLocaleString()}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="p-6 text-center bg-gray-50 dark:bg-zinc-800/60 rounded-2xl border border-gray-200 dark:border-zinc-700 space-y-2">
-                      <ShoppingBag size={28} className="mx-auto text-gray-400" />
-                      <p className="text-xs font-bold text-gray-700 dark:text-gray-300">No products in checkout</p>
-                      <button
-                        type="button"
-                        onClick={() => { closeCart(); router.push("/products"); }}
-                        className="text-xs font-bold text-brand-primary underline cursor-pointer"
-                      >
-                        Browse supermarket products
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Customer Information */}
-                  <div className="space-y-3.5">
-                    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-                      <User size={13} /> Pickup Customer Details
-                    </h3>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. John Doe"
-                        value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                        className="w-full text-sm bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:border-brand-primary"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Phone Number (For pickup verification call)</label>
-                      <input
-                        type="tel"
-                        placeholder="e.g. 08012345678"
-                        value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value)}
-                        className="w-full text-sm bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:border-brand-primary"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Pickup Time Slot */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-                        <Clock size={13} /> Select Pickup Time
-                      </h3>
-                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200/50">
-                        Orders Open 24/7
-                      </span>
-                    </div>
-                    {todaySlots.length > 0 ? (
-                      <div className="grid grid-cols-2 gap-2">
-                        {todaySlots.map((slot) => (
-                          <button
-                            key={slot.label}
-                            type="button"
-                            onClick={() => setPickupSlot(slot.label)}
-                            className={`p-2.5 rounded-xl border text-xs font-bold text-left transition-all ${pickupSlot === slot.label
-                                ? "bg-brand-primary/10 border-brand-primary text-brand-primary shadow-xs"
-                                : "bg-gray-50 dark:bg-zinc-800/60 border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300 hover:border-gray-300"
-                              }`}
-                          >
-                            {slot.label}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/40 p-3 rounded-xl border border-amber-200">
-                        {closedMessage}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Bank Transfer Details Box */}
-                  <div className="bg-gray-50/80 dark:bg-zinc-850 border border-gray-200 dark:border-zinc-700 rounded-2xl p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-                        <CreditCard size={14} className="text-brand-primary" /> Store Bank Account
-                      </h4>
-                      <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">Instant Verification</span>
-                    </div>
-
-                    <div className="bg-white dark:bg-zinc-900 p-3 rounded-xl border border-gray-100 dark:border-zinc-700 space-y-1">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-gray-500">Bank Name:</span>
-                        <strong className="text-gray-900 dark:text-white font-bold">{storeSettings.bankName}</strong>
-                      </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-gray-500">Account Name:</span>
-                        <strong className="text-gray-900 dark:text-white font-bold">{storeSettings.accountName}</strong>
-                      </div>
-                      <div className="flex justify-between items-center text-xs pt-1 border-t border-gray-100 dark:border-zinc-800 mt-1">
-                        <span className="text-gray-500">Account Number:</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-base font-black text-brand-primary tracking-wider">{storeSettings.accountNumber}</span>
-                          <button
-                            onClick={copyAccount}
-                            className="p-1 rounded bg-gray-100 dark:bg-zinc-800 hover:bg-brand-primary/10 text-gray-700 dark:text-gray-300 transition-colors"
-                            title="Copy Account Number"
-                          >
-                            {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-center bg-brand-primary/5 dark:bg-brand-primary/10 p-3 rounded-xl border border-brand-primary/20">
-                      <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block">Transfer Exact Amount:</span>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span
-                            onClick={copyPrice}
-                            className="text-lg font-black text-brand-primary font-display select-all cursor-pointer hover:underline"
-                            title="Click to copy amount"
-                          >
-                            ₦{totalPrice.toLocaleString()}
-                          </span>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={copyPrice}
-                        className="px-2.5 py-1.5 rounded-lg bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary text-xs font-bold transition-all flex items-center gap-1.5 border border-brand-primary/20 cursor-pointer"
-                        title="Copy exact amount to clipboard"
-                      >
-                        {copiedPrice ? (
-                          <>
-                            <Check size={13} className="text-emerald-500" />
-                            <span className="text-emerald-600 font-bold">Copied!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy size={13} />
-                            <span>Copy Amount</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
-                      💡 <strong>Instructions:</strong> Please transfer the exact total <strong onClick={copyPrice} className="text-brand-primary font-bold select-all cursor-pointer hover:underline">₦{totalPrice.toLocaleString()}</strong> to the account above.
-                    </p>
-                  </div>
-
-                  {error && (
-                    <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 text-red-700 dark:text-red-400 rounded-xl text-xs flex items-center gap-2">
-                      <AlertCircle size={15} />
-                      <span>{error}</span>
-                    </div>
-                  )}
-                </div>
+                <CheckoutForm
+                  cart={cart}
+                  customerName={customerName}
+                  setCustomerName={setCustomerName}
+                  phoneNumber={phoneNumber}
+                  setPhoneNumber={setPhoneNumber}
+                  todaySlots={todaySlots}
+                  pickupSlot={pickupSlot}
+                  setPickupSlot={setPickupSlot}
+                  closedMessage={closedMessage}
+                  storeSettings={storeSettings}
+                  copied={copied}
+                  copyAccount={copyAccount}
+                  copiedPrice={copiedPrice}
+                  copyPrice={copyPrice}
+                  totalPrice={totalPrice}
+                  error={error}
+                  onModifyBasket={() => setCartStep("cart")}
+                />
               )}
             </div>
 
-            {/* ── Footer / Actions ── */}
+            {/* Footer / Actions */}
             <div className="p-4 sm:p-5 border-t border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 sticky bottom-0 z-20 space-y-3">
               <div className="flex justify-between items-baseline">
                 <span className="text-sm font-bold text-gray-500 dark:text-gray-400">Total Amount</span>
@@ -717,6 +454,7 @@ export default function CartOverlay() {
 
               {cartStep === "cart" ? (
                 <button
+                  type="button"
                   onClick={handleProceedToCheckout}
                   disabled={cart.length === 0}
                   className="w-full py-4 rounded-2xl bg-brand-primary hover:bg-brand-primary-hover text-white font-extrabold text-sm transition-all duration-200 shadow-lg shadow-brand-primary/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
@@ -727,12 +465,14 @@ export default function CartOverlay() {
               ) : (!user && !token) ? (
                 <div className="flex gap-2">
                   <button
+                    type="button"
                     onClick={() => setCartStep("cart")}
                     className="py-4 px-4 rounded-2xl border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300 font-bold text-sm hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                   >
                     <ArrowLeft size={16} />
                   </button>
                   <button
+                    type="button"
                     onClick={() => {
                       closeCart();
                       router.push("/signin");
@@ -747,12 +487,14 @@ export default function CartOverlay() {
                 <div className="flex flex-col gap-2">
                   <div className="flex gap-2">
                     <button
+                      type="button"
                       onClick={() => setCartStep("cart")}
                       className="py-4 px-4 rounded-2xl border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300 font-bold text-sm hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                     >
                       <ArrowLeft size={16} />
                     </button>
                     <button
+                      type="button"
                       onClick={handleInitiateCheckout}
                       disabled={loading || cart.length === 0}
                       className="flex-1 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm transition-all duration-200 shadow-lg shadow-emerald-600/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
@@ -778,7 +520,7 @@ export default function CartOverlay() {
         </div>
       )}
 
-      {/* ── Confirm Order Modal ── */}
+      {/* Confirm Order Modal */}
       <AnimatePresence>
         {showConfirm && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
@@ -800,12 +542,14 @@ export default function CartOverlay() {
 
               <div className="flex gap-2.5 pt-2">
                 <button
+                  type="button"
                   onClick={() => setShowConfirm(false)}
                   className="flex-1 py-3 rounded-xl border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300 font-bold text-xs hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={handleConfirmOrder}
                   className="flex-1 py-3 rounded-xl bg-brand-primary hover:bg-brand-primary-hover text-white font-bold text-xs transition-colors shadow-md cursor-pointer"
                 >
@@ -817,191 +561,17 @@ export default function CartOverlay() {
         )}
       </AnimatePresence>
 
-      {/* ── LIVE PAYMENT VERIFICATION SCREEN (Waiting -> Accepted / Declined) ── */}
-      <AnimatePresence>
-        {verificationOrder && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-6 select-none bg-black/70 backdrop-blur-md">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.92, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.92, y: 20 }}
-              transition={{ type: "spring", damping: 26, stiffness: 220 }}
-              className="bg-white dark:bg-zinc-900 rounded-[2.2rem] shadow-2xl p-6 sm:p-8 max-w-md w-full text-center relative z-10 overflow-hidden border border-gray-100 dark:border-zinc-800"
-            >
-              {/* ---------------------------------------------------- */}
-              {/* STATE 1: VERIFYING (Waiting for Store Staff action)   */}
-              {/* ---------------------------------------------------- */}
-              {verificationOrder.status === "verifying" && (
-                <div className="space-y-5">
-                  {/* Glowing Radar Animation */}
-                  <div className="relative w-24 h-24 mx-auto flex items-center justify-center">
-                    <motion.div
-                      animate={{ scale: [1, 1.45, 1.1], opacity: [0.5, 0, 0.5] }}
-                      transition={{ repeat: Infinity, duration: 2.2, ease: "easeInOut" }}
-                      className="absolute inset-0 bg-amber-400/25 rounded-full blur-xs"
-                    />
-                    <div className="w-20 h-20 bg-gradient-to-tr from-amber-500 to-orange-400 text-white rounded-full flex items-center justify-center shadow-xl shadow-amber-500/25 relative z-10">
-                      <Loader2 className="animate-spin text-white w-9 h-9" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/60 border border-amber-200/80 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-[11px] font-bold uppercase tracking-wider mb-2">
-                      <Clock size={12} className="text-amber-600 animate-spin" /> Verifying Payment
-                    </span>
-                    <h2 className="text-2xl font-display font-extrabold text-gray-900 dark:text-white mt-1">
-                      Waiting for Staff Confirmation...
-                    </h2>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 leading-relaxed max-w-xs mx-auto">
-                      Please hold on while our store attendant at AMStores Akobo checks your transfer of <strong className="text-gray-900 dark:text-white font-bold">₦{verificationOrder.amount.toLocaleString()}</strong>.
-                    </p>
-                  </div>
-
-                  {/* Order Code Box */}
-                  <div className="bg-amber-50/70 dark:bg-zinc-800/80 border-2 border-dashed border-amber-300 dark:border-amber-700/60 rounded-2xl p-4 text-center">
-                    <p className="text-[10px] font-black text-amber-800 dark:text-amber-300 uppercase tracking-widest">
-                      Order Reference Code
-                    </p>
-                    <p className="text-3xl font-black text-amber-600 dark:text-amber-400 tracking-widest font-mono my-1">
-                      #{verificationOrder.code}
-                    </p>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-                      Station: <strong className="text-gray-800 dark:text-gray-200">AMStores Akobo Ibadan</strong>
-                    </p>
-                  </div>
-
-                  {/* Live Status Pulse */}
-                  <div className="flex items-center justify-center gap-2 text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50/50 dark:bg-amber-950/30 py-2 px-3 rounded-xl border border-amber-100 dark:border-amber-900/50">
-                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
-                    <span>Store attendant notified · Live verification in progress</span>
-                  </div>
-
-                  {/* Option to navigate to tracking page in background */}
-                  <div className="pt-1">
-                    <button
-                      onClick={() => {
-                        closeCart();
-                        setVerificationOrder(null);
-                        router.push("/order");
-                      }}
-                      className="w-full py-3 rounded-xl border border-gray-200 dark:border-zinc-700 text-gray-600 dark:text-gray-400 hover:text-gray-900 hover:bg-gray-50 dark:hover:bg-zinc-800 text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                    >
-                      <span>Track in Background on Orders Page</span>
-                      <ArrowRight size={14} />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* ---------------------------------------------------- */}
-              {/* STATE 2: ACCEPTED (Payment Confirmed By Staff)       */}
-              {/* ---------------------------------------------------- */}
-              {verificationOrder.status === "accepted" && (
-                <div className="space-y-5">
-                  <div className="relative w-24 h-24 mx-auto flex items-center justify-center">
-                    <motion.div
-                      animate={{ scale: [1, 1.4, 1.15], opacity: [0.4, 0, 0.4] }}
-                      transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
-                      className="absolute inset-0 bg-emerald-400/25 rounded-full blur-xs"
-                    />
-                    <div className="w-20 h-20 bg-gradient-to-tr from-emerald-600 to-teal-400 text-white rounded-full flex items-center justify-center shadow-xl shadow-emerald-600/25 relative z-10 p-3">
-                      <CheckCircle size={38} className="text-white" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold uppercase tracking-wider mb-2">
-                      <Sparkles size={12} className="text-emerald-600" /> Payment Confirmed
-                    </span>
-                    <h2 className="text-2xl font-display font-extrabold text-gray-900 dark:text-white mt-1">
-                      Order Successfully Accepted!
-                    </h2>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 leading-relaxed max-w-xs mx-auto">
-                      Your transfer was confirmed by our store staff. We are now preparing your order!
-                    </p>
-                  </div>
-
-                  <div className="bg-emerald-50/70 dark:bg-zinc-800/80 border-2 border-dashed border-emerald-300 dark:border-emerald-700/60 rounded-2xl p-4 text-center">
-                    <p className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-widest">
-                      Your Pickup Code
-                    </p>
-                    <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-widest font-mono my-1">
-                      #{verificationOrder.code}
-                    </p>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-                      Total: <strong className="text-gray-900 dark:text-white font-bold">₦{verificationOrder.amount.toLocaleString()}</strong> · Station: Akobo
-                    </p>
-                  </div>
-
-                  <div className="space-y-2.5 pt-1">
-                    <div className="flex justify-between items-center text-xs font-semibold text-gray-500 px-1">
-                      <span className="flex items-center gap-1.5 text-emerald-600">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        Routing to live order tracking...
-                      </span>
-                      <span className="font-mono text-emerald-600 font-bold">{countdown}s</span>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        closeCart();
-                        setVerificationOrder(null);
-                        router.push("/order");
-                      }}
-                      className="w-full py-3.5 px-6 rounded-xl bg-gray-950 hover:bg-black text-white font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg cursor-pointer"
-                    >
-                      <span>Proceed to Order Tracking</span>
-                      <ArrowRight size={16} />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* ---------------------------------------------------- */}
-              {/* STATE 3: DECLINED (Payment Not Confirmed By Staff)   */}
-              {/* ---------------------------------------------------- */}
-              {verificationOrder.status === "declined" && (
-                <div className="space-y-5">
-                  <div className="w-20 h-20 bg-red-100 dark:bg-red-950/60 text-red-600 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-red-500/10">
-                    <AlertTriangle size={36} />
-                  </div>
-
-                  <div>
-                    <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 text-[11px] font-bold uppercase tracking-wider mb-2">
-                      Verification Issue
-                    </span>
-                    <h2 className="text-2xl font-display font-extrabold text-gray-900 dark:text-white mt-1">
-                      Payment Not Verified
-                    </h2>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 leading-relaxed max-w-xs mx-auto">
-                      Our store attendants could not match this transfer reference. If you have already transferred, please call our frontdesk immediately.
-                    </p>
-                  </div>
-
-                  <div className="space-y-2.5 pt-2">
-                    <a
-                      href="tel:08023434790"
-                      className="w-full py-3.5 px-6 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-md"
-                    >
-                      <PhoneCall size={16} />
-                      <span>Call Store Frontdesk (08023434790)</span>
-                    </a>
-                    <button
-                      onClick={() => {
-                        setVerificationOrder(null);
-                        setCartStep("checkout");
-                      }}
-                      className="w-full py-3 rounded-xl border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800 font-bold text-xs transition-colors cursor-pointer"
-                    >
-                      Retry Payment Transfer
-                    </button>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* Live Payment Verification Modal */}
+      <PaymentVerificationModal
+        verificationOrder={verificationOrder}
+        countdown={countdown}
+        onClose={() => setVerificationOrder(null)}
+        onNavigateToOrder={() => {
+          closeCart();
+          setVerificationOrder(null);
+          router.push("/order");
+        }}
+      />
     </AnimatePresence>
   );
 }

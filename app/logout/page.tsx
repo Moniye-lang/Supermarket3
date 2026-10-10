@@ -2,18 +2,21 @@
 import { useContext, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AuthContext } from "@/context/AuthContext";
+import { CartContext } from "@/context/CartContext";
 import { motion } from "framer-motion";
 import { LogOut } from "lucide-react";
 
 export default function Logout() {
   const { logout } = useContext(AuthContext);
+  const { clearCart } = useContext(CartContext);
   const router = useRouter();
 
   useEffect(() => {
+    clearCart();
     logout();
     const timer = setTimeout(() => router.push("/"), 2000);
     return () => clearTimeout(timer);
-  }, [logout, router]);
+  }, [clearCart, logout, router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-brand-light">

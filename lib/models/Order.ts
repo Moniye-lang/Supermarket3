@@ -45,5 +45,12 @@ const orderSchema = new mongoose.Schema(
 
 orderSchema.index({ customerId: 1, createdAt: -1 });
 orderSchema.index({ assignedTo: 1 });
+orderSchema.index({ assignedToWorkerId: 1, createdAt: -1 });
+orderSchema.index({ status: 1, createdAt: -1 });
+orderSchema.index({ paymentStatus: 1, createdAt: -1 });
+orderSchema.index({ pickupCode: 1 });
+orderSchema.index({ fulfilled: 1, createdAt: -1 });
+orderSchema.index({ collectionMethod: 1, fulfilled: 1 });
+orderSchema.index({ createdAt: -1 });
 
 export default mongoose.models.Order || mongoose.model("Order", orderSchema);

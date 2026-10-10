@@ -18,4 +18,8 @@ const trackingSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 });
 
+trackingSchema.index({ orderId: 1 }, { unique: true });
+trackingSchema.index({ riderId: 1, updatedAt: -1 });
+trackingSchema.index({ updatedAt: -1 });
+
 export default mongoose.models.Tracking || mongoose.model("Tracking", trackingSchema);

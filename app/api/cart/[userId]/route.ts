@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Cart from "@/lib/models/Cart";
 import Product from "@/lib/models/Product";
+import { DEFAULT_PRODUCTS } from "@/lib/defaultProducts";
 import { verifyAuthorization } from "@/lib/authMiddleware";
 
 export async function GET(req: Request, { params }: { params: Promise<{ userId: string }> }) {
@@ -31,14 +32,20 @@ export async function GET(req: Request, { params }: { params: Promise<{ userId: 
             product = await Product.findById(prodId).lean();
           } catch {}
         }
+        if (!product) {
+          product = await Product.findOne({ $or: [{ storeProductId: prodId }, { sku: prodId }] }).lean();
+        }
+        if (!product) {
+          product = DEFAULT_PRODUCTS.find((dp) => dp.id === prodId);
+        }
         return {
           productId: prodId,
           _id: prodId,
           id: prodId,
-          qty: Number(item.qty) || 1,
-          name: item.name || product?.name || "Product",
-          price: Number(item.price ?? product?.price) || 0,
-          image: item.image || product?.image || "",
+          qty: Math.max(1, Math.floor(Number(item.qty) || 1)),
+          name: product?.name || item.name || "Product",
+          price: product ? Number(product.price) : (Number(item.price) || 0),
+          image: product?.image || item.image || "",
         };
       })
     );

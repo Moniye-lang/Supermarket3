@@ -45,6 +45,8 @@ function normalizeDbProduct(p: any): WooProduct {
   };
 }
 
+let hasSeededChecked = false;
+
 // Fetch products from database (with fallback to default items if DB connection fails)
 async function fetchDbProducts(params: {
   page: number;
@@ -59,10 +61,13 @@ async function fetchDbProducts(params: {
   try {
     await dbConnect();
 
-    // Auto-seed if collection is completely empty
-    const count = await Product.countDocuments();
-    if (count === 0) {
-      await Product.insertMany(DEFAULT_PRODUCTS);
+    // Auto-seed only once if collection is completely empty
+    if (!hasSeededChecked) {
+      const count = await Product.countDocuments();
+      if (count === 0) {
+        await Product.insertMany(DEFAULT_PRODUCTS);
+      }
+      hasSeededChecked = true;
     }
 
     const filter: any = {};
@@ -81,12 +86,15 @@ async function fetchDbProducts(params: {
       sortOptions.createdAt = -1;
     }
 
-    const total = await Product.countDocuments(filter);
-    const rawProducts = await Product.find(filter)
-      .sort(sortOptions)
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .lean();
+    // Run count and paginated query in parallel
+    const [total, rawProducts] = await Promise.all([
+      Product.countDocuments(filter),
+      Product.find(filter)
+        .sort(sortOptions)
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+    ]);
 
     const products = rawProducts.map(normalizeDbProduct);
 

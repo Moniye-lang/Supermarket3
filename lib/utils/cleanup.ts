@@ -5,13 +5,17 @@ export async function cleanupOldGuestOrders() {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 30); // 30 days ago
 
+    // Clean up abandoned unfulfilled orders older than 30 days
     const result = await Order.deleteMany({
-      guestId: { $ne: null },
+      fulfilled: false,
+      status: { $in: ["payment_pending", "cancelled"] },
       createdAt: { $lt: cutoff },
     });
 
-    console.log(`✅ Cleaned up ${result.deletedCount} old guest orders`);
+    if (result.deletedCount > 0) {
+      console.log(`✅ Cleaned up ${result.deletedCount} old abandoned orders`);
+    }
   } catch (err) {
-    console.error("❌ Failed to clean up guest orders:", err);
+    console.error("❌ Failed to clean up abandoned orders:", err);
   }
 }

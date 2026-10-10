@@ -46,7 +46,8 @@ export async function GET(req: Request) {
       orders = await Order.find(historyQuery)
         .sort({ updatedAt: -1, createdAt: -1 })
         .populate("customerId", "name phone")
-        .populate("assignedToWorkerId", "name role status phone");
+        .populate("assignedToWorkerId", "name role status phone")
+        .lean();
     } else {
       // Active orders:
       const userObjId = mongoose.Types.ObjectId.isValid(authUser.id)
@@ -89,7 +90,8 @@ export async function GET(req: Request) {
       orders = await Order.find(activeQuery)
         .sort({ createdAt: -1 })
         .populate("customerId", "name phone")
-        .populate("assignedToWorkerId", "name role status phone");
+        .populate("assignedToWorkerId", "name role status phone")
+        .lean();
     }
 
     // Hide secret pickupCode from workers and riders (only admin can view pickup codes)
