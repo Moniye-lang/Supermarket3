@@ -20,7 +20,7 @@ const API_URL = "";
 
 export default function Checkout() {
   const router = useRouter();
-  const { user } = useContext(AuthContext);
+  const { user, token: ctxToken } = useContext(AuthContext);
 
   // Customer contact state
   const [customerName, setCustomerName] = useState("");
@@ -51,15 +51,6 @@ export default function Checkout() {
   const items = cart;
   const subtotal = totalPrice;
   const orderTotal = subtotal; // Store pickup has 0 delivery fee
-
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
-  useEffect(() => {
-    if (!token && !user) {
-      router.replace("/signin");
-      return;
-    }
-  }, [router, token, user]);
 
   useEffect(() => {
     if (user) {
@@ -145,54 +136,50 @@ export default function Checkout() {
 
   function handlePlaceOrder() {
     setError("");
-    const activeToken = typeof window !== "undefined" ? (localStorage.getItem("token") || token) : token;
-    if (!activeToken && !user) {
-      setError("Please sign in to place your order");
-      router.push("/signin");
-      return;
-    }
     const resolvedName = customerName.trim() || user?.name || "Customer";
-    if (!customerName.trim() && user?.name) {
-      setCustomerName(user.name);
+    if (!customerName.trim()) {
+      setCustomerName(resolvedName);
     }
+    const resolvedPhone = phoneNumber.trim() || user?.phone || "08012345678";
     if (!phoneNumber.trim()) {
-      if (user?.phone) {
-        setPhoneNumber(user.phone);
-      } else {
-        setError("Please enter your phone number so store staff can reach you");
-        return;
-      }
+      setPhoneNumber(resolvedPhone);
     }
     if (!pickupSlot && todaySlots.length > 0) {
       setPickupSlot(todaySlots[0]?.label);
     }
-    if (!items.length) { setError("Your cart is empty"); return; }
+    if (!items.length) {
+      setError("Your cart is empty. Please add items before placing an order.");
+      return;
+    }
     setShowConfirm(true);
   }
 
   async function handleCheckout() {
-    if (!token && !user) {
-      setError("Please sign in to complete your order");
-      router.push("/signin");
-      return;
-    }
     setShowConfirm(false);
     setLoading(true);
 
     try {
-      const pickupTimeText = pickupSlot ? `Pickup Station (Time: ${pickupSlot})` : `Store Pickup — Today`;
+      const resolvedName = customerName.trim() || user?.name || "Customer";
+      const resolvedPhone = phoneNumber.trim() || user?.phone || "08012345678";
+      const resolvedSlot = pickupSlot || todaySlots[0]?.label || "Store Pickup — Today";
+      const pickupTimeText = `Pickup Station (Time: ${resolvedSlot})`;
+      const activeToken = (typeof window !== "undefined" ? localStorage.getItem("token") : null) || ctxToken || "";
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (activeToken) {
+        headers["Authorization"] = `Bearer ${activeToken}`;
+      }
 
       const res = await fetch(`${API_URL}/api/orders`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
         body: JSON.stringify({
-          customerName,
+          customerName: resolvedName,
           collectionMethod: "pickup",
           deliveryAddress: pickupTimeText,
-          customerPhone: phoneNumber,
+          customerPhone: resolvedPhone,
           paymentMethod: "manual_transfer",
           deliveryFee: 0,
           items: items.map((i: any) => ({
@@ -207,14 +194,24 @@ export default function Checkout() {
 
       const data = await res.json();
       setLoading(false);
-      if (!res.ok) { setError(data.error || "Order placement failed"); return; }
+      if (!res.ok) {
+        setError(data.error || "Order placement failed. Please verify your items.");
+        return;
+      }
+
+      if (data.token && typeof window !== "undefined") {
+        localStorage.setItem("token", data.token);
+      }
 
       const id = data.order?._id || data._id;
       const orderCode = data.order?.pickupCode || data.pickupCode || data.code || (id ? id.slice(-6).toUpperCase() : "N/A");
-      localStorage.setItem("orderId", id);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("orderId", id);
+      }
       clearCart();
       setSuccessOrder({ id, code: orderCode, amount: orderTotal });
     } catch (err) {
+      console.error("[Checkout] Order placement error:", err);
       setError("Network error. Please try again.");
       setLoading(false);
     }

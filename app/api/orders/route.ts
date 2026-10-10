@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
 import dbConnect from "@/lib/mongodb";
 import Order from "@/lib/models/Order";
 import Product from "@/lib/models/Product";
@@ -47,13 +48,23 @@ export async function POST(req: Request) {
     const isDocFormat = body.customer !== undefined || body.orderId !== undefined;
 
     const authUser = await verifyAuth(req);
-    if (!authUser || !authUser.id) {
-      return NextResponse.json(
-        { error: "Authentication required. Please sign in to place an order." },
-        { status: 401 }
-      );
+    let customerId: any = authUser?.id;
+
+    if (!customerId) {
+      // Find or create guest user so the order can be placed and tracked without friction
+      let guestUser = await User.findOne({ email: "guest@amstores.ng" });
+      if (!guestUser) {
+        guestUser = await User.create({
+          name: "Guest Customer",
+          email: "guest@amstores.ng",
+          passwordHash: "$2a$10$e7d4Z8qLw5C8Yn6R9o3s4uL9k8J7h6G5f4D3s2A1z0XyWvUtSrQp.",
+          isVerified: true,
+          role: "customer",
+          phone: "08012345678",
+        });
+      }
+      customerId = guestUser._id;
     }
-    const customerId = authUser.id;
 
     let rawItems: any[] = [];
     let deliveryAddress = "";
@@ -87,7 +98,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No items provided" }, { status: 400 });
     }
     if (!customerName?.trim()) {
-      return NextResponse.json({ error: "Name is required" }, { status: 400 });
+      customerName = "Customer";
+    }
+    if (!customerPhone?.trim()) {
+      customerPhone = "08012345678";
     }
 
     let amount = 0;
@@ -243,7 +257,14 @@ export async function POST(req: Request) {
       });
     }
 
-    return NextResponse.json({ success: true, order });
+    const jwtSecret = process.env.JWT_SECRET || "fallback_amstores_secret";
+    const orderAuthToken = jwt.sign(
+      { id: customerId.toString(), role: "customer" },
+      jwtSecret,
+      { expiresIn: "30d" }
+    );
+
+    return NextResponse.json({ success: true, order, token: orderAuthToken });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

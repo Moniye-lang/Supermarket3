@@ -220,15 +220,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Add item
   function addToCart(product: any) {
-    if (!token && !user) {
-      if (typeof window !== "undefined") {
-        try {
-          localStorage.setItem("pending_cart_product", JSON.stringify(product));
-        } catch {}
-        router.push("/signin");
-      }
-      return;
-    }
     if (!product) return;
     const rawId = product.productId || product._id || product.id;
     if (!rawId) return;

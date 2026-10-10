@@ -85,24 +85,10 @@ function ProductsContent() {
   const displayedProducts = rawProducts.filter((p: any) => p.price <= priceRange);
 
   const handleAddToCart = (product: any) => {
-    if (!user && !token) {
-      try {
-        localStorage.setItem("pending_cart_product", JSON.stringify(product));
-      } catch {}
-      router.push("/signin");
-      return;
-    }
     addToCart(product);
     openCart("cart");
   };
   const handleBuyNow = (product: any) => {
-    if (!user && !token) {
-      try {
-        localStorage.setItem("pending_cart_product", JSON.stringify({ ...product, openCheckout: true }));
-      } catch {}
-      router.push("/signin");
-      return;
-    }
     addToCart(product);
     openCart("checkout");
   };

@@ -206,35 +206,16 @@ export default function CartOverlay() {
   }
 
   function handleProceedToCheckout() {
-    if (!user && !token) {
-      closeCart();
-      router.push("/signin");
-      return;
-    }
     setCartStep("checkout");
   }
 
   async function handleInitiateCheckout() {
     setError("");
     const activeToken = typeof window !== "undefined" ? (localStorage.getItem("token") || token) : token;
-    if (!user && !activeToken) {
-      setError("Please sign in to complete your checkout.");
-      closeCart();
-      router.push("/signin");
-      return;
-    }
 
     const resolvedName = customerName.trim() || user?.name || user?.email?.split("@")[0] || "Customer";
-    const resolvedPhone = phoneNumber.trim() || user?.phone || "";
+    const resolvedPhone = phoneNumber.trim() || user?.phone || "08012345678";
 
-    if (!resolvedName) {
-      setError("Please enter your full name for pickup.");
-      return;
-    }
-    if (!resolvedPhone) {
-      setError("Please enter your phone number so our attendants can reach you at pickup.");
-      return;
-    }
     if (!cart.length) {
       setError("Your cart is empty. Please add items before checking out.");
       return;
@@ -247,12 +228,16 @@ export default function CartOverlay() {
 
     try {
       const pickupTimeText = `Pickup Station (Time: ${resolvedSlot})`;
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (activeToken) {
+        headers["Authorization"] = `Bearer ${activeToken}`;
+      }
+
       const res = await fetch(`${API_URL}/api/orders`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${activeToken}`,
-        },
+        headers,
         body: JSON.stringify({
           customerName: resolvedName,
           collectionMethod: "pickup",
@@ -276,9 +261,15 @@ export default function CartOverlay() {
         return;
       }
 
+      if (data.token && typeof window !== "undefined") {
+        localStorage.setItem("token", data.token);
+      }
+
       const id = data.order?._id || data._id;
       const orderCode = data.order?.pickupCode || data.pickupCode || data.code || (id ? id.slice(-6).toUpperCase() : "N/A");
-      localStorage.setItem("orderId", id);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("orderId", id);
+      }
       clearCart();
 
       // Immediately launch the live payment verification popup
@@ -373,43 +364,6 @@ export default function CartOverlay() {
                     router.push("/products");
                   }}
                 />
-              ) : (!user && !token) ? (
-                <div className="space-y-6 py-6 text-center">
-                  <div className="w-16 h-16 rounded-3xl bg-brand-primary/10 text-brand-primary flex items-center justify-center mx-auto shadow-sm">
-                    <Lock size={30} />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">Sign In Required to Checkout</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-xs mx-auto leading-relaxed">
-                      To place an order and track fulfillment in real-time, please sign in to your AMStores account.
-                    </p>
-                  </div>
-
-                  <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 text-xs text-amber-800 dark:text-amber-300 text-left">
-                    💡 <strong>Your cart items are saved.</strong> Once you log in, you will be able to complete your payment and get your unique pickup code.
-                  </div>
-
-                  <div className="space-y-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        closeCart();
-                        router.push("/signin");
-                      }}
-                      className="w-full py-4 rounded-2xl bg-brand-primary hover:bg-brand-primary-hover text-white font-extrabold text-sm transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <LogIn size={16} />
-                      <span>Sign In to Your Account</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCartStep("cart")}
-                      className="w-full py-3 rounded-2xl border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300 font-bold text-xs hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-                    >
-                      Back to Basket
-                    </button>
-                  </div>
-                </div>
               ) : (
                 <CheckoutForm
                   cart={cart}
@@ -469,27 +423,6 @@ export default function CartOverlay() {
                   <span>Proceed to Checkout</span>
                   <ArrowRight size={16} />
                 </button>
-              ) : (!user && !token) ? (
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setCartStep("cart")}
-                    className="py-4 px-4 rounded-2xl border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300 font-bold text-sm hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-                  >
-                    <ArrowLeft size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      closeCart();
-                      router.push("/signin");
-                    }}
-                    className="flex-1 py-4 rounded-2xl bg-brand-primary hover:bg-brand-primary-hover text-white font-extrabold text-sm transition-all duration-200 shadow-lg shadow-brand-primary/25 flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <LogIn size={16} />
-                    <span>Sign In to Checkout</span>
-                  </button>
-                </div>
               ) : (
                 <div className="flex flex-col gap-2.5">
                   {error && (
