@@ -751,6 +751,12 @@ export default function AdminOrdersPage() {
 
               <div className="bg-gray-50 rounded-2xl p-4 mb-5 border border-gray-100 space-y-1.5 text-sm">
                 <div className="flex justify-between"><span className="text-gray-500">Order Code</span><span className="font-bold text-gray-900">#{paymentPopup.pickupCode || (paymentPopup._id ? paymentPopup._id.toString().slice(-6).toUpperCase() : "ORDER")}</span></div>
+                {paymentPopup.storeAppReceipt && (
+                  <div className="flex justify-between text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg text-xs">
+                    <span className="font-semibold">POS Receipt</span>
+                    <span className="font-bold font-mono">#{paymentPopup.storeAppReceipt}</span>
+                  </div>
+                )}
                 <div className="flex justify-between"><span className="text-gray-500">Amount</span><span className="font-bold text-brand-primary">₦{paymentPopup.amount?.toLocaleString()}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">Method</span><span className="font-medium capitalize">{paymentPopup.collectionMethod}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">Items</span><span className="font-medium">{paymentPopup.items?.length} item(s)</span></div>

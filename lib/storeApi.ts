@@ -127,6 +127,7 @@ async function request<T = any>(
     params?: Record<string, string | number | boolean | undefined>;
     authKey?: string;
     idempotencyKey?: string;
+    timeoutMs?: number;
   } = {}
 ): Promise<{ success: boolean; data: T; error?: string; status: number }> {
   const { baseUrl, apiKey, adminKey } = getStoreApiConfig();
@@ -160,7 +161,7 @@ async function request<T = any>(
       headers: buildHeaders(options.authKey, autoIdempotency),
       body: options.body ? JSON.stringify(options.body) : undefined,
       cache: "no-store",
-      signal: AbortSignal.timeout(3500),
+      signal: AbortSignal.timeout(options.timeoutMs || 15000),
     });
 
     const text = await res.text();
@@ -545,21 +546,37 @@ export async function syncCatalog(payload?: { fullSync?: boolean; items?: any[] 
 export async function createOrder(orderPayload: {
   externalRef: string;
   storeId?: number;
-  customerId?: number;
+  customerId?: number | null;
   customerName?: string;
   items: { productId: number; quantity: number; unitPrice: number; discount?: number }[];
-  payments: { mode: "cash" | "card" | "bank" | "online"; amount: number; reference?: string }[];
+  payments: { mode: "cash" | "card" | "bank" | "online" | string; amount: number; reference?: string }[];
   comments?: string;
   webhookUrl?: string;
 }) {
   const payload = {
-    storeId: 1,
-    ...orderPayload,
+    externalRef: orderPayload.externalRef,
+    storeId: orderPayload.storeId ?? 1,
+    customerId: orderPayload.customerId ?? null,
+    customerName: orderPayload.customerName || "Storefront Customer",
+    items: orderPayload.items.map((it) => ({
+      productId: Math.max(1, Math.floor(Number(it.productId) || 1)),
+      quantity: Math.max(1, Math.floor(Number(it.quantity) || 1)),
+      unitPrice: Number(it.unitPrice) || 0,
+      discount: Number(it.discount) || 0,
+    })),
+    payments: orderPayload.payments.map((p) => ({
+      mode: p.mode || "bank",
+      amount: Number(p.amount) || 0,
+      reference: p.reference || orderPayload.externalRef,
+    })),
+    comments: orderPayload.comments || `Online Order - ${orderPayload.externalRef}`,
+    ...(orderPayload.webhookUrl ? { webhookUrl: orderPayload.webhookUrl } : {}),
   };
   return request("/v1/orders", {
     method: "POST",
     body: payload,
     idempotencyKey: orderPayload.externalRef || `ORDER-${Date.now()}`,
+    timeoutMs: 20000,
   });
 }
 

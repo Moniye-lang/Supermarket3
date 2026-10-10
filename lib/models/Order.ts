@@ -21,6 +21,8 @@ const orderSchema = new mongoose.Schema(
     paymentStatus: { type: String, default: "pending" },
     status: { type: String, default: "pending" },
     goodsStatus: { type: String, default: "" },
+    storeAppReceipt: { type: String, default: "" },
+    storeAppOrderId: { type: String, default: "" },
     pickupCode: { type: String, required: true },
     fulfilled: { type: Boolean, default: false },
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },

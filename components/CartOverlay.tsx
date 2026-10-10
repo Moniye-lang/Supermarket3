@@ -275,7 +275,7 @@ export default function CartOverlay() {
       }
 
       const id = data.order?._id || data._id;
-      const orderCode = data.order?.pickupCode || data.pickupCode || data.code || (id ? id.slice(-6).toUpperCase() : "N/A");
+      const orderCode = data.order?.storeAppReceipt || data.storeAppReceipt || data.order?.pickupCode || data.pickupCode || data.code || (id ? id.slice(-6).toUpperCase() : "N/A");
       if (typeof window !== "undefined") {
         localStorage.setItem("orderId", id);
       }

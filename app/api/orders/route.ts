@@ -8,7 +8,7 @@ import User from "@/lib/models/User";
 import { verifyAuth, verifyAdmin } from "@/lib/authMiddleware";
 import { sendPushToUser } from "@/lib/subscriptions";
 import pusher from "@/lib/pusher";
-import { isStoreApiConfigured, createOrder } from "@/lib/storeApi";
+import { isStoreApiConfigured, createOrder, getCatalog } from "@/lib/storeApi";
 import { DEFAULT_PRODUCTS } from "@/lib/defaultProducts";
 
 function generateCode(): string {
@@ -143,6 +143,8 @@ export async function POST(req: Request) {
 
       detailed.push({
         productId: pId,
+        storeProductId: dbProduct?.storeProductId || (/^\d+$/.test(pId) ? pId : undefined),
+        sku: dbProduct?.sku || it.sku || "",
         name: itemName,
         image: itemImage,
         qty: itemQty,
@@ -172,7 +174,86 @@ export async function POST(req: Request) {
 
     await order.save();
 
-    // 1. Broadcast immediately to admins and workers via global Socket.io instance
+    // 1. Push order to central StoreApp POS / cashier screen (awaited so it appears on store POS checkout)
+    let storeAppReceipt = "";
+    let storeAppOrderId = "";
+
+    if (isStoreApiConfigured()) {
+      try {
+        const storeItems = await Promise.all(
+          detailed.map(async (it: any) => {
+            let pIdNum: number | null = null;
+
+            // Check if productId is a numeric ID from StoreApp (e.g. "4", 4)
+            const rawProdId = String(it.productId || "").trim();
+            if (/^\d+$/.test(rawProdId)) {
+              pIdNum = parseInt(rawProdId, 10);
+            } else if (it.storeProductId && /^\d+$/.test(String(it.storeProductId).trim())) {
+              pIdNum = parseInt(String(it.storeProductId).trim(), 10);
+            }
+
+            // If not numeric, attempt lookup by SKU or name in StoreApp catalog
+            if (!pIdNum || pIdNum <= 0) {
+              try {
+                const searchKey = it.sku || it.name;
+                if (searchKey) {
+                  const searchRes = await getCatalog({ search: searchKey, pageSize: 1 });
+                  const found = searchRes.data?.products?.[0] || searchRes.data?.data?.[0];
+                  if (found?.productId) {
+                    pIdNum = found.productId;
+                  }
+                }
+              } catch (e) {
+                // Ignore catalog lookup error
+              }
+            }
+
+            // Fallback to product 1 (a valid base item in StoreApp) if unresolved
+            if (!pIdNum || pIdNum <= 0) {
+              pIdNum = 1;
+            }
+
+            return {
+              productId: pIdNum,
+              quantity: Math.max(1, Math.floor(Number(it.qty) || 1)),
+              unitPrice: Number(it.price) || 0,
+              discount: 0,
+            };
+          })
+        );
+
+        const storePushRes = await createOrder({
+          externalRef: order.pickupCode || orderId,
+          storeId: 1,
+          customerName: customerName.trim(),
+          items: storeItems,
+          payments: [
+            {
+              mode: (paymentMethod === "card" ? "card" : paymentMethod === "cash" ? "cash" : "bank"),
+              amount,
+              reference: order.pickupCode || orderId,
+            },
+          ],
+          comments: `Storefront Online Pickup Order - Ref: #${order.pickupCode || orderId}`,
+        });
+
+        if (storePushRes.success && storePushRes.data) {
+          const resData = (storePushRes.data as any)?.data || storePushRes.data;
+          storeAppReceipt = resData?.storeAppReceipt || "";
+          storeAppOrderId = resData?.orderId || "";
+          order.storeAppReceipt = storeAppReceipt;
+          order.storeAppOrderId = storeAppOrderId;
+          await order.save();
+          console.log(`[StoreApp POS] Order #${order.pickupCode} successfully created on StoreApp POS! Receipt: ${storeAppReceipt}`);
+        } else {
+          console.warn(`[StoreApp POS] Order push warning:`, storePushRes.error || storePushRes.data);
+        }
+      } catch (storeApiErr: any) {
+        console.error(`[StoreApp POS] Failed pushing order #${order.pickupCode} to StoreApp:`, storeApiErr.message);
+      }
+    }
+
+    // 2. Broadcast immediately to admins and workers via global Socket.io instance
     const orderPayload = {
       _id: order._id.toString(),
       id: order._id.toString(),
@@ -180,6 +261,7 @@ export async function POST(req: Request) {
       pickupName: order.pickupName || customerName.trim(),
       pickupCode: order.pickupCode,
       amount: order.amount,
+      storeAppReceipt: order.storeAppReceipt || storeAppReceipt,
       items: detailed,
       collectionMethod: order.collectionMethod,
       paymentMethod: order.paymentMethod,
@@ -197,49 +279,13 @@ export async function POST(req: Request) {
       io.emit("orderCreated", orderPayload);
     }
 
-    // 2. Broadcast via Pusher to admin-orders channel for real-time frontend updates
+    // 3. Broadcast via Pusher to admin-orders channel for real-time frontend updates
     try {
       await pusher.trigger("admin-orders", "orderCreated", orderPayload);
       await pusher.trigger("admin-orders", "paymentVerificationRequest", orderPayload);
       console.log(`[Pusher] Triggered orderCreated & paymentVerificationRequest for order #${order.pickupCode}`);
     } catch (pushErr: any) {
       console.error("[Pusher] Failed to broadcast order creation:", pushErr.message);
-    }
-
-    // 3. Push order to central StoreApp POS / cashier screen asynchronously (never block notifications)
-    if (isStoreApiConfigured()) {
-      const storeItems = detailed.map((it: any) => {
-        let pIdNum = parseInt(String(it.productId).replace(/\D/g, "").slice(-6), 10);
-        if (isNaN(pIdNum) || pIdNum <= 0) pIdNum = 1;
-        return {
-          productId: pIdNum,
-          quantity: Number(it.qty) || 1,
-          unitPrice: Number(it.price) || 0,
-        };
-      });
-
-      createOrder({
-        externalRef: order.pickupCode || orderId,
-        storeId: 1,
-        customerName: customerName.trim(),
-        items: storeItems,
-        payments: [
-          {
-            mode: (paymentMethod === "card" ? "card" : paymentMethod === "cash" ? "cash" : "bank") as any,
-            amount,
-            reference: order.pickupCode || orderId,
-          },
-        ],
-        comments: `Storefront Pickup Order - Ref: ${order.pickupCode || orderId}`,
-      }).then((storePushRes) => {
-        if (storePushRes.success && storePushRes.data) {
-          console.log(`[StoreApp] Order #${order.pickupCode} successfully pushed to StoreApp POS (Receipt: ${storePushRes.data?.storeAppReceipt || storePushRes.data?.orderId})`);
-        } else {
-          console.warn(`[StoreApp] Order push warning:`, storePushRes.error || storePushRes.data);
-        }
-      }).catch((storeApiErr: any) => {
-        console.error(`[StoreApp] Failed pushing order #${order.pickupCode} to StoreApp:`, storeApiErr.message);
-      });
     }
 
     // 4. Notify admin/worker about payment verification request via Web Push
@@ -271,7 +317,13 @@ export async function POST(req: Request) {
       { expiresIn: "30d" }
     );
 
-    return NextResponse.json({ success: true, order, token: orderAuthToken });
+    return NextResponse.json({
+      success: true,
+      order,
+      pickupCode: order.pickupCode,
+      storeAppReceipt: order.storeAppReceipt,
+      token: orderAuthToken,
+    });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
