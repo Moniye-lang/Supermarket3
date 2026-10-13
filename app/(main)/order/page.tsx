@@ -193,6 +193,26 @@ function InfoGrid({ order, orderType }: { order: any; orderType: string }) {
         <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider flex items-center gap-1.5 mb-1"><User size={12} /> Recipient Name</p>
         <p className="text-sm font-bold text-brand-dark truncate">{order.pickupName || "—"}</p>
       </div>
+      {order.storeAppReceipt && (
+        <div className="col-span-2 bg-emerald-50/80 border border-emerald-200/80 rounded-2xl p-3.5 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+              <ReceiptText size={16} />
+            </div>
+            <div>
+              <p className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider">
+                Store POS Receipt
+              </p>
+              <p className="text-base font-black text-emerald-700 font-mono tracking-wider">
+                #{order.storeAppReceipt}
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100/70 border border-emerald-200 px-2 py-0.5 rounded-full">
+            In-Store Verified
+          </span>
+        </div>
+      )}
       {orderType === "delivery" && order.deliveryAddress ? (
         <div className="col-span-2 bg-gray-50/50 border border-gray-100 rounded-2xl p-3.5">
           <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider flex items-center gap-1.5 mb-1"><MapPin size={12} /> Delivery Destination</p>
@@ -341,7 +361,12 @@ function HistoryList({ token }: { token: string | null }) {
                     <div>
                       <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider">Pickup Details</p>
                       <div className="space-y-0.5 mt-0.5">
-                        <p className="font-bold text-emerald-800">Code: <span className="font-mono bg-emerald-100 px-1.5 py-0.5 rounded text-[11px]">{order.pickupCode || order.code || "PENDING"}</span></p>
+                        <p className="font-bold text-emerald-800 flex items-center flex-wrap gap-1.5">
+                          Code: <span className="font-mono bg-emerald-100 px-1.5 py-0.5 rounded text-[11px]">{order.pickupCode || order.code || "PENDING"}</span>
+                          {order.storeAppReceipt && (
+                            <span className="font-mono bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded text-[11px]">POS #{order.storeAppReceipt}</span>
+                          )}
+                        </p>
                         <p className="text-[11px] text-gray-600">AMStores — General Gas Rd, Akobo</p>
                         <div className="mt-2">
                           <a
@@ -518,8 +543,8 @@ export default function Order() {
               ) : (
                 <div className="space-y-6">
                   {/* Prominent Code Banner on Top */}
-                  <div className="bg-brand-primary/10 border border-brand-primary/20 rounded-3xl p-5 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm shadow-brand-primary/5">
-                    <div className="flex items-center gap-4 w-full sm:w-auto">
+                  <div className="bg-brand-primary/10 border border-brand-primary/20 rounded-3xl p-5 flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm shadow-brand-primary/5">
+                    <div className="flex items-center gap-4 w-full md:w-auto">
                       <div className="w-12 h-12 rounded-2xl bg-brand-primary flex items-center justify-center text-white shrink-0 shadow-lg shadow-brand-primary/25">
                         <Hash size={24} />
                       </div>
@@ -530,7 +555,20 @@ export default function Order() {
                         <p className="text-3xl font-black text-brand-primary tracking-widest font-display mt-0.5">{order.pickupCode || order.code || (order._id ? order._id.slice(-6).toUpperCase() : "—")}</p>
                       </div>
                     </div>
-                    <div className="text-center sm:text-right shrink-0 w-full sm:w-auto border-t sm:border-t-0 border-gray-100 pt-3 sm:pt-0">
+
+                    {order.storeAppReceipt && (
+                      <div className="flex items-center gap-3 bg-white dark:bg-zinc-800 border border-emerald-300 dark:border-emerald-700 rounded-2xl px-4 py-2.5 shadow-xs w-full md:w-auto">
+                        <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                          <ReceiptText size={18} />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-[10px] font-extrabold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">Store POS Receipt</p>
+                          <p className="text-xl font-black text-emerald-700 dark:text-emerald-400 font-mono tracking-wider">#{order.storeAppReceipt}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="text-center md:text-right shrink-0 w-full md:w-auto border-t md:border-t-0 border-gray-100 pt-3 md:pt-0">
                       <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider">Fulfillment Method</p>
                       <p className="text-base font-extrabold text-brand-dark capitalize mt-0.5">{orderType}</p>
                     </div>
@@ -579,9 +617,16 @@ export default function Order() {
                           <span className="text-xs font-bold text-brand-muted uppercase tracking-wider flex items-center gap-1">
                             <ReceiptText size={13} /> Order Receipt
                           </span>
-                          <span className="text-[10px] font-extrabold text-brand-primary bg-brand-primary/10 border border-brand-primary/10 px-2.5 py-1 rounded-full uppercase tracking-wider">
-                            {order.paymentStatus || "Paid"}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            {order.storeAppReceipt && (
+                              <span className="text-[10px] font-extrabold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full font-mono">
+                                POS #{order.storeAppReceipt}
+                              </span>
+                            )}
+                            <span className="text-[10px] font-extrabold text-brand-primary bg-brand-primary/10 border border-brand-primary/10 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                              {order.paymentStatus || "Paid"}
+                            </span>
+                          </div>
                         </div>
 
                         {/* Items listed */}

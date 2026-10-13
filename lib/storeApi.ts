@@ -611,6 +611,32 @@ export async function syncStock(payload?: { stockUpdates?: any[] }) {
   return request("/v1/stock/sync", { method: "POST", body: payload || {} });
 }
 
+export interface AdjustStockCommandRequest {
+  productId: number;
+  storeId?: number;
+  adjustBy: number;
+  adjustmentTypeId?: number;
+  cost?: number;
+  remarks?: string;
+}
+
+export async function adjustStock(payload: AdjustStockCommandRequest) {
+  const body = {
+    productId: Math.max(1, Math.floor(Number(payload.productId) || 1)),
+    storeId: Number(payload.storeId) || 1,
+    adjustBy: Number(payload.adjustBy) || 0,
+    adjustmentTypeId: Number(payload.adjustmentTypeId) || 1,
+    cost: Number(payload.cost) || 0,
+    remarks: payload.remarks || "Stock adjustment via API",
+  };
+  return request("/v1/stock/adjustments", {
+    method: "POST",
+    body,
+    idempotencyKey: `ADJ-${payload.productId}-${Date.now()}`,
+    timeoutMs: 15000,
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 5. SALES (/v1/sales)
 // ─────────────────────────────────────────────────────────────────────────────
