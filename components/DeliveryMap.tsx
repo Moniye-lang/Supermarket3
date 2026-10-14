@@ -69,7 +69,7 @@ export default function DeliveryMap({
   const liqKey =
     process.env.NEXT_PUBLIC_LOCATIONIQ_API_KEY ||
     process.env.LOCATIONIQ_API_KEY ||
-    "pk.b7b8fe4d83aeeede8f82ee02201b9597";
+    "";
 
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
 

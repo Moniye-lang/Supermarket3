@@ -310,7 +310,11 @@ export async function POST(req: Request) {
       });
     }
 
-    const jwtSecret = process.env.JWT_SECRET || "fallback_amstores_secret";
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      console.error("[Orders API] JWT_SECRET environment variable is missing");
+      return NextResponse.json({ error: "Server authentication misconfigured" }, { status: 500 });
+    }
     const orderAuthToken = jwt.sign(
       { id: customerId.toString(), role: "customer" },
       jwtSecret,

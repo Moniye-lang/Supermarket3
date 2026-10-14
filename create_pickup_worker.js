@@ -32,8 +32,13 @@ async function main() {
     });
     console.log("Connected successfully!");
 
-    const email = "pickup@amstores.com";
-    const plainPassword = "pickupisready123";
+    const email = (process.env.WORKER_EMAIL || "pickup@amstores.com").trim().toLowerCase();
+    const plainPassword = process.env.WORKER_DEFAULT_PASSWORD;
+    if (!plainPassword) {
+      console.error("❌ ERROR: WORKER_DEFAULT_PASSWORD is not set in environment or .env.local.");
+      console.error("Please provide it via environment variable: WORKER_DEFAULT_PASSWORD=\"your_secure_password\" node create_pickup_worker.js");
+      process.exit(1);
+    }
     const passwordHash = await bcrypt.hash(plainPassword, 10);
 
     const existing = await User.findOne({ email: email.toLowerCase() });
