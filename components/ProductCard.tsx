@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "./ui/Button";
 import { CartContext } from "@/context/CartContext";
 import { AuthContext } from "@/context/AuthContext";
+import { useFavorites } from "@/context/FavoritesContext";
 
 interface Product {
     _id: string;
@@ -35,7 +36,8 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
     const router = useRouter();
     const { addToCart, openCart } = useContext(CartContext);
     const { user, token } = useContext(AuthContext);
-    const [wishlisted, setWishlisted] = useState(false);
+    const { isFavorite, toggleFavorite } = useFavorites();
+    const wishlisted = isFavorite(product._id);
 
     const handleViewDetails = () => {
         if (onViewDetails) {
@@ -113,12 +115,17 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
                 {/* Wishlist Button */}
                 <button
                     type="button"
-                    aria-label="Add to wishlist"
+                    aria-label={wishlisted ? "Remove from favorites" : "Add to favorites"}
                     onClick={(e) => {
                         e.stopPropagation();
-                        setWishlisted((prev) => !prev);
+                        toggleFavorite(product);
                     }}
-                    className="absolute top-3 right-3 p-2 rounded-full bg-white/80 hover:bg-white text-gray-700 hover:text-red-500 transition-colors shadow-sm opacity-0 group-hover:opacity-100 transform translate-x-4 group-hover:translate-x-0 duration-300 z-10 cursor-pointer"
+                    className={cn(
+                        "absolute top-3 right-3 p-2 rounded-full backdrop-blur-md transition-all duration-300 z-10 cursor-pointer shadow-sm",
+                        wishlisted
+                            ? "bg-white text-red-500 opacity-100 scale-100"
+                            : "bg-white/80 hover:bg-white text-gray-700 hover:text-red-500 opacity-0 group-hover:opacity-100 transform translate-x-4 group-hover:translate-x-0"
+                    )}
                 >
                     <Heart size={18} className={wishlisted ? "fill-red-500 text-red-500" : ""} />
                 </button>

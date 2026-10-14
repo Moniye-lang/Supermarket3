@@ -6,7 +6,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
     ShoppingCart,
-    Search,
+    Heart,
     LogOut,
     Home,
     Store,
@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { CartContext } from "@/context/CartContext";
 import { AuthContext } from "@/context/AuthContext";
+import { useFavorites } from "@/context/FavoritesContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/Button";
@@ -31,6 +32,7 @@ import { Button } from "./ui/Button";
 interface MobileBottomNavProps {
     pathname: string;
     totalItems: number;
+    favoritesCount?: number;
     user: { name: string; email: string } | null;
     onLogout: () => void;
 }
@@ -49,7 +51,7 @@ const tabs = [
 /* ──────────────────────────────────────────────────────────────
    Mobile Bottom Tab Bar
 ────────────────────────────────────────────────────────────── */
-function MobileBottomNav({ pathname, totalItems, user, onLogout }: MobileBottomNavProps) {
+function MobileBottomNav({ pathname, totalItems, favoritesCount = 0, user, onLogout }: MobileBottomNavProps) {
     const [showMoreMenu, setShowMoreMenu] = useState(false);
 
     const isActive = (tab: typeof tabs[0]) => {
@@ -86,6 +88,24 @@ function MobileBottomNav({ pathname, totalItems, user, onLogout }: MobileBottomN
                                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
                                 className="absolute bottom-[76px] left-1/2 -translate-x-1/2 z-50 w-44 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-white/60 dark:border-zinc-800 shadow-[0_8px_24px_rgba(0,0,0,0.25)] rounded-2xl p-2 flex flex-col gap-1"
                             >
+                                <Link
+                                    href="/favorites"
+                                    onClick={() => setShowMoreMenu(false)}
+                                    className={cn(
+                                        "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                                        pathname === "/favorites"
+                                            ? "bg-[#AD343E]/10 text-[#AD343E] dark:bg-[#AD343E]/20 dark:text-red-400 font-bold"
+                                            : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-800"
+                                    )}
+                                >
+                                    <Heart size={18} className={pathname === "/favorites" ? "text-[#AD343E] dark:text-red-400 fill-[#AD343E]" : "text-gray-500 dark:text-gray-400"} />
+                                    <span>Saved Favorites</span>
+                                    {favoritesCount > 0 && (
+                                        <span className="ml-auto text-[10px] bg-[#AD343E] text-white font-bold px-2 py-0.5 rounded-full">
+                                            {favoritesCount}
+                                        </span>
+                                    )}
+                                </Link>
                                 <Link
                                     href="/about"
                                     onClick={() => setShowMoreMenu(false)}
@@ -259,6 +279,7 @@ export default function Navbar() {
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const { totalItems, openCart, clearCart } = useContext(CartContext);
     const { user, logout } = useContext(AuthContext);
+    const { favoritesCount } = useFavorites();
     const pathname = usePathname();
 
     const [darkMode, setDarkMode] = useState(false);
@@ -367,13 +388,34 @@ export default function Navbar() {
 
                         {/* Desktop Actions */}
                         <div className="flex items-center gap-2 sm:gap-4">
-                            {/* Search */}
+                            {/* Favorited Products (Replaces Search Icon) */}
                             <Link
-                                href="/products"
-                                aria-label="Search Products"
-                                className="p-2 text-gray-700 dark:text-gray-200 hover:text-brand-primary dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-all hidden sm:block cursor-pointer"
+                                href="/favorites"
+                                aria-label="Favorited Products"
+                                title="My Favorited Products"
+                                className="relative p-2 text-gray-700 dark:text-gray-200 hover:text-brand-primary dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-all flex items-center justify-center cursor-pointer group"
                             >
-                                <Search size={20} />
+                                <Heart
+                                    size={21}
+                                    className={cn(
+                                        "transition-all duration-300 group-hover:scale-110",
+                                        favoritesCount > 0
+                                            ? "text-[#AD343E] dark:text-red-400 fill-[#AD343E]/20"
+                                            : "text-gray-700 dark:text-gray-200 group-hover:text-[#AD343E] dark:group-hover:text-red-400"
+                                    )}
+                                />
+                                <AnimatePresence>
+                                    {favoritesCount > 0 && (
+                                        <motion.span
+                                            initial={{ scale: 0 }}
+                                            animate={{ scale: 1 }}
+                                            exit={{ scale: 0 }}
+                                            className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-[#AD343E] text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white dark:border-zinc-900 shadow-sm"
+                                        >
+                                            {favoritesCount}
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
                             </Link>
 
                             {/* Dark Mode Toggle */}
@@ -436,6 +478,7 @@ export default function Navbar() {
             <MobileBottomNav
                 pathname={pathname}
                 totalItems={totalItems}
+                favoritesCount={favoritesCount}
                 user={user}
                 onLogout={() => setShowLogoutConfirm(true)}
             />

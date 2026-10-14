@@ -4,9 +4,11 @@ import { useParams, useRouter } from "next/navigation";
 import { CartContext } from "@/context/CartContext";
 import { AuthContext } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
-import { Minus, Plus, ShoppingCart, Store, ShieldCheck, ArrowLeft, Share2 } from "lucide-react";
+import { Minus, Plus, ShoppingCart, Store, ShieldCheck, ArrowLeft, Share2, Heart } from "lucide-react";
 import { motion } from "framer-motion";
 import ProductCard from "@/components/ProductCard";
+import { useFavorites } from "@/context/FavoritesContext";
+import { cn } from "@/lib/utils";
 
 export default function ProductDets() {
     const params = useParams();
@@ -14,6 +16,7 @@ export default function ProductDets() {
     const router = useRouter();
     const { user, token: ctxToken } = useContext(AuthContext);
     const { addToCart, openCart } = useContext(CartContext);
+    const { isFavorite, toggleFavorite } = useFavorites();
 
     const [product, setProduct] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -229,7 +232,7 @@ export default function ProductDets() {
                                 </div>
                             </div>
 
-                            <div className="flex flex-col sm:flex-row gap-4">
+                            <div className="flex flex-col sm:flex-row gap-4 items-stretch">
                                 <Button
                                     size="lg"
                                     className="flex-1 text-lg py-6 rounded-xl shadow-brand-primary/25 shadow-xl"
@@ -246,6 +249,26 @@ export default function ProductDets() {
                                     disabled={product.stock === 0}
                                 >
                                     Buy Now
+                                </Button>
+                                <Button
+                                    size="lg"
+                                    variant="outline"
+                                    onClick={() => toggleFavorite(product)}
+                                    className={cn(
+                                        "py-6 px-5 rounded-xl border-2 transition-all cursor-pointer flex items-center justify-center",
+                                        isFavorite(product?._id)
+                                            ? "border-red-300 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/40 dark:border-red-800"
+                                            : "border-gray-200 text-gray-700 hover:text-red-500 hover:border-red-200 dark:border-zinc-800 dark:text-gray-300"
+                                    )}
+                                    title={isFavorite(product?._id) ? "Remove from Favorites" : "Save to Favorites"}
+                                >
+                                    <Heart
+                                        size={22}
+                                        className={cn(
+                                            "transition-transform active:scale-125",
+                                            isFavorite(product?._id) ? "fill-red-500 text-red-500" : ""
+                                        )}
+                                    />
                                 </Button>
                             </div>
                         </div>

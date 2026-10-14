@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
+import { FavoritesProvider } from "@/context/FavoritesContext";
 import dynamic from "next/dynamic";
 
 // Load PushNotificationInit only on the client — never during SSR
@@ -21,10 +22,12 @@ export default function Providers({ children }: { children: ReactNode }) {
     <GoogleOAuthProvider clientId={googleClientId}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <PushNotificationInit />
-          <CartProvider>
-            {children}
-          </CartProvider>
+          <FavoritesProvider>
+            <PushNotificationInit />
+            <CartProvider>
+              {children}
+            </CartProvider>
+          </FavoritesProvider>
         </AuthProvider>
       </QueryClientProvider>
     </GoogleOAuthProvider>

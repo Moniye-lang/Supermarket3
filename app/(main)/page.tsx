@@ -3,7 +3,7 @@ import Hero from "@/components/Hero";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect } from "react";
-import { ShoppingCart, Beef, Donut, Phone, Mail, MapPin, Clock, Tag, Truck, ArrowRight, ShieldCheck, Leaf, Store, PhoneCall, ShoppingBag } from "lucide-react";
+import { ShoppingCart, Beef, Donut, Phone, Mail, MapPin, Clock, Tag, Truck, ArrowRight, ShieldCheck, Leaf, Store, PhoneCall, ShoppingBag, CupSoda, Egg, Sparkles, Smile } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { motion } from "framer-motion";
@@ -13,30 +13,74 @@ export default function Home() {
     {
       Icon: ShoppingCart,
       label: "Groceries & Staples",
-      description: "Pantry essentials, beverages, toiletries, and daily household needs.",
-      bg: "bg-red-50",
-      color: "text-red-600"
+      tag: "150+ Products",
+      description: "Everyday pantry essentials, fragrant long-grain rice, pure vegetable oils, rich seasonings, pastas, flour, and household cooking provisions.",
+      subTags: ["Rice & Grains", "Cooking Oils", "Seasonings"],
+      bg: "bg-red-50 dark:bg-red-950/30",
+      color: "text-red-600 dark:text-red-400"
     },
     {
       Icon: Beef,
       label: "Frozen & Protein",
-      description: "Premium cuts of meat, fresh fish, chicken, and frozen delights.",
-      bg: "bg-orange-50",
-      color: "text-orange-600"
+      tag: "85+ Cuts",
+      description: "Quality prime beef, cleaned whole chicken, fresh sea fish, prawns, and chilled cold-cuts stored under continuous refrigeration.",
+      subTags: ["Fresh Poultry", "Sea Fish", "Prime Beef"],
+      bg: "bg-orange-50 dark:bg-orange-950/30",
+      color: "text-orange-600 dark:text-orange-400"
     },
     {
       Icon: Donut,
       label: "Bakery & Snacks",
-      description: "Oven-fresh bread, pastries, cakes, and your favorite snacks.",
-      bg: "bg-yellow-50",
-      color: "text-yellow-600"
+      tag: "Baked Daily",
+      description: "Oven-warm sandwich loaves, golden meat pies, fluffy pastries, gourmet biscuits, cookies, and crunchy chips for all-day snacking.",
+      subTags: ["Oven Bread", "Pastries", "Savory Snacks"],
+      bg: "bg-amber-50 dark:bg-amber-950/30",
+      color: "text-amber-600 dark:text-amber-400"
     },
     {
       Icon: Leaf,
       label: "Farm Fresh Produce",
-      description: "Crisp vegetables and sweet fruits sourced directly from local farms.",
-      bg: "bg-green-50",
-      color: "text-green-600"
+      tag: "Farm Sourced",
+      description: "Hand-selected ripe tomatoes, scotch bonnet peppers, crisp leafy greens, sweet seasonal fruits, and tubers straight from local growers.",
+      subTags: ["Ripe Tomatoes", "Fresh Greens", "Sweet Fruits"],
+      bg: "bg-emerald-50 dark:bg-emerald-950/30",
+      color: "text-emerald-600 dark:text-emerald-400"
+    },
+    {
+      Icon: CupSoda,
+      label: "Drinks & Beverages",
+      tag: "Chilled & Crisp",
+      description: "Pure bottled water, 100% natural fruit juices, malts, energy drinks, soda packs, premium wines, and imported beverage mixes.",
+      subTags: ["Pure Juices", "Energy Drinks", "Cold Sodas"],
+      bg: "bg-blue-50 dark:bg-blue-950/30",
+      color: "text-blue-600 dark:text-blue-400"
+    },
+    {
+      Icon: Egg,
+      label: "Dairy, Butter & Eggs",
+      tag: "Pure & Fresh",
+      description: "Fresh crate eggs, cultured yogurts, salted and unsalted butter blocks, imported cheese wheels, and rich whole dairy creams.",
+      subTags: ["Farm Eggs", "Artisan Cheese", "Pure Butter"],
+      bg: "bg-yellow-50 dark:bg-yellow-950/30",
+      color: "text-yellow-600 dark:text-yellow-400"
+    },
+    {
+      Icon: Sparkles,
+      label: "Household & Cleaning",
+      tag: "Home Essentials",
+      description: "Heavy-duty laundry detergents, multi-surface disinfectants, air fresheners, soft paper towels, and kitchen cleaning essentials.",
+      subTags: ["Detergents", "Disinfectants", "Paper Goods"],
+      bg: "bg-purple-50 dark:bg-purple-950/30",
+      color: "text-purple-600 dark:text-purple-400"
+    },
+    {
+      Icon: Smile,
+      label: "Personal Care & Hygiene",
+      tag: "Daily Wellness",
+      description: "Luxury bath soaps, moisturizing lotions, shampoos, oral hygiene kits, deodorants, baby care products, and wellness essentials.",
+      subTags: ["Skin & Body", "Oral Care", "Baby Needs"],
+      bg: "bg-rose-50 dark:bg-rose-950/30",
+      color: "text-rose-600 dark:text-rose-400"
     }
   ];
 
@@ -45,48 +89,84 @@ export default function Home() {
       <Hero />
 
       {/* CATEGORIES SECTION */}
-      <section className="py-16 md:py-20 relative bg-white">
-        <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-30"></div>
+      <section className="py-20 md:py-28 relative bg-white dark:bg-zinc-950 transition-colors">
+        <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:16px_16px] opacity-40"></div>
 
         <div className="container mx-auto px-6 relative z-10">
-          <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-14 gap-6">
             <div className="max-w-2xl">
               <span className="text-brand-primary font-semibold tracking-wider text-sm uppercase flex items-center gap-2">
                 <span className="w-8 h-1 bg-brand-primary rounded-full"></span>
                 What We Offer
               </span>
-              <h2 className="text-3xl md:text-5xl font-display font-extrabold text-brand-dark mt-3">Shop By Category</h2>
+              <h2 className="text-3xl md:text-5xl font-display font-extrabold text-brand-dark dark:text-white mt-3">
+                Shop By Category
+              </h2>
+              <p className="text-gray-500 dark:text-gray-400 text-sm md:text-base mt-2">
+                Explore our full range of supermarket departments with guaranteed freshness and express in-store pickup.
+              </p>
             </div>
             <Link href="/products">
-              <Button variant="outline" aria-label="View All Categories" className="rounded-full px-6 hover:bg-brand-dark hover:text-white transition-colors border-gray-300 text-gray-800">
+              <Button variant="outline" aria-label="View All Categories" className="rounded-full px-6 py-2.5 hover:bg-brand-dark hover:text-white transition-colors border-gray-300 dark:border-zinc-700 text-gray-800 dark:text-gray-200">
                 View All Categories <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </Link>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-7">
             {categories.map((item, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
-                transition={{ delay: index * 0.1, duration: 0.6 }}
-                whileHover={{ y: -6 }}
+                transition={{ delay: index * 0.08, duration: 0.5 }}
+                whileHover={{ y: -8 }}
+                className="h-full"
               >
                 <Link href={`/products?category=${encodeURIComponent(item.label)}`} className="block h-full">
-                  <Card className="h-full border border-gray-100 shadow-md hover:shadow-xl hover:shadow-brand-primary/10 transition-all duration-300 rounded-[1.75rem] overflow-hidden bg-white group cursor-pointer">
-                    <CardContent className="p-6 flex flex-col h-full relative z-10">
-                      <div className="absolute top-0 right-0 w-28 h-28 bg-gradient-to-bl from-gray-50 to-transparent rounded-bl-full -z-10 group-hover:from-brand-primary/5 transition-colors"></div>
+                  <Card className="h-full min-h-[350px] border border-gray-100 dark:border-zinc-800/80 shadow-md hover:shadow-2xl hover:shadow-brand-primary/10 transition-all duration-300 rounded-[2rem] overflow-hidden bg-white dark:bg-zinc-900 group cursor-pointer flex flex-col justify-between">
+                    <CardContent className="p-7 sm:p-8 flex flex-col h-full relative z-10 justify-between">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-gray-50 dark:from-zinc-800 to-transparent rounded-bl-full -z-10 group-hover:from-brand-primary/10 transition-colors"></div>
 
-                      <div className={`w-14 h-14 ${item.bg} ${item.color} rounded-2xl flex items-center justify-center mb-5 shadow-xs group-hover:scale-105 transition-transform duration-300`}>
-                        <item.Icon size={24} />
+                      <div>
+                        {/* Top Row: Icon + Badge */}
+                        <div className="flex items-center justify-between mb-6">
+                          <div className={`w-14 h-14 ${item.bg} ${item.color} rounded-2xl flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform duration-300`}>
+                            <item.Icon size={26} />
+                          </div>
+                          <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-zinc-800 px-3 py-1 rounded-full group-hover:bg-brand-primary/10 group-hover:text-brand-primary transition-colors">
+                            {item.tag}
+                          </span>
+                        </div>
+
+                        {/* Title & Description */}
+                        <h3 className="text-xl sm:text-2xl font-bold text-brand-dark dark:text-white mb-2.5 font-display group-hover:text-brand-primary transition-colors">
+                          {item.label}
+                        </h3>
+                        <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm leading-relaxed mb-5">
+                          {item.description}
+                        </p>
+
+                        {/* Subcategory Pills */}
+                        <div className="flex flex-wrap gap-1.5 mb-6">
+                          {item.subTags.map((sub, sIdx) => (
+                            <span
+                              key={sIdx}
+                              className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-zinc-800/80 border border-gray-100 dark:border-zinc-700 px-2.5 py-1 rounded-lg"
+                            >
+                              {sub}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                      <h3 className="text-xl font-bold text-brand-dark mb-2 font-display">{item.label}</h3>
-                      <p className="text-gray-600 mb-6 flex-grow text-xs leading-relaxed">{item.description}</p>
 
-                      <div className="flex items-center text-xs font-semibold text-brand-dark group-hover:text-brand-primary transition-colors mt-auto">
-                        Explore <ArrowRight className="ml-2 w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                      {/* Footer Action Row */}
+                      <div className="pt-4 border-t border-gray-100 dark:border-zinc-800/80 flex items-center justify-between text-xs font-bold text-brand-dark dark:text-white group-hover:text-brand-primary transition-colors mt-auto">
+                        <span>Explore Department</span>
+                        <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-brand-primary group-hover:text-white transition-all">
+                          <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
