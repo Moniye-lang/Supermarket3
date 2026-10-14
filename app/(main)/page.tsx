@@ -97,21 +97,21 @@ export default function Home() {
         </div>
       </section>
 
-      {/* STORE PICKUP SECTION */}
-      <section className="py-14 md:py-18 bg-brand-dark text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-primary/15 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-orange-500/10 rounded-full blur-[100px] pointer-events-none" />
+      {/* STORE PICKUP SECTION (100vh) */}
+      <section className="min-h-screen lg:h-screen w-full flex items-center justify-center bg-brand-dark text-white relative overflow-hidden py-12 lg:py-0">
+        <div className="absolute top-0 right-0 w-[550px] h-[550px] bg-brand-primary/20 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[450px] h-[450px] bg-orange-500/10 rounded-full blur-[100px] pointer-events-none" />
 
-        <div className="container mx-auto px-6 grid lg:grid-cols-12 gap-10 lg:gap-14 items-center relative z-10">
+        <div className="container mx-auto px-6 grid lg:grid-cols-2 gap-8 lg:gap-14 items-center relative z-10 max-h-full">
 
-          <div className="relative h-[320px] md:h-[380px] lg:col-span-5 flex items-center justify-center order-2 lg:order-1">
-            <div className="absolute inset-0 bg-white/5 rounded-[2.5rem] -rotate-3 transform border border-white/10" />
-            <div className="absolute inset-3 rounded-[2rem] overflow-hidden">
+          <div className="relative h-[360px] sm:h-[420px] lg:h-[480px] xl:h-[520px] flex items-center justify-center order-2 lg:order-1">
+            <div className="absolute inset-0 bg-white/5 rounded-[3rem] -rotate-6 transform border border-white/10" />
+            <div className="absolute inset-3 sm:inset-4 rounded-[2.5rem] overflow-hidden">
               <Image
                 src="/IMG_4542.JPG"
                 alt="Store Pickup"
                 fill
-                sizes="(max-width: 768px) 100vw, 40vw"
+                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 600px"
                 className="object-cover opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-700"
                 loading="lazy"
                 quality={75}
@@ -122,73 +122,57 @@ export default function Home() {
               initial={{ opacity: 0, scale: 0.8 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
-              className="absolute -right-4 md:-right-6 bottom-6 bg-white text-brand-dark px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 border border-gray-100"
+              className="absolute -right-3 sm:-right-6 top-1/3 bg-white text-brand-dark p-3 sm:p-4 rounded-2xl shadow-2xl flex items-center gap-3 sm:gap-4 z-20"
             >
-              <div className="w-10 h-10 bg-green-100 text-green-600 rounded-xl flex items-center justify-center">
-                <Store size={20} />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center">
+                <Store size={22} />
               </div>
               <div>
-                <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Pickup Status</p>
-                <p className="font-bold text-sm leading-tight text-gray-900">Ready on Arrival</p>
+                <p className="text-[10px] sm:text-xs text-gray-600 font-medium">Status</p>
+                <p className="font-bold text-sm sm:text-lg leading-tight text-gray-900">Ready for Pickup</p>
               </div>
             </motion.div>
           </div>
 
-          <div className="space-y-6 lg:col-span-7 order-1 lg:order-2">
+          <div className="space-y-4 sm:space-y-5 order-1 lg:order-2 max-w-xl">
             <div>
-              <span className="text-brand-primary font-semibold tracking-wider text-xs uppercase flex items-center gap-2 mb-2.5">
-                <span className="w-6 h-1 bg-brand-primary rounded-full"></span>
+              <span className="text-brand-primary font-semibold tracking-wider text-xs uppercase flex items-center gap-2 mb-2">
+                <span className="w-8 h-1 bg-brand-primary rounded-full"></span>
                 Express Store Pickup
               </span>
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold leading-tight text-white">
-                Instant Pickup ·{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-orange-500">
-                  Ready on Arrival.
-                </span>
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-display font-bold leading-tight text-white">
+                Instant Pickup <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-orange-500">Ready on Arrival.</span>
               </h2>
             </div>
 
-            <p className="text-gray-300 text-sm md:text-base leading-relaxed max-w-2xl">
-              Skip the checkout queues entirely. Order ahead online, and our staff will hand-pick and carefully pack your items ready for quick collection at AMStores, General Gas Road, Akobo.
+            <p className="text-gray-300 text-sm sm:text-base leading-relaxed">
+              Skip the checkout queues entirely. Order ahead online, and our staff will hand-pick and carefully pack your items ready for collection at AMStores, General Gas Road, Akobo.
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-              <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3 hover:bg-white/10 transition-colors">
-                <div className="w-9 h-9 rounded-lg bg-brand-primary/20 text-brand-primary flex items-center justify-center shrink-0">
-                  <Clock size={18} />
-                </div>
-                <div>
-                  <h4 className="font-bold text-xs text-white leading-tight">15-Min Prep</h4>
-                  <p className="text-gray-400 text-[11px]">Packed at counter</p>
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3 hover:bg-white/10 transition-colors">
-                <div className="w-9 h-9 rounded-lg bg-orange-500/20 text-orange-400 flex items-center justify-center shrink-0">
-                  <ShieldCheck size={18} />
-                </div>
-                <div>
-                  <h4 className="font-bold text-xs text-white leading-tight">Cold-Chain Safe</h4>
-                  <p className="text-gray-400 text-[11px]">Perishables chilled</p>
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3 hover:bg-white/10 transition-colors">
-                <div className="w-9 h-9 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-                  <PhoneCall size={18} />
-                </div>
-                <div>
-                  <h4 className="font-bold text-xs text-white leading-tight">Curbside Call</h4>
-                  <p className="text-gray-400 text-[11px]">Brought to car</p>
-                </div>
-              </div>
+            <div className="space-y-2.5 sm:space-y-3">
+              <FeatureItem
+                icon={Clock}
+                title="Swift 15-Minute Preparation"
+                desc="Your order is packed and waiting at our counter shortly after your payment is confirmed."
+              />
+              <FeatureItem
+                icon={ShieldCheck}
+                title="Fresh & Cold-Chain Guarantee"
+                desc="Frozen foods and perishables are kept in optimal refrigerated storage until you collect them."
+              />
+              <FeatureItem
+                icon={PhoneCall}
+                title="1-Click Call on Arrival"
+                desc="Call our store frontdesk with a single tap on arrival and our team will bring your items out."
+              />
             </div>
 
             <div className="pt-2">
               <Link href="/products">
-                <Button size="lg" aria-label="Order for Pickup Now" className="rounded-full px-7 py-5 text-sm font-bold bg-brand-primary hover:bg-brand-primary-hover text-white shadow-lg shadow-brand-primary/25 group">
+                <Button size="lg" aria-label="Order for Pickup Now" className="rounded-full px-7 sm:px-8 py-4 sm:py-5 text-sm sm:text-base font-bold bg-brand-primary hover:bg-brand-primary-hover text-white shadow-xl shadow-brand-primary/30 group">
                   <span>Order for In-Store Pickup</span>
-                  <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
             </div>
@@ -260,6 +244,20 @@ export default function Home() {
         </div>
       </section>
 
+    </div>
+  );
+}
+
+function FeatureItem({ icon: Icon, title, desc }: { icon: React.ElementType; title: string; desc: string }) {
+  return (
+    <div className="flex items-start gap-3 sm:gap-3.5 p-2.5 sm:p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-300 group cursor-default">
+      <div className="bg-white/10 p-2 sm:p-2.5 rounded-xl shrink-0 group-hover:bg-brand-primary group-hover:scale-105 transition-all duration-300">
+        <Icon size={18} className="text-white" />
+      </div>
+      <div>
+        <h4 className="font-bold text-xs sm:text-sm mb-0.5 text-white/90">{title}</h4>
+        <p className="text-gray-300 text-[11px] sm:text-xs leading-relaxed">{desc}</p>
+      </div>
     </div>
   );
 }
