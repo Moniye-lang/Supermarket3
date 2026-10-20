@@ -11,6 +11,7 @@ import { useFavorites } from "@/context/FavoritesContext";
 
 interface Product {
     _id: string;
+    id?: number | string;
     name?: string;
     title?: string;
     image?: string;
@@ -37,13 +38,14 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
     const { addToCart, openCart } = useContext(CartContext);
     const { user, token } = useContext(AuthContext);
     const { isFavorite, toggleFavorite } = useFavorites();
-    const wishlisted = isFavorite(product._id);
+    const prodId = product._id || (product as any).id;
+    const wishlisted = isFavorite(prodId ? String(prodId) : undefined);
 
     const handleViewDetails = () => {
         if (onViewDetails) {
             onViewDetails(product);
-        } else {
-            router.push(`/product/${product._id}`);
+        } else if (prodId) {
+            router.push(`/product/${prodId}`);
         }
     };
 

@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useState, useContext } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { CartContext } from "@/context/CartContext";
 import { AuthContext } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
-import { Minus, Plus, ShoppingCart, Store, ShieldCheck, ArrowLeft, Share2, Heart } from "lucide-react";
+import { Minus, Plus, ShoppingCart, Store, ShieldCheck, ArrowLeft, Share2, Heart, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import ProductCard from "@/components/ProductCard";
 import { useFavorites } from "@/context/FavoritesContext";
@@ -12,7 +13,7 @@ import { cn } from "@/lib/utils";
 
 export default function ProductDets() {
     const params = useParams();
-    const id = params.id as string;
+    const id = params?.id as string;
     const router = useRouter();
     const { user, token: ctxToken } = useContext(AuthContext);
     const { addToCart, openCart } = useContext(CartContext);
@@ -20,48 +21,60 @@ export default function ProductDets() {
 
     const [product, setProduct] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [loadingRelated, setLoadingRelated] = useState(false);
     const [qty, setQty] = useState(1);
     const [activeImage, setActiveImage] = useState(0);
     const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
 
     const token = ctxToken || (typeof window !== "undefined" ? localStorage.getItem("token") : null);
 
+    const handleBackToShopping = (e?: React.MouseEvent) => {
+        if (e) e.preventDefault();
+        // If user navigated internally from within the store (and wasn't on a product page), go back to preserve search/filters
+        if (
+            typeof window !== "undefined" &&
+            window.history.length > 1 &&
+            document.referrer &&
+            document.referrer.includes(window.location.host) &&
+            !document.referrer.includes("/product/")
+        ) {
+            router.back();
+        } else {
+            router.push("/products");
+        }
+    };
+
     useEffect(() => {
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        window.scrollTo({ top: 0, behavior: "instant" as any });
+        setQty(1);
+        setActiveImage(0);
 
         const fetchProductData = async () => {
             try {
                 setLoading(true);
 
-                const targetUrl = `/api/products/${id}?_t=${Date.now()}`;
+                const targetUrl = `/api/products/${encodeURIComponent(id)}?_t=${Date.now()}`;
                 const res = await fetch(targetUrl, { cache: "no-store" });
                 if (!res.ok) throw new Error(`Server responded with status: ${res.status}`);
 
                 const data = await res.json();
+                const prodId = data?._id || data?.id;
 
-                if (data && data._id) {
+                if (data && prodId) {
                     const prodImages = Array.isArray(data.images) && data.images.length > 0 
                         ? data.images 
-                        : (data.image ? [data.image] : []);
+                        : (data.image ? [data.image] : ["/placeholder-food.png"]);
 
                     setProduct({
                         ...data,
+                        _id: prodId,
+                        id: data.id || prodId,
                         images: prodImages,
-                        stockStatus: data.stockStatus || (data.stock > 0 ? "In Stock" : "Out of Stock")
+                        stockStatus: data.stockStatus || (data.stock > 0 || data.stock === -1 ? "In Stock" : "Out of Stock")
                     });
 
-                    // Fetch related products from own API
-                    if (data.category) {
-                        const relatedRes = await fetch(`/api/products?category=${encodeURIComponent(data.category)}&limit=5&_t=${Date.now()}`, { cache: "no-store" });
-
-                        if (relatedRes.ok) {
-                            const relatedData = await relatedRes.json();
-                            const filtered = (relatedData.products || [])
-                                .filter((p: any) => String(p._id) !== String(id))
-                                .slice(0, 4);
-                            setRelatedProducts(filtered);
-                        }
-                    }
+                    // Fetch suggestions for this product
+                    fetchSuggestions(data, String(prodId));
                 } else {
                     setProduct(null);
                 }
@@ -70,6 +83,60 @@ export default function ProductDets() {
                 setProduct(null);
             } finally {
                 setLoading(false);
+            }
+        };
+
+        const fetchSuggestions = async (currentProd: any, currentId: string) => {
+            try {
+                setLoadingRelated(true);
+                let suggestions: any[] = [];
+                const normCurrentId = String(currentId);
+
+                // 1. Fetch products from the same category if available
+                if (currentProd.category && currentProd.category !== "All Departments") {
+                    try {
+                        const targetCat = encodeURIComponent(currentProd.category);
+                        const relatedRes = await fetch(`/api/products?category=${targetCat}&limit=8&_t=${Date.now()}`, { cache: "no-store" });
+                        if (relatedRes.ok) {
+                            const relatedData = await relatedRes.json();
+                            const items = Array.isArray(relatedData.products) ? relatedData.products : [];
+                            suggestions = items.filter((p: any) => {
+                                const pid = String(p._id || p.id || "");
+                                return pid && pid !== normCurrentId && pid !== String(id);
+                            });
+                        }
+                    } catch (catErr) {
+                        console.warn("Failed fetching category suggestions:", catErr);
+                    }
+                }
+
+                // 2. If fewer than 4 suggestions found in category, augment with general catalog items to guarantee 4 suggestions
+                if (suggestions.length < 4) {
+                    try {
+                        const fallbackRes = await fetch(`/api/products?limit=12&_t=${Date.now()}`, { cache: "no-store" });
+                        if (fallbackRes.ok) {
+                            const fallbackData = await fallbackRes.json();
+                            const fallbackItems = Array.isArray(fallbackData.products) ? fallbackData.products : [];
+                            for (const item of fallbackItems) {
+                                const itemPid = String(item._id || item.id || "");
+                                if (!itemPid || itemPid === normCurrentId || itemPid === String(id)) continue;
+                                if (!suggestions.some((s) => String(s._id || s.id || "") === itemPid)) {
+                                    suggestions.push(item);
+                                }
+                                if (suggestions.length >= 4) break;
+                            }
+                        }
+                    } catch (fbErr) {
+                        console.warn("Failed fetching fallback suggestions:", fbErr);
+                    }
+                }
+
+                setRelatedProducts(suggestions.slice(0, 4));
+            } catch (err) {
+                console.error("Error fetching related products:", err);
+                setRelatedProducts([]);
+            } finally {
+                setLoadingRelated(false);
             }
         };
 
@@ -114,13 +181,14 @@ export default function ProductDets() {
         <div className="min-h-screen bg-brand-light pt-24 pb-20">
             <div className="container mx-auto px-4 md:px-8 max-w-7xl">
 
-                <button
-                    onClick={() => router.back()}
-                    className="flex items-center gap-2 text-gray-500 hover:text-brand-primary transition-colors mb-8 group"
+                <Link
+                    href="/products"
+                    onClick={handleBackToShopping}
+                    className="inline-flex items-center gap-2 text-gray-500 hover:text-brand-primary transition-colors mb-8 group font-medium cursor-pointer"
                 >
                     <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
                     Back to shopping
-                </button>
+                </Link>
 
                 <div className="grid lg:grid-cols-2 gap-12 lg:gap-20">
 
@@ -294,32 +362,73 @@ export default function ProductDets() {
 
                 </div>
 
-                {/* Related Products */}
-                {relatedProducts.length > 0 && (
-                    <div className="mt-32">
-                        <h2 className="text-3xl font-display font-bold text-brand-dark mb-10">You might also like</h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                            {relatedProducts.map((p: any) => (
-                                <ProductCard
-                                    key={p._id}
-                                    product={p}
-                                    onViewDetails={(prod) => router.push(`/product/${prod._id}`)}
-                                    onAddToCart={() => {
-                                        addToCart({ ...p, qty: 1 });
-                                        openCart("cart");
-                                    }}
-                                    onBuyNow={() => {
-                                        if (!token && !user) {
-                                            addToCart({ ...p, qty: 1 });
-                                            router.push("/signin");
-                                            return;
-                                        }
-                                        addToCart({ ...p, qty: 1 });
-                                        openCart("checkout");
-                                    }}
-                                />
-                            ))}
+                {/* Related Products / Suggestions */}
+                {(loadingRelated || relatedProducts.length > 0) && (
+                    <div className="mt-32 pt-12 border-t border-gray-100">
+                        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
+                            <div>
+                                <span className="text-brand-primary text-xs font-bold uppercase tracking-widest block mb-1">Recommended For You</span>
+                                <h2 className="text-3xl font-display font-bold text-brand-dark">You might also like</h2>
+                            </div>
+                            <Link
+                                href="/products"
+                                className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-primary hover:text-brand-primary/80 transition-colors group"
+                            >
+                                Browse All Products
+                                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                            </Link>
                         </div>
+
+                        {loadingRelated && relatedProducts.length === 0 ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                {[1, 2, 3, 4].map((n) => (
+                                    <div key={n} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm animate-pulse h-80 flex flex-col justify-between">
+                                        <div className="aspect-square bg-gray-100 rounded-xl mb-4 w-full" />
+                                        <div className="space-y-2">
+                                            <div className="h-4 bg-gray-100 rounded w-3/4" />
+                                            <div className="h-3 bg-gray-100 rounded w-1/2" />
+                                        </div>
+                                        <div className="h-8 bg-gray-100 rounded mt-4 w-full" />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                {relatedProducts.map((p: any) => {
+                                    const prodKey = p._id || p.id;
+                                    return (
+                                        <ProductCard
+                                            key={prodKey}
+                                            product={{
+                                                ...p,
+                                                _id: prodKey,
+                                                id: p.id || prodKey,
+                                            }}
+                                            onViewDetails={(prod) => {
+                                                const nextId = prod?._id || prod?.id || prodKey;
+                                                if (nextId) {
+                                                    router.push(`/product/${nextId}`);
+                                                }
+                                            }}
+                                            onAddToCart={(prod) => {
+                                                addToCart({ ...(prod || p), qty: 1 });
+                                                openCart("cart");
+                                            }}
+                                            onBuyNow={(prod) => {
+                                                const itemToAdd = prod || p;
+                                                if (!token && !user) {
+                                                    addToCart({ ...itemToAdd, qty: 1 });
+                                                    router.push("/signin");
+                                                    return;
+                                                }
+                                                addToCart({ ...itemToAdd, qty: 1 });
+                                                openCart("checkout");
+                                            }}
+                                        />
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 )}
 
