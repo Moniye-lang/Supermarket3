@@ -12,7 +12,7 @@ if (!JWT_SECRET) {
 export async function POST(req: Request) {
   try {
     await dbConnect();
-    const { email, password } = await req.json();
+    const { email, password, pwa } = await req.json();
 
     if (!email || !password) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
@@ -30,7 +30,8 @@ export async function POST(req: Request) {
 
     if (!user.isVerified) return NextResponse.json({ error: "Please verify your email first" }, { status: 400 });
 
-    const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: "7d" });
+    const tokenExpiry = (user.role === "admin" && pwa) ? "365d" : "7d";
+    const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: tokenExpiry });
 
     return NextResponse.json({
       success: true,

@@ -30,11 +30,16 @@ export default function AdminLoginPage() {
     setLoading(true);
     setError("");
 
+    // Detect if running as an installed PWA (standalone mode)
+    const isPwa =
+      (typeof window !== "undefined" && "standalone" in window.navigator && (window.navigator as any).standalone) ||
+      window.matchMedia("(display-mode: standalone)").matches;
+
     try {
       const res = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, pwa: isPwa }),
       });
 
       const data = await res.json();
