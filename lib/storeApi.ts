@@ -65,7 +65,7 @@ export function getStoreApiConfig(): StoreAppConfig {
   const baseUrl = (
     process.env.STORE_API_URL ||
     process.env.STOREAPP_API_URL ||
-    "https://storeapp-epi.azurewebsites.net"
+    "https://st-epi-dev.azurewebsites.net"
   ).trim().replace(/\/$/, "");
 
   const adminKey = (
@@ -169,14 +169,35 @@ async function request<T = any>(
     try {
       parsed = JSON.parse(text);
     } catch {
-      parsed = text;
+      if (typeof text === "string" && (text.includes("<!DOCTYPE") || text.includes("<html"))) {
+        const titleMatch = text.match(/<title>(.*?)<\/title>/i);
+        const h1Match = text.match(/<h1[^>]*>(.*?)<\/h1>/i);
+        const headline = h1Match ? h1Match[1].replace(/<[^>]+>/g, "").trim() : (titleMatch ? titleMatch[1].trim() : "Upstream Service Error");
+        parsed = {
+          success: false,
+          error: headline,
+          message: headline.toLowerCase().includes("stopped")
+            ? "The upstream Azure Web App is currently stopped. Please start the app service in the Azure Portal."
+            : `Upstream service returned error (${res.status}): ${headline}`,
+          status: res.status,
+        };
+      } else {
+        parsed = text;
+      }
     }
 
     if (!res.ok) {
+      const errorMsg =
+        typeof parsed === "object" && parsed?.message
+          ? parsed.message
+          : typeof parsed === "object" && parsed?.error
+          ? parsed.error
+          : `Request failed with status ${res.status}`;
+
       return {
         success: false,
         data: parsed,
-        error: typeof parsed === "object" && parsed?.message ? parsed.message : `Request failed with status ${res.status}`,
+        error: errorMsg,
         status: res.status,
       };
     }
