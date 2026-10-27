@@ -13,6 +13,7 @@ export default function Cart() {
   const {
     cart,
     addToCart,
+    addOne,
     removeOne,
     removeFromCart,
     clearCart,
@@ -104,13 +105,27 @@ export default function Cart() {
                             <span className="w-8 text-center font-bold text-sm text-gray-900">{item.qty}</span>
                             <button
                               type="button"
-                              onClick={() => addToCart(item)}
-                              className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-brand-primary transition-colors cursor-pointer"
-                              title="Increase quantity"
+                              onClick={() => addOne(itemId)}
+                              disabled={typeof item.stock === "number" && item.stock >= 0 && item.qty >= item.stock}
+                              className={`w-8 h-8 flex items-center justify-center transition-colors ${
+                                typeof item.stock === "number" && item.stock >= 0 && item.qty >= item.stock
+                                  ? "text-gray-300 cursor-not-allowed"
+                                  : "text-gray-600 hover:text-brand-primary cursor-pointer"
+                              }`}
+                              title={
+                                typeof item.stock === "number" && item.stock >= 0 && item.qty >= item.stock
+                                  ? `Max available stock reached (${item.stock})`
+                                  : "Increase quantity"
+                              }
                             >
                               <Plus size={14} />
                             </button>
                           </div>
+                          {typeof item.stock === "number" && item.stock >= 0 && item.qty >= item.stock && (
+                            <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                              Max Stock ({item.stock})
+                            </span>
+                          )}
                         </div>
                       </div>
                     </motion.div>

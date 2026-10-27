@@ -28,6 +28,7 @@ export default function CartOverlay() {
   const {
     cart,
     addToCart,
+    addOne,
     removeOne,
     removeFromCart,
     clearCart,
@@ -382,6 +383,7 @@ export default function CartOverlay() {
                 <CartDrawerItemList
                   cart={cart}
                   addToCart={addToCart}
+                  addOne={addOne}
                   removeOne={removeOne}
                   removeFromCart={removeFromCart}
                   clearCart={clearCart}

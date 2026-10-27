@@ -14,9 +14,10 @@ interface CartItem {
 
 interface CartDrawerItemListProps {
   cart: CartItem[];
-  addToCart: (product: any) => void;
-  removeOne: (id: string) => void;
-  removeFromCart: (id: string) => void;
+  addToCart: (product: any, qtyToAdd?: number) => void;
+  addOne?: (id: string | number) => void;
+  removeOne: (id: string | number) => void;
+  removeFromCart: (id: string | number) => void;
   clearCart: () => void;
   onBrowseProducts: () => void;
 }
@@ -24,6 +25,7 @@ interface CartDrawerItemListProps {
 export default function CartDrawerItemList({
   cart,
   addToCart,
+  addOne,
   removeOne,
   removeFromCart,
   clearCart,
@@ -102,13 +104,28 @@ export default function CartDrawerItemList({
                     </span>
                     <button
                       type="button"
-                      onClick={() => addToCart(item)}
-                      className="p-1 text-gray-600 dark:text-gray-300 hover:text-brand-primary transition-colors cursor-pointer"
-                      title="Increase quantity"
+                      onClick={() => (addOne ? addOne(itemId) : addToCart(item, 1))}
+                      disabled={typeof item.stock === "number" && item.stock >= 0 && item.qty >= item.stock}
+                      className={
+                        typeof item.stock === "number" && item.stock >= 0 && item.qty >= item.stock
+                          ? "p-1 text-gray-300 dark:text-zinc-600 cursor-not-allowed"
+                          : "p-1 text-gray-600 dark:text-gray-300 hover:text-brand-primary transition-colors cursor-pointer"
+                      }
+                      title={
+                        typeof item.stock === "number" && item.stock >= 0 && item.qty >= item.stock
+                          ? `Max available stock reached (${item.stock})`
+                          : "Increase quantity"
+                      }
                     >
                       <Plus size={13} />
                     </button>
                   </div>
+
+                  {typeof item.stock === "number" && item.stock >= 0 && item.qty >= item.stock && (
+                    <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-1.5 py-0.5 rounded border border-amber-200/50">
+                      Max ({item.stock})
+                    </span>
+                  )}
 
                   <button
                     type="button"

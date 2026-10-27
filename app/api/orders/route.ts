@@ -141,6 +141,14 @@ export async function POST(req: Request) {
       const itemImage = dbProduct.image || (Array.isArray(it.images) ? it.images[0] : (it.image || ""));
       const itemQty = Math.max(1, Math.floor(Number(it.qty || it.quantity) || 1));
 
+      // Authoritative stock limit verification
+      if (typeof dbProduct.stock === "number" && dbProduct.stock >= 0 && itemQty > dbProduct.stock) {
+        return NextResponse.json(
+          { error: `Insufficient stock for "${itemName}". Only ${dbProduct.stock} item(s) available.` },
+          { status: 400 }
+        );
+      }
+
       detailed.push({
         productId: pId,
         storeProductId: dbProduct?.storeProductId || (/^\d+$/.test(pId) ? pId : undefined),

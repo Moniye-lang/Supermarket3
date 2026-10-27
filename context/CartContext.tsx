@@ -16,9 +16,10 @@ interface CartItem {
 interface CartContextType {
   cart: CartItem[];
   loading: boolean;
-  addToCart: (product: any) => void;
-  removeOne: (id: string) => void;
-  removeFromCart: (id: string) => void;
+  addToCart: (product: any, qtyToAdd?: number) => void;
+  addOne: (id: string | number) => void;
+  removeOne: (id: string | number) => void;
+  removeFromCart: (id: string | number) => void;
   clearCart: () => void;
   totalItems: number;
   totalPrice: number;
@@ -35,6 +36,7 @@ export const CartContext = createContext<CartContextType>({
   cart: [],
   loading: true,
   addToCart: () => {},
+  addOne: () => {},
   removeOne: () => {},
   removeFromCart: () => {},
   clearCart: () => {},
@@ -90,17 +92,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
           const normalized = parsed
             .map((item: any) => {
               const id = String(item.productId || item._id || item.id || "");
+              const rawQty = Math.floor(Number(item.qty) || 1);
+              const itemStock = typeof item.stock === "number" && item.stock >= 0 ? item.stock : undefined;
+              // Auto-heal corrupted or runaway quantities, and clamp to actual stock if available
+              let safeQty = rawQty > 999 || rawQty < 1 ? 1 : rawQty;
+              if (itemStock !== undefined) {
+                safeQty = Math.min(itemStock, safeQty);
+              }
               return {
                 ...item,
                 productId: id,
                 _id: id,
                 id: id,
-                qty: Number(item.qty) || 1,
+                stock: itemStock,
+                qty: safeQty,
                 price: Number(item.price) || 0,
               };
             })
             .filter((i: any) => Boolean(i.productId));
           setCart(normalized);
+          localStorage.setItem("cart", JSON.stringify(normalized));
         }
       } catch {
         // keep local storage safe
@@ -135,9 +146,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
         const data = await res.json();
         if (Array.isArray(data?.items)) {
-          if (data.items.length > 0) {
-            setCart(data.items);
-            localStorage.setItem("cart", JSON.stringify(data.items));
+          const sanitized = data.items
+            .map((item: any) => {
+              const id = String(item.productId || item._id || item.id || "");
+              const rawQty = Math.floor(Number(item.qty) || 1);
+              const itemStock = typeof item.stock === "number" && item.stock >= 0 ? item.stock : undefined;
+              let safeQty = rawQty > 999 || rawQty < 1 ? 1 : rawQty;
+              if (itemStock !== undefined) {
+                safeQty = Math.min(itemStock, safeQty);
+              }
+              return {
+                ...item,
+                productId: id,
+                _id: id,
+                id: id,
+                stock: itemStock,
+                qty: safeQty,
+                price: Number(item.price) || 0,
+              };
+            })
+            .filter((i: any) => Boolean(i.productId));
+
+          if (sanitized.length > 0) {
+            setCart(sanitized);
+            localStorage.setItem("cart", JSON.stringify(sanitized));
           } else {
             // If backend is empty but user had a local cart, sync local cart to backend
             const stored = localStorage.getItem("cart");
@@ -218,26 +250,66 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [token, user]);
 
-  // Add item
-  function addToCart(product: any) {
+  // Add item (strictly bounded by actual stock quantity)
+  function addToCart(product: any, qtyToAdd?: number) {
     if (!product) return;
     const rawId = product.productId || product._id || product.id;
     if (!rawId) return;
     const id = String(rawId);
 
-    const addQty = Math.max(1, Number(product.qty) || 1);
     const existingIndex = cart.findIndex(
       (item) => item.productId === id || item._id === id || item.id === id
     );
+
+    // Look up stock from product or existing cart item
+    const rawStock =
+      typeof product.stock === "number" && product.stock >= 0
+        ? product.stock
+        : typeof product.stockQuantity === "number" && product.stockQuantity >= 0
+        ? product.stockQuantity
+        : existingIndex > -1 && typeof cart[existingIndex].stock === "number"
+        ? cart[existingIndex].stock
+        : undefined;
+
+    // Out of stock guard
+    if (rawStock !== undefined && rawStock <= 0) {
+      return;
+    }
+
+    const maxStock = rawStock !== undefined ? rawStock : 99;
+
+    // Safeguard: Determine exact quantity to increment
+    let addQty = 1;
+    if (typeof qtyToAdd === "number" && qtyToAdd > 0) {
+      addQty = Math.floor(qtyToAdd);
+    } else if (existingIndex > -1 && product.qty === cart[existingIndex].qty) {
+      // Called with the existing cart item itself (e.g. from an increment button)
+      // Increment by 1 rather than doubling existing quantity!
+      addQty = 1;
+    } else if (product.qty !== undefined && product.qty !== null) {
+      addQty = Math.max(1, Math.floor(Number(product.qty) || 1));
+    }
+
     let updated: CartItem[];
 
     if (existingIndex > -1) {
+      const currentQty = Math.floor(Number(cart[existingIndex].qty) || 1);
+      if (currentQty >= maxStock) {
+        // Already at maximum available stock
+        return;
+      }
+      const newQty = Math.min(maxStock, currentQty + addQty);
       updated = cart.map((item, idx) =>
         idx === existingIndex
-          ? { ...item, qty: (Number(item.qty) || 1) + addQty }
+          ? {
+              ...item,
+              stock: rawStock !== undefined ? rawStock : item.stock,
+              qty: newQty,
+            }
           : item
       );
     } else {
+      const initialQty = Math.min(maxStock, addQty);
       const newItem: CartItem = {
         productId: id,
         _id: id,
@@ -245,7 +317,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         name: product.name || product.title || "Unnamed Product",
         price: Number(product.price) || 0,
         image: product.image || (Array.isArray(product.images) ? product.images[0] : "") || "",
-        qty: addQty,
+        stock: rawStock,
+        qty: initialQty,
       };
       updated = [...cart, newItem];
     }
@@ -256,6 +329,36 @@ export function CartProvider({ children }: { children: ReactNode }) {
       image: product.image || (Array.isArray(product.images) ? product.images[0] : "") || "",
       ts: Date.now(),
     });
+  }
+
+  // Add one quantity (increment by exactly 1, never exceeding stock)
+  function addOne(rawId: string | number) {
+    if (!rawId) return;
+    const id = String(rawId);
+
+    const existingIndex = cart.findIndex(
+      (item) => item.productId === id || item._id === id || item.id === id
+    );
+    if (existingIndex === -1) return;
+
+    const existing = cart[existingIndex];
+    const maxStock =
+      typeof existing.stock === "number" && existing.stock >= 0
+        ? existing.stock
+        : 99;
+
+    const currentQty = Math.floor(Number(existing.qty) || 1);
+    if (currentQty >= maxStock) {
+      // Cannot exceed actual stock quantity
+      return;
+    }
+
+    const updated = cart.map((item, idx) =>
+      idx === existingIndex
+        ? { ...item, qty: Math.min(maxStock, currentQty + 1) }
+        : item
+    );
+    persist(updated);
   }
 
   // Remove one quantity
@@ -308,6 +411,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         cart,
         loading,
         addToCart,
+        addOne,
         removeOne,
         removeFromCart,
         clearCart,
