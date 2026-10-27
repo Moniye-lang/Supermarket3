@@ -20,6 +20,7 @@ const orderSchema = new mongoose.Schema(
     paymentMethod: { type: String, default: "manual_transfer" },
     paymentStatus: { type: String, default: "pending" },
     status: { type: String, default: "pending" },
+    failureReason: { type: String, default: null },
     goodsStatus: { type: String, default: "" },
     storeAppReceipt: { type: String, default: "" },
     storeAppOrderId: { type: String, default: "" },

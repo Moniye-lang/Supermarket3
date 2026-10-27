@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import pusherClient from "@/lib/pusher-client";
 
 let globalAudioCtx: AudioContext | null = null;
+const API_URL = "";
 
 export default function Worker() {
   const router = useRouter();
@@ -41,8 +42,6 @@ export default function Worker() {
   // Packing checklist state
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
 
-  const API_URL = "";
-
   useEffect(() => {
     async function loadWorkerProfile() {
       try {
@@ -61,7 +60,7 @@ export default function Worker() {
       }
     }
     loadWorkerProfile();
-  }, [API_URL]);
+  }, []);
 
   async function updateStatus(newStatus: string) {
     try {
@@ -134,9 +133,9 @@ export default function Worker() {
     }
   };
 
-  const fetchOrders = useCallback(async () => {
+  const fetchOrders = useCallback(async (isSilent = false) => {
     try {
-      setLoading(true);
+      if (!isSilent) setLoading(true);
       const token = localStorage.getItem("workerToken") || localStorage.getItem("token");
       const res = await fetch(`${API_URL}/api/worker/orders?_t=${Date.now()}`, {
         headers: {
@@ -147,14 +146,20 @@ export default function Worker() {
       });
       const data = await res.json();
       if (res.ok) {
-        setOrders(Array.isArray(data) ? data : []);
+        const fetched = Array.isArray(data) ? data : [];
+        setOrders(fetched);
+        setSelectedOrder((prev: any) => {
+          if (!prev) return null;
+          const fresh = fetched.find((o: any) => String(o._id || o.id) === String(prev._id || prev.id));
+          return fresh || prev;
+        });
       }
     } catch (err) {
       console.error("Error fetching orders:", err);
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
-  }, [API_URL]);
+  }, []);
 
   const fetchCompletedOrders = useCallback(async () => {
     try {
@@ -173,7 +178,7 @@ export default function Worker() {
     } catch (err) {
       console.error("Error fetching completed orders:", err);
     }
-  }, [API_URL]);
+  }, []);
 
   const fetchVerifyingOrders = useCallback(async () => {
     try {
@@ -202,7 +207,7 @@ export default function Worker() {
     } catch (err) {
       console.error("Error fetching verifying orders:", err);
     }
-  }, [API_URL]);
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem("workerToken") || localStorage.getItem("token");
@@ -215,25 +220,40 @@ export default function Worker() {
     }
   }, [router, fetchOrders, fetchVerifyingOrders, fetchCompletedOrders]);
 
-  // Real-time Pusher listeners + frequent 6s polling
+  const fetchOrdersRef = useRef(fetchOrders);
+  fetchOrdersRef.current = fetchOrders;
+
+  const fetchVerifyingOrdersRef = useRef(fetchVerifyingOrders);
+  fetchVerifyingOrdersRef.current = fetchVerifyingOrders;
+
+  // Real-time Pusher listeners + silent safety background polling
   useEffect(() => {
+    if (!pusherClient) return;
     const channel = pusherClient.subscribe("admin-orders");
 
-    const handleNewOrder = () => { fetchOrders(); fetchVerifyingOrders(); playChime(); };
+    const handleNewOrder = () => {
+      fetchOrdersRef.current(true);
+      fetchVerifyingOrdersRef.current();
+      playChime();
+    };
+
     const handleOrderStatus = ({ orderId, status }: { orderId: string; status: string }) => {
       const targetId = String(orderId);
-      if (status === "delivered" || status === "picked_up" || status === "completed" || status === "cancelled") {
-        setOrders(prev => prev.filter(o => String(o._id) !== targetId));
-        setVerifyingOrders(prev => prev.filter(o => String(o._id) !== targetId));
+      if (status === "delivered" || status === "picked_up" || status === "completed" || status === "cancelled" || status === "payment_declined") {
+        setOrders(prev => prev.filter(o => String(o._id || o.id) !== targetId));
+        setVerifyingOrders(prev => prev.filter(o => String(o._id || o.id) !== targetId));
         setPaymentPopup((curr: any) => (curr && String(curr._id || curr.id) === targetId ? null : curr));
+        setSelectedOrder((curr: any) => (curr && String(curr._id || curr.id) === targetId ? null : curr));
       } else if (status === "packing" || status === "paid") {
-        fetchOrders();
-        fetchVerifyingOrders();
+        setOrders(prev => prev.map(o => String(o._id || o.id) === targetId ? { ...o, status, paymentStatus: status === "paid" ? "paid" : o.paymentStatus } : o));
+        fetchOrdersRef.current(true);
+        fetchVerifyingOrdersRef.current();
         setPaymentPopup((curr: any) => (curr && String(curr._id || curr.id) === targetId ? null : curr));
       } else {
-        setOrders(prev => prev.map(o => String(o._id) === targetId ? { ...o, status } : o));
+        setOrders(prev => prev.map(o => String(o._id || o.id) === targetId ? { ...o, status } : o));
       }
     };
+
     const handlePaymentVerification = (order: any) => {
       if (!order) return;
       const orderIdStr = String(order._id || order.id || "");
@@ -246,11 +266,31 @@ export default function Worker() {
       setPaymentPopup(order);
       playChime();
     };
+
     const handleOrderUpdated = (updatedOrder: any) => {
       if (!updatedOrder) return;
       const orderIdStr = String(updatedOrder._id || updatedOrder.id || "");
-      setOrders(prev => prev.map(o => String(o._id || o.id) === orderIdStr ? updatedOrder : o));
-      if (updatedOrder.paymentStatus === "verifying") fetchVerifyingOrders();
+      if (["delivered", "picked_up", "completed", "cancelled", "payment_declined"].includes(updatedOrder.status)) {
+        setOrders(prev => prev.filter(o => String(o._id || o.id) !== orderIdStr));
+        setVerifyingOrders(prev => prev.filter(o => String(o._id || o.id) !== orderIdStr));
+        setPaymentPopup((curr: any) => (curr && String(curr._id || curr.id) === orderIdStr ? null : curr));
+        setSelectedOrder((curr: any) => (curr && String(curr._id || curr.id) === orderIdStr ? null : curr));
+      } else {
+        setOrders(prev => {
+          const exists = prev.some(o => String(o._id || o.id) === orderIdStr);
+          if (exists) {
+            return prev.map(o => String(o._id || o.id) === orderIdStr ? { ...o, ...updatedOrder } : o);
+          }
+          return [updatedOrder, ...prev];
+        });
+        setSelectedOrder((prev: any) => {
+          if (!prev || String(prev._id || prev.id) !== orderIdStr) return prev;
+          return { ...prev, ...updatedOrder };
+        });
+      }
+      if (updatedOrder.paymentStatus === "verifying") {
+        fetchVerifyingOrdersRef.current();
+      }
     };
 
     channel.bind("orderCreated", handleNewOrder);
@@ -258,14 +298,17 @@ export default function Worker() {
     channel.bind("paymentVerificationRequest", handlePaymentVerification);
     channel.bind("orderUpdated", handleOrderUpdated);
 
-    // Fast 6-second polling ensures immediate in-store response even if socket disconnects
-    const pollInterval = setInterval(() => { fetchOrders(); fetchVerifyingOrders(); }, 6000);
+    // Silent 30-second fallback poll ensuring updates even if socket momentarily drops, without showing any loading spinner
+    const pollInterval = setInterval(() => {
+      fetchOrdersRef.current(true);
+      fetchVerifyingOrdersRef.current();
+    }, 30000);
 
     return () => {
       pusherClient.unsubscribe("admin-orders");
       clearInterval(pollInterval);
     };
-  }, [fetchOrders, fetchVerifyingOrders]);
+  }, []);
 
   const handleDismissPopup = (orderId?: string) => {
     if (orderId) {
@@ -292,7 +335,7 @@ export default function Worker() {
 
       setPaymentPopup(null);
       setVerifyingOrders(prev => prev.filter(o => o._id !== order._id));
-      fetchOrders();
+      fetchOrders(true);
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -353,7 +396,7 @@ export default function Worker() {
         setSelectedOrder(null);
         setCode("");
         setMessage(null);
-        fetchOrders();
+        fetchOrders(true);
         fetchCompletedOrders();
       }, 2000);
 
@@ -377,7 +420,7 @@ export default function Worker() {
         body: JSON.stringify({ status })
       });
       if (!res.ok) throw new Error("Failed to update status");
-      fetchOrders();
+      fetchOrders(true);
     } catch (e: any) {
       console.error(e);
       alert(e.message);
@@ -576,7 +619,7 @@ export default function Worker() {
             </div>
             <h2 className="text-2xl font-bold text-gray-900">All Caught Up!</h2>
             <p className="text-gray-500 mt-2">You have no active {workerRole === "rider" ? "delivery" : "pickup"} tasks at the moment.</p>
-            <Button variant="ghost" className="mt-6 border border-gray-200" onClick={fetchOrders}>Refresh List</Button>
+            <Button variant="ghost" className="mt-6 border border-gray-200" onClick={() => fetchOrders(false)}>Refresh List</Button>
           </div>
         ) : (
           <div className="space-y-4">

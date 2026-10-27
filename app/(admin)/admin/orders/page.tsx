@@ -365,7 +365,7 @@ export default function AdminOrdersPage() {
     if (statusFilter === "all") {
       matchesStatus = true;
     } else if (statusFilter === "completed") {
-      matchesStatus = o.status === "completed" || o.status === "delivered" || o.status === "picked_up" || o.fulfilled;
+      matchesStatus = (o.status === "completed" || o.status === "delivered" || o.status === "picked_up" || o.fulfilled) && o.status !== "payment_declined" && o.status !== "declined" && o.status !== "cancelled";
     } else if (statusFilter === "processing") {
       matchesStatus = o.status === "processing" || (o.status === "pending" && o.assignedToWorkerId);
     } else {
@@ -380,7 +380,8 @@ export default function AdminOrdersPage() {
         case "processing": return <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 w-fit"><Truck size={12}/> Processing</span>;
         case "packing": return <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 w-fit"><Package size={12}/> Packing</span>;
         case "payment_pending": return <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold w-fit animate-pulse">⏳ Verifying Payment</span>;
-        case "payment_declined": return <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold w-fit">❌ Payment Declined</span>;
+        case "payment_declined":
+        case "declined": return <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold w-fit">❌ Payment Declined</span>;
         case "completed":
         case "delivered":
         case "picked_up": return <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 w-fit"><CheckCircle size={12}/> Completed</span>;
@@ -561,14 +562,14 @@ export default function AdminOrdersPage() {
                                           <Button variant="ghost" size="icon" className="bg-gray-100 hover:bg-gray-200 text-gray-600 cursor-pointer" onClick={() => setSelectedOrder(order)}>
                                             <Eye size={16} />
                                           </Button>
-                                          {!["completed", "delivered", "picked_up", "cancelled", "payment_pending", "payment_declined"].includes(order.status) && (
+                                          {!["completed", "delivered", "picked_up", "cancelled", "payment_pending", "payment_declined", "declined"].includes(order.status) && (
                                             <Button variant="ghost" size="icon" className="bg-purple-100 hover:bg-purple-200 text-purple-600 cursor-pointer" 
                                               onClick={() => { setGoodsStatusModal(order); setGoodsStatusText(order.goodsStatus || ""); }}
                                               title="Send goods status">
                                               <Package size={16} />
                                             </Button>
                                           )}
-                                          {!["completed", "delivered", "picked_up", "cancelled"].includes(order.status) && (
+                                          {!["completed", "delivered", "picked_up", "cancelled", "payment_pending", "payment_declined", "declined"].includes(order.status) && (
                                             <Button variant="outline" className="bg-emerald-600 text-white hover:bg-emerald-700 ml-2 cursor-pointer" onClick={() => updateOrderStatus(order._id, "ready_for_pickup")}>
                                               Pickup Ready
                                             </Button>

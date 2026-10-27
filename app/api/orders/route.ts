@@ -174,11 +174,15 @@ export async function POST(req: Request) {
 
     await order.save();
 
-    // 1. Push order to central StoreApp POS / cashier screen (awaited so it appears on store POS checkout)
+    // 1. Push order to central StoreApp POS / cashier screen:
+    // If payment is already completed (e.g. online card payment), send to StoreApp POS immediately.
+    // If payment is awaiting worker/admin verification (manual bank transfer), DO NOT send anything
+    // to StoreApp POS until the worker or admin confirms and accepts the payment!
     let storeAppReceipt = "";
     let storeAppOrderId = "";
+    const isAlreadyPaid = order.paymentStatus === "paid";
 
-    if (isStoreApiConfigured()) {
+    if (isStoreApiConfigured() && isAlreadyPaid) {
       try {
         const storeItems = await Promise.all(
           detailed.map(async (it: any) => {
@@ -234,7 +238,7 @@ export async function POST(req: Request) {
               reference: order.pickupCode || orderId,
             },
           ],
-          comments: `Storefront Online Pickup Order - Ref: #${order.pickupCode || orderId}`,
+          comments: `Storefront Online Pickup Order - Ref: #${order.pickupCode || orderId} (Paid)`,
         });
 
         if (storePushRes.success && storePushRes.data) {

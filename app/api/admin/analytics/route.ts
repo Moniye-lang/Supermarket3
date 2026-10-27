@@ -34,6 +34,18 @@ export async function GET(req: Request) {
       previousStart = new Date(currentStart.getTime() - (7 * 24 * 60 * 60 * 1000));
     }
 
+    // Verified paid order filter: only confirmed/paid orders count toward revenue and valid order metrics
+    const paidOrderFilter = {
+      paymentStatus: "paid",
+      status: { $nin: ["cancelled", "payment_declined", "declined", "payment_pending"] },
+    };
+
+    // Active fulfillment filter: orders actively being packed/delivered, excluding cancelled or declined
+    const activeFulfillmentFilter = {
+      fulfilled: false,
+      status: { $nin: ["cancelled", "payment_declined", "declined", "payment_pending", "delivered", "picked_up", "completed"] },
+    };
+
     // Parallel Core Stats & Period Orders Query (Runs in parallel instead of sequential waterfalls)
     const [
       totalUsers,
@@ -52,15 +64,18 @@ export async function GET(req: Request) {
       User.countDocuments({ role: { $in: ["worker", "rider"] } }),
       Product.countDocuments(),
       Product.find({ stock: { $lt: 10 } }).select("name stock _id").limit(5).lean(),
-      Order.find({ createdAt: { $gte: currentStart } })
+      Order.find({ createdAt: { $gte: currentStart }, ...paidOrderFilter })
         .select("amount createdAt items status")
         .lean(),
-      Order.find({ createdAt: { $gte: previousStart, $lt: currentStart } })
+      Order.find({ createdAt: { $gte: previousStart, $lt: currentStart }, ...paidOrderFilter })
         .select("amount")
         .lean(),
-      Order.countDocuments(),
-      Order.aggregate([{ $group: { _id: null, total: { $sum: "$amount" } } }]),
-      Order.countDocuments({ fulfilled: false }),
+      Order.countDocuments(paidOrderFilter),
+      Order.aggregate([
+        { $match: paidOrderFilter },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]),
+      Order.countDocuments(activeFulfillmentFilter),
       User.countDocuments({ role: "customer", createdAt: { $gte: currentStart } }),
       User.countDocuments({ role: "customer", createdAt: { $gte: previousStart, $lt: currentStart } }),
     ]);

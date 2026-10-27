@@ -80,6 +80,7 @@ function getStepIndex(status: string, orderType: string) {
 const STATUS_META: Record<string, { color: string; bg: string; border: string; Icon: any; label: string }> = {
   payment_pending:  { color: "text-amber-700",  bg: "bg-amber-50",   border: "border-amber-200/50",  Icon: Clock,        label: "Payment not received, verifying..." },
   payment_declined: { color: "text-red-700",    bg: "bg-red-50",     border: "border-red-200/50",    Icon: XCircle,      label: "Payment Verification Failed"         },
+  declined:         { color: "text-red-700",    bg: "bg-red-50",     border: "border-red-200/50",    Icon: XCircle,      label: "Payment Verification Failed"         },
   packing:          { color: "text-orange-700", bg: "bg-orange-50",  border: "border-orange-200/50", Icon: Package,      label: "Packing your items..."               },
   delivery_here:    { color: "text-blue-700",   bg: "bg-blue-50",    border: "border-blue-200/50",   Icon: Truck,        label: "Rider Arrived!"                       },
   ready_for_pickup: { color: "text-blue-700",   bg: "bg-blue-50",    border: "border-blue-200/50",   Icon: ShoppingBag,  label: "Ready for Pickup!"                   },
@@ -123,7 +124,7 @@ function StatusBanner({ order, orderType }: { order: any; orderType: string }) {
 
 function ProgressStepper({ order, orderType }: { order: any; orderType: string }) {
   const isCompleted = order.fulfilled || order.status === "delivered" || order.status === "picked_up" || order.status === "completed";
-  const isCancelled = order.status === "cancelled" || order.status === "payment_declined";
+  const isCancelled = order.status === "cancelled" || order.status === "payment_declined" || order.status === "declined";
   const steps = orderType === "pickup" ? STATUS_STEPS_PICKUP : STATUS_STEPS_DELIVERY;
   const currentIdx = isCompleted ? steps.length - 1 : getStepIndex(order.status, orderType);
 

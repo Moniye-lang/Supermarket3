@@ -6,6 +6,8 @@ import { verifyAuth } from "@/lib/authMiddleware";
 import { sendPushToUser } from "@/lib/subscriptions";
 import pusher from "@/lib/pusher";
 import { sendOrderAcceptedEmail, sendPaymentDeclinedEmail } from "@/lib/email";
+import { cancelOrder, createOrder, adjustStock, isStoreApiConfigured } from "@/lib/storeApi";
+
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -22,7 +24,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     const { id } = await params;
-    const { action } = await req.json(); // "accept" or "decline"
+    const { action, reason } = await req.json(); // "accept" or "decline"
 
     const order = await Order.findById(id);
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
@@ -37,6 +39,48 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (action === "accept") {
       order.paymentStatus = "paid";
       order.status = "packing"; // status transitions to packing
+      order.failureReason = null;
+
+      // Sync confirmed order & payment to StoreApp POS if not already assigned a receipt
+      if (isStoreApiConfigured() && !order.storeAppReceipt) {
+        try {
+          const storeItems = (order.items || []).map((it: any) => {
+            const rawId = String(it.productId || "").trim();
+            let pIdNum = parseInt(rawId.replace(/\D/g, "").slice(-6) || "1", 10);
+            if (isNaN(pIdNum) || pIdNum <= 0) pIdNum = 1;
+            return {
+              productId: pIdNum,
+              quantity: Math.max(1, Math.floor(Number(it.qty) || 1)),
+              unitPrice: Number(it.price) || 0,
+              discount: 0,
+            };
+          });
+
+          const storePushRes = await createOrder({
+            externalRef: order.pickupCode,
+            storeId: 1,
+            customerName: (order.pickupName || "Storefront Customer").trim(),
+            items: storeItems,
+            payments: [
+              {
+                mode: (order.paymentMethod === "card" ? "card" : order.paymentMethod === "cash" ? "cash" : "bank"),
+                amount: order.amount,
+                reference: order.pickupCode,
+              },
+            ],
+            comments: `Storefront Pickup Order Confirmed - Ref: #${order.pickupCode}`,
+          });
+
+          if (storePushRes.success && storePushRes.data) {
+            const resData = (storePushRes.data as any)?.data || storePushRes.data;
+            if (resData?.storeAppReceipt) order.storeAppReceipt = resData.storeAppReceipt;
+            if (resData?.orderId) order.storeAppOrderId = resData.orderId;
+            console.log(`[StoreApp POS] Payment accepted & order confirmed on POS! Receipt: ${order.storeAppReceipt}`);
+          }
+        } catch (storeApiErr: any) {
+          console.warn("[StoreApp POS] Failed syncing confirmed order:", storeApiErr.message);
+        }
+      }
       
       // Auto-assign worker based on order type (rider for delivery, worker for pickup)
       const targetRole = order.collectionMethod === "delivery" ? "rider" : "worker";
@@ -137,10 +181,44 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       }
 
     } else if (action === "decline") {
+      const declineReason = reason || "Payment confirmation declined by admin";
       order.paymentStatus = "declined";
       order.status = "payment_declined";
+      order.failureReason = declineReason;
 
       await order.save();
+
+      // Notify StoreApp POS that the order's payment was declined so it is voided/declined upstream
+      if (isStoreApiConfigured() && (order.storeAppOrderId || order.pickupCode)) {
+        try {
+          const targetRef = order.storeAppOrderId || order.pickupCode;
+          await cancelOrder(targetRef, declineReason);
+          console.log(`[StoreApp POS] Successfully requested cancellation of declined order #${order.pickupCode}`);
+        } catch (storeApiErr: any) {
+          console.error(`[StoreApp POS] Failed cancelling declined order #${order.pickupCode}:`, storeApiErr.message);
+        }
+
+        // If StoreApp POS had issued a receipt / completed sale for this order,
+        // restore the deducted stock back to their inventory via stock adjustments
+        if (order.storeAppReceipt && Array.isArray(order.items)) {
+          for (const item of order.items) {
+            try {
+              const pIdNum = parseInt(String(item.productId || item.storeProductId || "1").replace(/\D/g, "").slice(-6) || "1", 10);
+              const qty = Math.max(1, Math.floor(Number(item.qty) || 1));
+              await adjustStock({
+                productId: pIdNum,
+                storeId: 1,
+                adjustBy: qty,
+                adjustmentTypeId: 1,
+                remarks: `Restock item from declined order #${order.pickupCode} (Receipt: ${order.storeAppReceipt})`,
+              });
+              console.log(`[StoreApp POS] Restocked +${qty} units of item ${pIdNum} for declined order #${order.pickupCode}`);
+            } catch (stockErr: any) {
+              console.warn(`[StoreApp POS] Failed restocking item ${item.name} for declined order:`, stockErr.message);
+            }
+          }
+        }
+      }
 
       // Notify customer that payment is declined
       const customerPayload = {

@@ -594,6 +594,68 @@ export async function getOrderById(orderId: string | number) {
   return request(`/v1/orders/${orderId}`, { method: "GET" });
 }
 
+export async function cancelOrder(orderId: string | number, reason: string = "Payment confirmation declined by admin") {
+  const cleanId = encodeURIComponent(String(orderId).trim());
+
+  // 1. Try POST /v1/orders/:id/cancel
+  try {
+    const res = await request(`/v1/orders/${cleanId}/cancel`, {
+      method: "POST",
+      body: { reason, status: "declined", failureReason: reason },
+      idempotencyKey: `CANCEL-${cleanId}-${Date.now()}`,
+    });
+    if (res.success) return res;
+  } catch {}
+
+  // 2. Try PATCH /v1/orders/:id
+  try {
+    const res = await request(`/v1/orders/${cleanId}`, {
+      method: "PATCH",
+      body: { status: "declined", failureReason: reason },
+    });
+    if (res.success) return res;
+  } catch {}
+
+  // 3. Try PUT /v1/orders/:id/status
+  try {
+    const res = await request(`/v1/orders/${cleanId}/status`, {
+      method: "PUT",
+      body: { status: "declined", reason, failureReason: reason },
+    });
+    if (res.success) return res;
+  } catch {}
+
+  // 4. Try DELETE /v1/orders/:id
+  return request(`/v1/orders/${cleanId}`, {
+    method: "DELETE",
+    body: { reason, failureReason: reason },
+  });
+}
+
+export async function updateStoreOrderStatus(
+  orderId: string | number,
+  status: string,
+  failureReason?: string
+) {
+  const cleanId = encodeURIComponent(String(orderId).trim());
+  const body: any = { status };
+  if (failureReason) body.failureReason = failureReason;
+
+  try {
+    const patchRes = await request(`/v1/orders/${cleanId}`, {
+      method: "PATCH",
+      body,
+    });
+    if (patchRes.success) return patchRes;
+  } catch {}
+
+  return request(`/v1/orders/${cleanId}/status`, {
+    method: "PUT",
+    body,
+  });
+}
+
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 4. STOCK (/v1/stock)
 // ─────────────────────────────────────────────────────────────────────────────
