@@ -147,7 +147,6 @@ export default function ProductDets() {
 
     const handleAddToCart = () => {
         addToCart({ ...product, qty });
-        openCart("cart");
     };
 
     const handleBuyNow = () => {
@@ -412,7 +411,6 @@ export default function ProductDets() {
                                             }}
                                             onAddToCart={(prod) => {
                                                 addToCart({ ...(prod || p), qty: 1 });
-                                                openCart("cart");
                                             }}
                                             onBuyNow={(prod) => {
                                                 const itemToAdd = prod || p;

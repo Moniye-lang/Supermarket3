@@ -153,6 +153,7 @@ export async function sendHtmlEmail(
       return { success: true, method: "smtp" };
     } catch (error: any) {
       console.error(`❌ SMTP failed for ${to}:`, error.message);
+      return { success: false, error: error.message };
     }
   }
 

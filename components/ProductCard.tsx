@@ -54,7 +54,6 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
             onAddToCart(product);
         } else {
             addToCart(product);
-            openCart("cart");
         }
     };
 

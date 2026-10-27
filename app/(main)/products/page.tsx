@@ -86,7 +86,6 @@ function ProductsContent() {
 
   const handleAddToCart = (product: any) => {
     addToCart(product);
-    openCart("cart");
   };
   const handleBuyNow = (product: any) => {
     if (!user && !token) {

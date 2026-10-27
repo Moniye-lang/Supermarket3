@@ -30,7 +30,6 @@ export default function FavoritesPage() {
         stockStatus: item.stockStatus || "In Stock"
       });
     });
-    openCart("cart");
   };
 
   const handleAddSingleToCart = (item: any) => {
@@ -42,7 +41,6 @@ export default function FavoritesPage() {
       category: item.category,
       stockStatus: item.stockStatus || "In Stock"
     });
-    openCart("cart");
   };
 
   return (
