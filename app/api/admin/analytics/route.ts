@@ -17,19 +17,21 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const period = searchParams.get("period") || "weekly"; // daily, weekly, monthly
+    const period = searchParams.get("period") || "daily"; // daily (default), weekly, monthly
 
     // Date ranges
     const now = new Date();
     let currentStart: Date, previousStart: Date;
 
     if (period === "daily") {
-      currentStart = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+      // Start of today (00:00:00)
+      currentStart = new Date(now);
+      currentStart.setHours(0, 0, 0, 0);
       previousStart = new Date(currentStart.getTime() - (24 * 60 * 60 * 1000));
     } else if (period === "monthly") {
       currentStart = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
       previousStart = new Date(currentStart.getTime() - (30 * 24 * 60 * 60 * 1000));
-    } else { // weekly default
+    } else { // weekly
       currentStart = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
       previousStart = new Date(currentStart.getTime() - (7 * 24 * 60 * 60 * 1000));
     }
@@ -97,23 +99,32 @@ export async function GET(req: Request) {
 
     // Chart Data (Trend)
     const trendData = [];
-    const points = period === "daily" ? 24 : period === "monthly" ? 30 : 7;
-    const interval = period === "daily" ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
 
-    for (let i = points - 1; i >= 0; i--) {
-      const d = new Date(now.getTime() - (i * interval));
-      const dateStr = period === "daily" 
-        ? d.getHours() + ":00" 
-        : d.toISOString().split('T')[0];
-      
-      const matchingOrders = (currentOrders as any[]).filter(o => {
-        const od = new Date(o.createdAt);
-        if (period === "daily") return od.getHours() === d.getHours() && od.toDateString() === d.toDateString();
-        return od.toISOString().split('T')[0] === dateStr;
-      });
-      const rev = matchingOrders.reduce((sum, o) => sum + (o.amount || 0), 0);
-
-      trendData.push({ name: dateStr, revenue: rev, orders: matchingOrders.length });
+    if (period === "daily") {
+      const currentHour = now.getHours();
+      const maxHour = Math.min(23, Math.max(currentHour, 12));
+      for (let h = 0; h <= maxHour; h++) {
+        const hourStr = `${h.toString().padStart(2, "0")}:00`;
+        const matchingOrders = (currentOrders as any[]).filter(o => {
+          const od = new Date(o.createdAt);
+          return od.getHours() === h;
+        });
+        const rev = matchingOrders.reduce((sum, o) => sum + (o.amount || 0), 0);
+        trendData.push({ name: hourStr, revenue: rev, orders: matchingOrders.length });
+      }
+    } else {
+      const points = period === "monthly" ? 30 : 7;
+      const interval = 24 * 60 * 60 * 1000;
+      for (let i = points - 1; i >= 0; i--) {
+        const d = new Date(now.getTime() - (i * interval));
+        const dateStr = d.toISOString().split("T")[0];
+        const matchingOrders = (currentOrders as any[]).filter(o => {
+          const od = new Date(o.createdAt);
+          return od.toISOString().split("T")[0] === dateStr;
+        });
+        const rev = matchingOrders.reduce((sum, o) => sum + (o.amount || 0), 0);
+        trendData.push({ name: dateStr, revenue: rev, orders: matchingOrders.length });
+      }
     }
 
     // Top Products & Category breakdown
@@ -191,6 +202,11 @@ export async function GET(req: Request) {
     }));
 
     const totalRevenue = totalRevenueAgg?.[0]?.total || 0;
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
+    const dailyRevenue = period === "daily" 
+      ? currentRevenue 
+      : (currentOrders as any[]).filter(o => new Date(o.createdAt) >= startOfToday).reduce((sum, o) => sum + (o.amount || 0), 0);
 
     return NextResponse.json({
       summary: {
@@ -198,6 +214,7 @@ export async function GET(req: Request) {
         totalWorkers,
         totalProducts,
         totalOrders,
+        dailyRevenue,
         totalRevenue,
         pendingOrders,
       },

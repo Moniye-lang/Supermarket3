@@ -295,10 +295,13 @@ export async function POST(req: Request) {
     // 4. Notify admin/worker about payment verification request via Web Push
     User.find({ role: { $in: ["admin", "worker"] } }).then((staffMembers) => {
       for (const staff of staffMembers) {
+        const orderRef = staff.role === "admin"
+          ? `#${order.pickupCode}`
+          : `#${order._id.toString().slice(-6).toUpperCase()}`;
         sendPushToUser(
           staff._id.toString(),
           "💰 Payment verification needed",
-          `Order #${order.pickupCode} needs payment confirmation.`,
+          `Order ${orderRef} needs payment confirmation (${order.pickupName || "Customer"}).`,
           staff.role === 'admin' ? '/admin' : '/worker'
         ).catch((err) => console.error("Push error:", err.message));
       }
@@ -320,7 +323,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Server authentication misconfigured" }, { status: 500 });
     }
     const orderAuthToken = jwt.sign(
-      { id: customerId.toString(), role: "customer" },
+      { id: customerId.toString(), role: authUser?.role || "customer" },
       jwtSecret,
       { expiresIn: "30d" }
     );

@@ -37,10 +37,10 @@ export default function PaymentVerificationModal({
     >
       <motion.div
         key="payment-verification-dialog"
-        initial={{ opacity: 0, scale: 0.92, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.92, y: 20 }}
-        transition={{ type: "spring", damping: 26, stiffness: 240 }}
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 16 }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
         className="bg-white dark:bg-zinc-900 rounded-[2.2rem] shadow-2xl p-6 sm:p-8 max-w-md w-full text-center relative z-10 overflow-hidden border border-gray-100 dark:border-zinc-800"
       >
         {/* STATE 1: VERIFYING */}
@@ -48,7 +48,7 @@ export default function PaymentVerificationModal({
           <div className="space-y-5">
             <div className="relative w-24 h-24 mx-auto flex items-center justify-center">
               <motion.div
-                animate={{ scale: [1, 1.45, 1.1], opacity: [0.5, 0, 0.5] }}
+                animate={{ opacity: [0.35, 0.75, 0.35] }}
                 transition={{ repeat: Infinity, duration: 2.2, ease: "easeInOut" }}
                 className="absolute inset-0 bg-amber-400/25 rounded-full blur-xs"
               />

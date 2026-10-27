@@ -18,12 +18,13 @@ import {
 import CartDrawerItemList from "./cart/CartDrawerItemList";
 import CheckoutForm from "./cart/CheckoutForm";
 import PaymentVerificationModal from "./cart/PaymentVerificationModal";
+import TransferConfirmModal from "./cart/TransferConfirmModal";
 
 const API_URL = "";
 
 export default function CartOverlay() {
   const router = useRouter();
-  const { user, token } = useContext(AuthContext);
+  const { user, token, logout } = useContext(AuthContext);
   const {
     cart,
     addToCart,
@@ -61,6 +62,9 @@ export default function CartOverlay() {
   // Order submission state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Final confirmation modal state before submitting order
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   // Real-time verification state (Verifying with Worker -> Accepted / Declined)
   const [verificationOrder, setVerificationOrder] = useState<{
@@ -216,7 +220,9 @@ export default function CartOverlay() {
 
   async function handleInitiateCheckout() {
     setError("");
-    const activeToken = typeof window !== "undefined" ? (localStorage.getItem("token") || token) : token;
+    const activeToken = typeof window !== "undefined"
+      ? (localStorage.getItem("token") || localStorage.getItem("workerToken") || token)
+      : token;
     if (!user && !activeToken) {
       setError("Please sign in to complete your checkout.");
       closeCart();
@@ -265,7 +271,17 @@ export default function CartOverlay() {
 
       const data = await res.json();
       setLoading(false);
+      setShowConfirmModal(false);
       if (!res.ok) {
+        if (res.status === 401) {
+          logout();
+          setError("Your session has expired. Please sign in again.");
+          setTimeout(() => {
+            closeCart();
+            router.push("/signin");
+          }, 1500);
+          return;
+        }
         setError(data.error || "Order placement failed. Please verify your items.");
         return;
       }
@@ -292,6 +308,7 @@ export default function CartOverlay() {
       console.error("[Checkout] Order placement error:", err);
       setError("Network connection issue. Please check your connection and retry.");
       setLoading(false);
+      setShowConfirmModal(false);
     }
   }
 
@@ -508,7 +525,7 @@ export default function CartOverlay() {
                     </button>
                     <button
                       type="button"
-                      onClick={handleInitiateCheckout}
+                      onClick={() => setShowConfirmModal(true)}
                       disabled={loading || cart.length === 0}
                       className="flex-1 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm transition-all duration-200 shadow-lg shadow-emerald-600/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
                     >
@@ -533,6 +550,19 @@ export default function CartOverlay() {
         </div>
       )}
     </AnimatePresence>
+
+    {/* Final Confirmation Modal Before Submitting */}
+    <TransferConfirmModal
+      isOpen={showConfirmModal}
+      onClose={() => setShowConfirmModal(false)}
+      onConfirm={handleInitiateCheckout}
+      loading={loading}
+      amount={totalPrice}
+      bankName={storeSettings.bankName}
+      accountNumber={storeSettings.accountNumber}
+      accountName={storeSettings.accountName}
+      pickupSlot={pickupSlot}
+    />
 
     {/* Live Payment Verification Modal Popup */}
     <AnimatePresence>

@@ -34,6 +34,10 @@ export default function WorkerLogin() {
         throw new Error("You are not registered as a Store Staff Member.");
       }
       localStorage.setItem("workerToken", data.token);
+      localStorage.setItem("token", data.token);
+      if (data.user) {
+        localStorage.setItem("user", JSON.stringify(data.user));
+      }
       router.push("/worker");
     } catch (err: any) {
       setError(err.message);

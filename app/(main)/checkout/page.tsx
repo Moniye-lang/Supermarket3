@@ -13,6 +13,7 @@ import { CartContext } from "@/context/CartContext";
 import { AuthContext } from "@/context/AuthContext";
 import pusherClient from "@/lib/pusher-client";
 import PaymentVerificationModal from "@/components/cart/PaymentVerificationModal";
+import TransferConfirmModal from "@/components/cart/TransferConfirmModal";
 import {
   isStoreOpen, nextOpeningMessage, getTodaySlots,
   getAllSlotsForToday, getNowWAT, STORE_NAME, STORE_ADDRESS
@@ -22,7 +23,7 @@ const API_URL = "";
 
 export default function Checkout() {
   const router = useRouter();
-  const { user, token: ctxToken } = useContext(AuthContext);
+  const { user, token: ctxToken, logout } = useContext(AuthContext);
 
   // Customer contact state
   const [customerName, setCustomerName] = useState("");
@@ -255,7 +256,7 @@ export default function Checkout() {
       const resolvedPhone = phoneNumber.trim() || user?.phone || "08012345678";
       const resolvedSlot = pickupSlot || todaySlots[0]?.label || "Store Pickup — Today";
       const pickupTimeText = `Pickup Station (Time: ${resolvedSlot})`;
-      const activeToken = (typeof window !== "undefined" ? localStorage.getItem("token") : null) || ctxToken || "";
+      const activeToken = (typeof window !== "undefined" ? (localStorage.getItem("token") || localStorage.getItem("workerToken")) : null) || ctxToken || "";
 
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
@@ -287,6 +288,14 @@ export default function Checkout() {
       const data = await res.json();
       setLoading(false);
       if (!res.ok) {
+        if (res.status === 401) {
+          logout?.();
+          setError("Your session has expired. Please sign in again.");
+          setTimeout(() => {
+            router.push("/signin");
+          }, 1500);
+          return;
+        }
         setError(data.error || "Order placement failed. Please verify your items.");
         return;
       }
@@ -362,7 +371,7 @@ export default function Checkout() {
                 {/* 1-Click Call Button */}
                 <a
                   href="tel:08023434790"
-                  className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-sm transition-all shrink-0"
+                  className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-sm transition-all shrink-0"
                   title="Call Store Frontdesk"
                 >
                   <PhoneCall size={14} />
@@ -620,76 +629,18 @@ export default function Checkout() {
         </div>
       </div>
 
-      {/* Payment Confirmation Modal */}
-      <AnimatePresence>
-        {showConfirm && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-              onClick={() => !loading && setShowConfirm(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md relative z-10 border border-gray-100"
-            >
-              <button
-                onClick={() => setShowConfirm(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 bg-gray-100 rounded-full p-2 transition-colors"
-              >
-                <X size={18} />
-              </button>
-
-              <div className="w-16 h-16 bg-brand-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-5">
-                <Store size={32} className="text-brand-primary" />
-              </div>
-
-              <h2 className="text-2xl font-bold text-gray-900 text-center mb-2">Confirm Store Pickup</h2>
-              <p className="text-gray-500 text-center text-sm mb-4 leading-relaxed">
-                Confirm your pickup order of{" "}
-                <strong className="text-brand-primary text-base">₦{orderTotal.toLocaleString()}</strong>
-                . Once submitted, make your transfer and you will receive your unique Pickup Code.
-              </p>
-
-              <div className="bg-emerald-50 border border-emerald-200/60 rounded-xl p-3.5 mb-5 text-xs text-emerald-800 space-y-1">
-                <div className="font-bold flex items-center gap-1.5">
-                  <MapPin size={14} /> AMStores Ibadan
-                </div>
-                <div className="text-emerald-700">
-                  {STORE_ADDRESS}
-                </div>
-                {pickupSlot && (
-                  <div className="pt-1 border-t border-emerald-200/60 font-medium">
-                    Scheduled Slot: <strong>{pickupSlot}</strong>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={() => setShowConfirm(false)}
-                  className="flex-1 py-3 px-6 rounded-xl border-2 border-gray-200 text-gray-600 font-semibold hover:bg-gray-50 transition-colors"
-                >
-                  Go Back
-                </button>
-                <button
-                  onClick={handleCheckout}
-                  disabled={loading}
-                  className="flex-1 py-3 px-6 rounded-xl bg-brand-primary text-white font-semibold hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-                >
-                  {loading
-                    ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    : <><CheckCircle size={18} /> Confirm Order</>
-                  }
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* Payment Confirmation Modal with Copyable Account Details & Amount */}
+      <TransferConfirmModal
+        isOpen={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        onConfirm={handleCheckout}
+        loading={loading}
+        amount={orderTotal}
+        bankName={storeSettings.bankName}
+        accountNumber={storeSettings.accountNumber}
+        accountName={storeSettings.accountName}
+        pickupSlot={pickupSlot}
+      />
 
       {/* ── Live Payment Verification Modal ── */}
       <AnimatePresence>
@@ -718,10 +669,10 @@ export default function Checkout() {
 
             {/* Modal Card */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 24 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.92, y: 16 }}
-              transition={{ type: "spring", damping: 26, stiffness: 220, mass: 0.9 }}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 16 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
               className="bg-white rounded-[2rem] shadow-2xl p-7 sm:p-9 max-w-lg w-full text-center relative z-10 overflow-hidden border border-emerald-100"
             >
               {/* Soft ambient background glows */}
@@ -748,19 +699,19 @@ export default function Checkout() {
 
               {/* ── Ultra-Smooth SVG Draw Checkmark Icon ── */}
               <div className="relative w-24 h-24 mx-auto mb-5 flex items-center justify-center">
-                {/* Pulsing Ripple Wave */}
+                {/* Subtle Ripple Wave */}
                 <motion.div
-                  initial={{ scale: 0.85, opacity: 0 }}
-                  animate={{ scale: [1, 1.35, 1.15], opacity: [0.45, 0, 0.45] }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0.35, 0.75, 0.35] }}
                   transition={{ repeat: Infinity, duration: 2.6, ease: "easeInOut" }}
                   className="absolute inset-0 bg-emerald-300/30 rounded-full blur-xs"
                 />
 
                 {/* Main Icon Orb */}
                 <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 320, damping: 22, delay: 0.1 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3, delay: 0.1 }}
                   className="w-20 h-20 bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 text-white rounded-full flex items-center justify-center shadow-xl shadow-emerald-600/25 relative z-10 p-3"
                 >
                   <svg className="w-full h-full" viewBox="0 0 60 60" fill="none">
@@ -810,8 +761,8 @@ export default function Checkout() {
 
               {/* ── Pickup Code Badge Highlight ── */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.96, y: 8 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.38, ease: [0.16, 1, 0.3, 1] }}
                 className="mt-5 bg-gradient-to-b from-gray-50/90 via-white to-gray-50/50 border-2 border-dashed border-emerald-300/90 rounded-2xl p-4.5 shadow-2xs"
               >
@@ -857,7 +808,7 @@ export default function Checkout() {
                 {/* Instant Track Button */}
                 <button
                   onClick={() => router.push("/order")}
-                  className="w-full mt-1.5 py-3.5 px-6 rounded-2xl bg-gray-950 hover:bg-black active:scale-[0.985] text-white font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-gray-950/15 cursor-pointer"
+                  className="w-full mt-1.5 py-3.5 px-6 rounded-2xl bg-gray-950 hover:bg-black text-white font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-gray-950/15 cursor-pointer"
                 >
                   <span>Track Live Order Status</span>
                   <ArrowRight size={16} />

@@ -258,12 +258,17 @@ export default function Worker() {
       if (!order) return;
       const orderIdStr = String(order._id || order.id || "");
       dismissedPopupIdsRef.current.delete(orderIdStr);
+      // Strip pickupCode for worker security
+      const safeOrder = { ...order };
+      if (workerRole !== "admin") {
+        delete safeOrder.pickupCode;
+      }
       setVerifyingOrders(prev => {
         const exists = prev.find(o => String(o._id || o.id) === orderIdStr);
-        if (!exists) return [order, ...prev];
+        if (!exists) return [safeOrder, ...prev];
         return prev;
       });
-      setPaymentPopup(order);
+      setPaymentPopup(safeOrder);
       playChime();
     };
 
@@ -889,7 +894,7 @@ export default function Worker() {
               </p>
 
               <div className="bg-gray-50 rounded-2xl p-4 mb-5 border border-gray-100 space-y-1.5 text-sm">
-                <div className="flex justify-between"><span className="text-gray-500">Order ID / Code</span><span className="font-bold text-gray-900">#{paymentPopup.pickupCode || (paymentPopup._id ? paymentPopup._id.toString().slice(-6).toUpperCase() : "ORDER")}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Order ID</span><span className="font-bold text-gray-900 font-mono">#{paymentPopup._id ? paymentPopup._id.toString().slice(-6).toUpperCase() : (paymentPopup.id ? paymentPopup.id.toString().slice(-6).toUpperCase() : "ORDER")}</span></div>
                 {paymentPopup.storeAppReceipt && (
                   <div className="flex justify-between text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg text-xs">
                     <span className="font-semibold">POS Receipt</span>

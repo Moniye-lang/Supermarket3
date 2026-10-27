@@ -10,7 +10,7 @@ export default function AdminDashboardHome() {
     const { token } = useContext(AuthContext);
     const [analytics, setAnalytics] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [period, setPeriod] = useState("weekly");
+    const [period, setPeriod] = useState("daily");
     const [chartType, setChartType] = useState<"area" | "bar">("area");
     const [activeMetric, setActiveMetric] = useState<"both" | "revenue" | "orders">("both");
 
@@ -81,7 +81,7 @@ export default function AdminDashboardHome() {
 
     const stats = [
         { 
-            title: "Revenue", 
+            title: period === "daily" ? "Daily Revenue" : `${period.charAt(0).toUpperCase() + period.slice(1)} Revenue`, 
             value: `₦ ${analytics?.period?.revenue?.toLocaleString() || 0}`, 
             growth: analytics?.period?.revenueGrowth,
             icon: DollarSign, 
@@ -89,7 +89,7 @@ export default function AdminDashboardHome() {
             bg: "bg-emerald-50" 
         },
         { 
-            title: "Orders", 
+            title: period === "daily" ? "Daily Orders" : `${period.charAt(0).toUpperCase() + period.slice(1)} Orders`, 
             value: analytics?.period?.orders || 0, 
             growth: analytics?.period?.orderGrowth,
             icon: ShoppingCart, 
@@ -230,15 +230,15 @@ export default function AdminDashboardHome() {
                                         <div className="grid grid-cols-3 gap-4 mb-6">
                                             {[
                                                 {
-                                                    label: "Total Revenue",
-                                                    value: `₦${(chartData.reduce((s: number, d: any) => s + (d.revenue || 0), 0) / 1000).toFixed(1)}k`,
+                                                    label: period === "daily" ? "Daily Revenue" : "Total Revenue",
+                                                    value: `₦${(chartData.reduce((s: number, d: any) => s + (d.revenue || 0), 0) || 0).toLocaleString()}`,
                                                     color: "text-brand-primary",
                                                     bg: "bg-red-50",
                                                     dot: "bg-brand-primary",
                                                     metric: "revenue" as const,
                                                 },
                                                 {
-                                                    label: "Total Orders",
+                                                    label: period === "daily" ? "Daily Orders" : "Total Orders",
                                                     value: chartData.reduce((s: number, d: any) => s + (d.orders || 0), 0),
                                                     color: "text-indigo-600",
                                                     bg: "bg-indigo-50",

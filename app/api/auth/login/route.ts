@@ -30,7 +30,7 @@ export async function POST(req: Request) {
 
     if (!user.isVerified) return NextResponse.json({ error: "Please verify your email first" }, { status: 400 });
 
-    const tokenExpiry = (user.role === "admin" && pwa) ? "365d" : "7d";
+    const tokenExpiry = user.role === "admin" ? "90d" : "30d";
     const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: tokenExpiry });
 
     return NextResponse.json({
