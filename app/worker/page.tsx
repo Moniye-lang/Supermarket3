@@ -27,6 +27,7 @@ export default function Worker() {
   const [workerRole, setWorkerRole] = useState<"worker" | "rider" | "admin" | null>(null);
   const [completedOrders, setCompletedOrders] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [expandedHistoryIds, setExpandedHistoryIds] = useState<Record<string, boolean>>({});
 
   // Payment verification queue
   const [verifyingOrders, setVerifyingOrders] = useState<any[]>([]);
@@ -590,7 +591,10 @@ export default function Worker() {
               >
                 <div>
                   <p className="font-bold text-amber-900 text-sm">Order #{vo._id ? vo._id.toString().slice(-6).toUpperCase() : "ORDER"} — {vo.pickupName}</p>
-                  <p className="text-xs text-amber-700">
+                  <p className="text-xs text-amber-800 font-semibold mt-0.5 line-clamp-1">
+                    🛍️ {vo.items?.map((it: any) => `${it.qty || 1}x ${it.name || "Item"}`).join(", ") || "No items listed"}
+                  </p>
+                  <p className="text-xs text-amber-700 mt-0.5">
                     ₦{vo.amount?.toLocaleString()} · {vo.collectionMethod} ·{" "}
                     {new Date(vo.createdAt).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                   </p>
@@ -832,27 +836,91 @@ export default function Worker() {
                   <p className="text-center text-sm text-gray-400 py-6">No completed tasks recorded yet.</p>
                 ) : (
                   <div className="space-y-3 mt-4">
-                    {completedOrders.map((order) => (
-                      <div
-                        key={order._id}
-                        className="bg-white/60 border border-gray-100 rounded-2xl p-4 flex items-center justify-between text-sm shadow-sm"
-                      >
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs font-mono font-bold text-gray-400">#{order._id ? order._id.toString().slice(-6).toUpperCase() : "ORDER"}</span>
-                            <span className="bg-emerald-100 text-emerald-800 text-[10px] px-1.5 py-0.5 rounded font-black uppercase">Fulfilled</span>
+                    {completedOrders.map((order) => {
+                      const isExpanded = !!expandedHistoryIds[order._id];
+                      return (
+                        <div
+                          key={order._id}
+                          className="bg-white/80 border border-gray-150 rounded-2xl p-4 text-sm shadow-sm transition-all hover:border-gray-300"
+                        >
+                          <div
+                            onClick={() => setExpandedHistoryIds(prev => ({ ...prev, [order._id]: !prev[order._id] }))}
+                            className="flex items-center justify-between cursor-pointer select-none"
+                          >
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xs font-mono font-bold text-gray-500">#{order._id ? order._id.toString().slice(-6).toUpperCase() : "ORDER"}</span>
+                                <span className="bg-emerald-100 text-emerald-800 text-[10px] px-1.5 py-0.5 rounded font-black uppercase">Fulfilled</span>
+                                <span className="bg-gray-100 text-gray-600 text-[10px] px-1.5 py-0.5 rounded font-semibold capitalize">{order.collectionMethod || "Pickup"}</span>
+                              </div>
+                              <p className="font-semibold text-gray-800">{order.pickupName}</p>
+                              <p className="text-xs text-gray-400 mt-0.5">
+                                Completed: {new Date(order.updatedAt).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                              </p>
+                            </div>
+                            <div className="text-right flex items-center gap-3">
+                              <div>
+                                <p className="font-bold text-emerald-600">₦{order.amount?.toLocaleString()}</p>
+                                <p className="text-xs text-brand-primary font-semibold hover:underline">
+                                  {order.items?.length || 0} product{order.items?.length === 1 ? "" : "s"} {isExpanded ? "▲ Hide" : "▼ View"}
+                                </p>
+                              </div>
+                            </div>
                           </div>
-                          <p className="font-semibold text-gray-800">{order.pickupName}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">
-                            Completed: {new Date(order.updatedAt).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                          </p>
+
+                          {/* Expanded Products View */}
+                          <AnimatePresence>
+                            {isExpanded && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="mt-3 pt-3 border-t border-gray-100 space-y-2 overflow-hidden"
+                              >
+                                <div className="flex items-center justify-between text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">
+                                  <span>Order Products</span>
+                                  <span>Qty × Unit Price</span>
+                                </div>
+                                <div className="space-y-1.5 bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                  {(order.items || []).map((it: any, idx: number) => (
+                                    <div key={idx} className="flex items-center justify-between text-xs py-1.5 border-b border-gray-100 last:border-b-0">
+                                      <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                                        {it.image ? (
+                                          <img src={it.image} alt={it.name} className="w-8 h-8 rounded-lg object-cover border border-gray-200 shrink-0" />
+                                        ) : (
+                                          <div className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 shrink-0">
+                                            <Package size={14} />
+                                          </div>
+                                        )}
+                                        <div className="min-w-0">
+                                          <p className="font-semibold text-gray-800 truncate">{it.name || "Product"}</p>
+                                          {it.sku && <p className="text-[10px] text-gray-400 font-mono">SKU: {it.sku}</p>}
+                                        </div>
+                                      </div>
+                                      <div className="text-right shrink-0">
+                                        <span className="font-bold text-gray-800">
+                                          {it.qty || 1} × ₦{(Number(it.price) || 0).toLocaleString()}
+                                        </span>
+                                        <p className="text-[10px] text-gray-500 font-medium">
+                                          = ₦{((Number(it.price) || 0) * (it.qty || 1)).toLocaleString()}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                {order.deliveryAddress && order.collectionMethod === "delivery" && (
+                                  <div className="flex items-start gap-2 bg-blue-50 text-blue-800 p-2.5 rounded-xl text-xs mt-2 border border-blue-100">
+                                    <MapPin size={14} className="shrink-0 mt-0.5 text-blue-600" />
+                                    <span><strong>Address:</strong> {order.deliveryAddress}</span>
+                                  </div>
+                                )}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
-                        <div className="text-right">
-                          <p className="font-bold text-emerald-600">₦{order.amount?.toLocaleString()}</p>
-                          <p className="text-xs text-gray-400">{order.items?.length || 0} items</p>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </motion.div>
@@ -903,7 +971,20 @@ export default function Worker() {
                 )}
                 <div className="flex justify-between"><span className="text-gray-500">Amount</span><span className="font-bold text-brand-primary">₦{paymentPopup.amount?.toLocaleString()}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">Method</span><span className="font-medium capitalize">{paymentPopup.collectionMethod}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">Items</span><span className="font-medium">{paymentPopup.items?.length} item(s)</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Total Items</span><span className="font-bold text-gray-800">{paymentPopup.items?.length || 0} item(s)</span></div>
+                
+                {/* Product Breakdown */}
+                <div className="pt-2 border-t border-gray-200">
+                  <span className="text-gray-500 font-bold text-[11px] uppercase tracking-wider block mb-1.5">Products Included:</span>
+                  <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                    {(paymentPopup.items || []).map((it: any, idx: number) => (
+                      <div key={idx} className="flex justify-between items-center text-xs bg-white p-2 rounded-xl border border-gray-100 shadow-2xs">
+                        <span className="font-semibold text-gray-800 line-clamp-1">{it.name || "Product"}</span>
+                        <span className="text-brand-dark font-bold shrink-0 ml-2">x{it.qty || 1} {it.price ? `(₦${(Number(it.price) * (it.qty || 1)).toLocaleString()})` : ""}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <p className="text-xs text-center text-gray-400 mb-4">Verify via your payment platform before accepting. Only accept if payment is confirmed received.</p>

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 import dbConnect from "@/lib/mongodb";
 import Order from "@/lib/models/Order";
+import Product from "@/lib/models/Product";
 import User from "@/lib/models/User";
 import { verifyAuth } from "@/lib/authMiddleware";
 import { sendPushToUser } from "@/lib/subscriptions";
@@ -81,6 +83,35 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           console.warn("[StoreApp POS] Failed syncing confirmed order:", storeApiErr.message);
         }
       }
+
+      // Sync local database product stock decrement
+      if (Array.isArray(order.items)) {
+        for (const item of order.items) {
+          try {
+            const qty = Math.max(1, Math.floor(Number(item.qty) || 1));
+            const pId = item.productId;
+            const conditions: any[] = [];
+            if (pId && mongoose.Types.ObjectId.isValid(pId)) {
+              conditions.push({ _id: new mongoose.Types.ObjectId(pId) });
+            }
+            if (pId) conditions.push({ storeProductId: String(pId) });
+            if (item.sku) conditions.push({ sku: item.sku });
+            if (item.name) conditions.push({ name: item.name });
+            if (conditions.length > 0) {
+              await Product.findOneAndUpdate(
+                { $or: conditions },
+                { $inc: { stock: -qty } }
+              );
+            }
+          } catch (stockErr: any) {
+            console.warn("[Confirm Payment] Local product stock decrement error:", stockErr.message);
+          }
+        }
+      }
+
+      const itemsList = (order.items || [])
+        .map((it: any) => `${it.qty || 1}x ${it.name || "Item"}`)
+        .join(", ");
       
       // Auto-assign worker based on order type (rider for delivery, worker for pickup)
       const targetRole = order.collectionMethod === "delivery" ? "rider" : "worker";
@@ -117,11 +148,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           logMessage: logMsg
         });
 
-        // Notify the worker
+        // Notify the worker with product details
         const orderCode = order.pickupCode || order.code || (order._id ? order._id.toString().slice(-6).toUpperCase() : "");
         const workerPayload = {
           title: 'New Order Assigned',
-          body: `You have been assigned to order #${orderCode}.`,
+          body: `Order #${orderCode} assigned: ${itemsList || "Products"}.`,
           url: `${clientUrl}/worker`
         };
         await sendPushToUser(selectedWorker._id.toString(), workerPayload.title, workerPayload.body, workerPayload.url).catch(() => {});
@@ -149,12 +180,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         });
       }
 
-      // Notify other staff about assignment
+      // Notify other staff about assignment and items
       const staffMembers = await User.find({ role: { $in: ["admin", "worker", "rider"] } });
       for (const staff of staffMembers) {
         if (order.assignedToWorkerId && staff._id.toString() === order.assignedToWorkerId.toString()) continue;
         let title = '🔔 Order Paid & Active';
-        let body = `Order #${orderCode} was verified. Status is now packing.`;
+        let body = `Order #${orderCode} verified: ${itemsList || "Products"}. Status is now packing.`;
         await sendPushToUser(staff._id.toString(), title, body, `${clientUrl}/worker`).catch(() => {});
       }
 
@@ -173,6 +204,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         // Update other workers/admins
         await pusher.trigger("admin-orders", "orderUpdated", updated);
         await pusher.trigger("admin-orders", "order:status", { orderId: order._id.toString(), status: "packing" });
+        await pusher.trigger("admin-orders", "stockUpdated", { orderId: order._id.toString() });
         // Update specific customer
         await pusher.trigger(`order-${order._id}`, "orderUpdated", updated);
         await pusher.trigger(`order-${order._id}`, "order:status", { orderId: order._id.toString(), status: "packing" });
@@ -220,6 +252,29 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         }
       }
 
+      // Restock local database items if declined
+      if (Array.isArray(order.items)) {
+        for (const item of order.items) {
+          try {
+            const qty = Math.max(1, Math.floor(Number(item.qty) || 1));
+            const pId = item.productId;
+            const conditions: any[] = [];
+            if (pId && mongoose.Types.ObjectId.isValid(pId)) {
+              conditions.push({ _id: new mongoose.Types.ObjectId(pId) });
+            }
+            if (pId) conditions.push({ storeProductId: String(pId) });
+            if (item.sku) conditions.push({ sku: item.sku });
+            if (item.name) conditions.push({ name: item.name });
+            if (conditions.length > 0) {
+              await Product.findOneAndUpdate(
+                { $or: conditions },
+                { $inc: { stock: qty } }
+              );
+            }
+          } catch {}
+        }
+      }
+
       // Notify customer that payment is declined
       const customerPayload = {
         title: '❌ Payment Verification Failed',
@@ -246,6 +301,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         const updated = await Order.findById(order._id);
         await pusher.trigger("admin-orders", "orderUpdated", updated);
         await pusher.trigger("admin-orders", "order:status", { orderId: order._id.toString(), status: "payment_declined" });
+        await pusher.trigger("admin-orders", "stockUpdated", { orderId: order._id.toString() });
         await pusher.trigger(`order-${order._id}`, "orderUpdated", updated);
         await pusher.trigger(`order-${order._id}`, "order:status", { orderId: order._id.toString(), status: "payment_declined" });
       } catch (pushErr: any) {

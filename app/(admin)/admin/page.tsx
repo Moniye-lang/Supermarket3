@@ -1,10 +1,11 @@
 "use client";
-import { useState, useEffect, useContext } from "react";
-import { DollarSign, Package, ShoppingCart, Users, TrendingUp, TrendingDown, AlertTriangle, ChevronRight, BarChart3, UserCheck, UserX, Shield, Zap, Sparkles } from "lucide-react";
+import { useState, useEffect, useContext, useCallback } from "react";
+import { DollarSign, Package, ShoppingCart, Users, TrendingUp, TrendingDown, AlertTriangle, ChevronRight, BarChart3, UserCheck, UserX, Shield, Zap, Sparkles, Eye, Search, RefreshCw, X, Check, ShoppingBag, Loader2, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ComposedChart, AreaChart, Area, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine, PieChart, Pie, Cell } from "recharts";
 import pusherClient from "@/lib/pusher-client";
 import { AuthContext } from "@/context/AuthContext";
+import { Input } from "@/components/ui/Input";
 
 export default function AdminDashboardHome() {
     const { token } = useContext(AuthContext);
@@ -17,32 +18,115 @@ export default function AdminDashboardHome() {
     const [staffSummary, setStaffSummary] = useState({ availableWorkers: 0, totalWorkers: 0, availableRiders: 0, totalRiders: 0 });
     const API_URL = "";
 
+    // Sold Products Modal State
+    const [showSoldProductsModal, setShowSoldProductsModal] = useState(false);
+    const [soldSearchQuery, setSoldSearchQuery] = useState("");
+
+    // Inventory & Out of Stock Sync State
+    const [inventoryTab, setInventoryTab] = useState<"out_of_stock" | "low_stock">("out_of_stock");
+    const [syncingInventory, setSyncingInventory] = useState(false);
+    const [lastSyncedTime, setLastSyncedTime] = useState<string | null>(null);
+    const [syncMessage, setSyncMessage] = useState<string | null>(null);
+
+    // Restock Modal State
+    const [restockProduct, setRestockProduct] = useState<any>(null);
+    const [restockQty, setRestockQty] = useState("10");
+    const [restocking, setRestocking] = useState(false);
+
+    const fetchAnalytics = useCallback(async () => {
+        const currentToken = token || localStorage.getItem("token");
+        if (!currentToken) return;
+        try {
+            const res = await fetch(`${API_URL}/api/admin/analytics?period=${period}&_t=${Date.now()}`, {
+                headers: { 
+                    Authorization: `Bearer ${currentToken}`,
+                    "Cache-Control": "no-cache",
+                    "Pragma": "no-cache"
+                }
+            });
+            const data = await res.json();
+            if (!res.ok || data.error) {
+                setAnalytics({ error: data.error || "Failed to fetch analytics" });
+                return;
+            }
+            setAnalytics(data);
+        } catch (err: any) {
+            console.error("Failed to fetch analytics", err);
+            setAnalytics({ error: err.message });
+        } finally {
+            setLoading(false);
+        }
+    }, [token, period]);
+
+    const handleSyncInventory = async () => {
+        const currentToken = token || localStorage.getItem("token");
+        try {
+            setSyncingInventory(true);
+            setSyncMessage(null);
+            const res = await fetch(`${API_URL}/api/admin/inventory/sync`, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${currentToken}`,
+                    "Content-Type": "application/json"
+                }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setLastSyncedTime(new Date().toLocaleTimeString());
+                setSyncMessage(data.syncedWithStoreApp ? "Synced with StoreApp POS & Database!" : "Inventory synchronized successfully!");
+                await fetchAnalytics();
+            } else {
+                setSyncMessage(data.error || "Failed to sync inventory");
+            }
+        } catch (err: any) {
+            setSyncMessage(err.message || "Network error syncing inventory");
+        } finally {
+            setSyncingInventory(false);
+            setTimeout(() => setSyncMessage(null), 4000);
+        }
+    };
+
+    const handleConfirmRestock = async () => {
+        if (!restockProduct) return;
+        const currentToken = token || localStorage.getItem("token");
+        const qtyNum = parseInt(restockQty, 10);
+        if (isNaN(qtyNum) || qtyNum <= 0) {
+            alert("Please enter a valid restock quantity greater than 0");
+            return;
+        }
+
+        try {
+            setRestocking(true);
+            const res = await fetch(`${API_URL}/api/stock/adjust`, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${currentToken}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    productId: restockProduct.id || restockProduct._id,
+                    adjustBy: qtyNum,
+                    remarks: `Admin restocked +${qtyNum} units`
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setRestockProduct(null);
+                setRestockQty("10");
+                await fetchAnalytics();
+            } else {
+                alert(data.error || "Failed to restock product");
+            }
+        } catch (err: any) {
+            alert(err.message || "Error restocking product");
+        } finally {
+            setRestocking(false);
+        }
+    };
+
     useEffect(() => {
         const currentToken = token || localStorage.getItem("token");
         if (!currentToken) return;
-
-        const fetchAnalytics = async () => {
-            try {
-                const res = await fetch(`${API_URL}/api/admin/analytics?period=${period}&_t=${Date.now()}`, {
-                    headers: { 
-                        Authorization: `Bearer ${currentToken}`,
-                        "Cache-Control": "no-cache",
-                        "Pragma": "no-cache"
-                    }
-                });
-                const data = await res.json();
-                if (!res.ok || data.error) {
-                    setAnalytics({ error: data.error || "Failed to fetch analytics" });
-                    return;
-                }
-                setAnalytics(data);
-            } catch (err: any) {
-                console.error("Failed to fetch analytics", err);
-                setAnalytics({ error: err.message });
-            } finally {
-                setLoading(false);
-            }
-        };
 
         const fetchStaff = async () => {
             try {
@@ -72,12 +156,18 @@ export default function AdminDashboardHome() {
         const channel = pusherClient.subscribe("admin-orders");
         const handleUpdate = () => fetchAnalytics();
         channel.bind("orderCreated", handleUpdate);
+        channel.bind("orderUpdated", handleUpdate);
         channel.bind("order:status", handleUpdate);
+        channel.bind("stockUpdated", handleUpdate);
 
         return () => {
+            channel.unbind("orderCreated", handleUpdate);
+            channel.unbind("orderUpdated", handleUpdate);
+            channel.unbind("order:status", handleUpdate);
+            channel.unbind("stockUpdated", handleUpdate);
             pusherClient.unsubscribe("admin-orders");
         };
-    }, [token, period]);
+    }, [token, period, fetchAnalytics]);
 
     const stats = [
         { 
@@ -448,9 +538,17 @@ export default function AdminDashboardHome() {
                                                 </div>
                                             )}
                                         </div>
-                                        <button className="mt-8 w-full py-4 rounded-2xl bg-gray-50 text-gray-900 font-bold text-sm hover:bg-gray-100 transition-colors flex items-center justify-center gap-2">
-                                            View All Products <ChevronRight size={16} />
-                                        </button>
+                                        <div className="mt-8 flex flex-col gap-2">
+                                            <button
+                                                onClick={() => setShowSoldProductsModal(true)}
+                                                className="w-full py-4 rounded-2xl bg-brand-primary text-white font-bold text-sm hover:bg-brand-primary/90 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+                                            >
+                                                <Eye size={16} /> View Sold Products ({analytics?.soldProducts?.length || analytics?.topProducts?.length || 0}) <ChevronRight size={16} />
+                                            </button>
+                                            <a href="/admin/products" className="w-full py-2.5 rounded-xl bg-gray-50 text-gray-600 font-semibold text-xs hover:bg-gray-100 transition-colors flex items-center justify-center gap-1.5 text-center">
+                                                Manage Catalog in Products Inventory &rarr;
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -547,30 +645,172 @@ export default function AdminDashboardHome() {
                                     )}
                                 </div>
 
-                                {/* Inventory Alerts */}
+                                {/* Inventory & Out-of-Stock Sync */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                    <div className="bg-rose-50 rounded-3xl p-8 border border-rose-100">
-                                        <div className="flex items-center gap-3 mb-6">
-                                            <div className="w-10 h-10 rounded-xl bg-rose-500 flex items-center justify-center text-white shadow-lg shadow-rose-200">
-                                                <AlertTriangle size={20} />
+                                    <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm flex flex-col">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 flex items-center justify-center font-bold">
+                                                    <AlertTriangle size={20} />
+                                                </div>
+                                                <div>
+                                                    <h2 className="text-xl font-black text-gray-900">Inventory &amp; Stock Sync</h2>
+                                                    <p className="text-xs text-gray-500 font-medium">Real-time out of stock &amp; low stock monitoring</p>
+                                                </div>
                                             </div>
-                                            <h2 className="text-xl font-black text-rose-900">Inventory Alerts</h2>
+                                            <button
+                                                onClick={handleSyncInventory}
+                                                disabled={syncingInventory}
+                                                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-800 border border-gray-200 font-bold text-xs shadow-sm transition-all cursor-pointer disabled:opacity-50 self-start sm:self-auto"
+                                                title="Sync stock with StoreApp POS and MongoDB"
+                                            >
+                                                <RefreshCw size={13} className={syncingInventory ? "animate-spin text-brand-primary" : "text-gray-500"} />
+                                                <span>{syncingInventory ? "Syncing..." : "Sync Stock"}</span>
+                                            </button>
                                         </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            {analytics?.lowStockProducts?.length > 0 ? (
-                                                analytics.lowStockProducts.map((product: any) => (
-                                                    <div key={product.id} className="bg-white p-4 rounded-2xl shadow-sm border border-rose-100 flex items-center justify-between">
-                                                        <div>
-                                                            <p className="font-bold text-gray-900 text-sm">{product.name}</p>
-                                                            <p className="text-xs text-rose-600 font-bold">{product.stock} left in stock</p>
+
+                                        {syncMessage && (
+                                            <div className="mb-4 p-3 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-800 text-xs font-bold flex items-center gap-2">
+                                                <CheckCircle2 size={15} className="text-emerald-600 flex-shrink-0" />
+                                                <span>{syncMessage}</span>
+                                            </div>
+                                        )}
+
+                                        {/* Subtabs for Out of Stock vs Low Stock */}
+                                        <div className="flex items-center gap-2 mb-4 p-1 bg-gray-50 rounded-xl border border-gray-100 w-fit">
+                                            <button
+                                                onClick={() => setInventoryTab("out_of_stock")}
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                                                    inventoryTab === "out_of_stock"
+                                                        ? "bg-rose-500 text-white shadow-sm"
+                                                        : "text-gray-500 hover:text-gray-800"
+                                                }`}
+                                            >
+                                                <span>Out of Stock</span>
+                                                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                                                    inventoryTab === "out_of_stock" ? "bg-white/20 text-white" : "bg-rose-100 text-rose-700"
+                                                }`}>
+                                                    {analytics?.outOfStockCount ?? analytics?.outOfStockProducts?.length ?? 0}
+                                                </span>
+                                            </button>
+
+                                            <button
+                                                onClick={() => setInventoryTab("low_stock")}
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                                                    inventoryTab === "low_stock"
+                                                        ? "bg-amber-500 text-white shadow-sm"
+                                                        : "text-gray-500 hover:text-gray-800"
+                                                }`}
+                                            >
+                                                <span>Low Stock (≤ 10)</span>
+                                                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                                                    inventoryTab === "low_stock" ? "bg-white/20 text-white" : "bg-amber-100 text-amber-700"
+                                                }`}>
+                                                    {analytics?.lowStockCount ?? analytics?.lowStockProducts?.length ?? 0}
+                                                </span>
+                                            </button>
+                                        </div>
+
+                                        {/* Product list */}
+                                        <div className="flex-1 overflow-y-auto max-h-[360px] space-y-3 pr-1">
+                                            {inventoryTab === "out_of_stock" ? (
+                                                (analytics?.outOfStockProducts && analytics.outOfStockProducts.length > 0) ? (
+                                                    analytics.outOfStockProducts.map((product: any) => (
+                                                        <div
+                                                            key={product.id}
+                                                            className="bg-rose-50/50 hover:bg-rose-50 border border-rose-100 rounded-2xl p-3.5 flex items-center justify-between gap-3 transition-colors"
+                                                        >
+                                                            <div className="flex items-center gap-3 min-w-0">
+                                                                <div className="w-10 h-10 rounded-xl bg-white border border-rose-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                                                                    {product.image ? (
+                                                                        <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                                                                    ) : (
+                                                                        <Package size={18} className="text-gray-300" />
+                                                                    )}
+                                                                </div>
+                                                                <div className="min-w-0">
+                                                                    <p className="font-bold text-gray-900 text-sm truncate">{product.name}</p>
+                                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                                        <span className="text-[11px] font-black text-rose-700 bg-rose-100 px-2 py-0.5 rounded-md">
+                                                                            0 units • Out of stock
+                                                                        </span>
+                                                                        <span className="text-xs text-gray-400">₦{Number(product.price || 0).toLocaleString()}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setRestockProduct(product);
+                                                                    setRestockQty("10");
+                                                                }}
+                                                                className="px-3 py-1.5 rounded-xl bg-brand-primary text-white font-bold text-xs hover:bg-brand-primary/90 transition-all shadow-sm flex-shrink-0 cursor-pointer"
+                                                            >
+                                                                Restock
+                                                            </button>
                                                         </div>
-                                                        <button className="text-brand-primary font-black text-xs hover:underline uppercase tracking-wider cursor-pointer">Restock</button>
+                                                    ))
+                                                ) : (
+                                                    <div className="text-center py-10">
+                                                        <div className="w-12 h-12 mx-auto rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2">
+                                                            <CheckCircle2 size={24} />
+                                                        </div>
+                                                        <p className="text-sm font-bold text-gray-800">No out-of-stock items!</p>
+                                                        <p className="text-xs text-gray-400 mt-0.5">All products in the store catalog have available stock.</p>
                                                     </div>
-                                                ))
+                                                )
                                             ) : (
-                                                <p className="text-rose-700 text-sm font-medium">All products are well-stocked! 🎉</p>
+                                                (analytics?.lowStockProducts && analytics.lowStockProducts.length > 0) ? (
+                                                    analytics.lowStockProducts.map((product: any) => (
+                                                        <div
+                                                            key={product.id}
+                                                            className="bg-amber-50/50 hover:bg-amber-50 border border-amber-100 rounded-2xl p-3.5 flex items-center justify-between gap-3 transition-colors"
+                                                        >
+                                                            <div className="flex items-center gap-3 min-w-0">
+                                                                <div className="w-10 h-10 rounded-xl bg-white border border-amber-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                                                                    {product.image ? (
+                                                                        <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                                                                    ) : (
+                                                                        <Package size={18} className="text-gray-300" />
+                                                                    )}
+                                                                </div>
+                                                                <div className="min-w-0">
+                                                                    <p className="font-bold text-gray-900 text-sm truncate">{product.name}</p>
+                                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                                        <span className="text-[11px] font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md">
+                                                                            {product.stock} units left
+                                                                        </span>
+                                                                        <span className="text-xs text-gray-400">₦{Number(product.price || 0).toLocaleString()}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setRestockProduct(product);
+                                                                    setRestockQty("10");
+                                                                }}
+                                                                className="px-3 py-1.5 rounded-xl bg-amber-600 text-white font-bold text-xs hover:bg-amber-700 transition-all shadow-sm flex-shrink-0 cursor-pointer"
+                                                            >
+                                                                Restock
+                                                            </button>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="text-center py-10">
+                                                        <div className="w-12 h-12 mx-auto rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2">
+                                                            <CheckCircle2 size={24} />
+                                                        </div>
+                                                        <p className="text-sm font-bold text-gray-800">No low-stock items!</p>
+                                                        <p className="text-xs text-gray-400 mt-0.5">All products currently have more than 10 units in stock.</p>
+                                                    </div>
+                                                )
                                             )}
                                         </div>
+
+                                        {lastSyncedTime && (
+                                            <p className="text-[11px] text-gray-400 mt-3 text-center">
+                                                Last synchronized at {lastSyncedTime}
+                                            </p>
+                                        )}
                                     </div>
 
                                     <div className="bg-emerald-50 rounded-3xl p-8 border border-emerald-100">
@@ -648,6 +888,310 @@ export default function AdminDashboardHome() {
                     </motion.div>
                 </AnimatePresence>
             )}
+
+            {/* View Sold Products Modal */}
+            <AnimatePresence>
+                {showSoldProductsModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                            transition={{ duration: 0.2 }}
+                            className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-100 overflow-hidden"
+                        >
+                            {/* Modal Header */}
+                            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 rounded-2xl bg-brand-primary/10 text-brand-primary flex items-center justify-center">
+                                        <ShoppingBag size={24} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-black text-gray-900 tracking-tight">Sold Products &amp; Sales Volume</h3>
+                                        <p className="text-xs text-gray-500 font-medium">All products sold across verified, paid customer orders.</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setShowSoldProductsModal(false);
+                                        setSoldSearchQuery("");
+                                    }}
+                                    className="w-10 h-10 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-700 flex items-center justify-center transition-colors"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            {/* Summary Metrics Strip */}
+                            <div className="grid grid-cols-3 gap-3 p-4 bg-gray-50/80 border-b border-gray-100">
+                                <div className="bg-white p-3.5 rounded-2xl border border-gray-100 shadow-sm">
+                                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Unique Items Sold</p>
+                                    <p className="text-xl font-black text-gray-900 mt-0.5">
+                                        {analytics?.soldProducts?.length || 0}
+                                    </p>
+                                </div>
+                                <div className="bg-white p-3.5 rounded-2xl border border-gray-100 shadow-sm">
+                                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Total Units Sold</p>
+                                    <p className="text-xl font-black text-indigo-600 mt-0.5">
+                                        {(analytics?.soldProducts || []).reduce((acc: number, p: any) => acc + (p.sales || 0), 0).toLocaleString()}
+                                    </p>
+                                </div>
+                                <div className="bg-white p-3.5 rounded-2xl border border-gray-100 shadow-sm">
+                                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Total Revenue Generated</p>
+                                    <p className="text-xl font-black text-emerald-600 mt-0.5">
+                                        ₦{((analytics?.soldProducts || []).reduce((acc: number, p: any) => acc + (p.revenue || 0), 0) || 0).toLocaleString()}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Search Filter */}
+                            <div className="p-4 border-b border-gray-100 bg-white">
+                                <div className="relative">
+                                    <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                                    <Input
+                                        value={soldSearchQuery}
+                                        onChange={(e) => setSoldSearchQuery(e.target.value)}
+                                        placeholder="Search sold products by name, category, or SKU..."
+                                        className="pl-10 pr-10 py-2.5 rounded-xl border-gray-200 text-sm focus:border-brand-primary"
+                                    />
+                                    {soldSearchQuery && (
+                                        <button
+                                            onClick={() => setSoldSearchQuery("")}
+                                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs font-bold"
+                                        >
+                                            Clear
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Product List */}
+                            <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-[50vh]">
+                                {(() => {
+                                    const filtered = (analytics?.soldProducts || []).filter((p: any) => {
+                                        if (!soldSearchQuery.trim()) return true;
+                                        const q = soldSearchQuery.toLowerCase();
+                                        return (
+                                            p.name?.toLowerCase().includes(q) ||
+                                            p.category?.toLowerCase().includes(q) ||
+                                            p.sku?.toLowerCase().includes(q)
+                                        );
+                                    });
+
+                                    if (filtered.length === 0) {
+                                        return (
+                                            <div className="text-center py-12">
+                                                <div className="w-16 h-16 mx-auto rounded-full bg-gray-50 flex items-center justify-center text-gray-300 mb-3">
+                                                    <Package size={28} />
+                                                </div>
+                                                <p className="text-gray-700 font-bold text-base">No sold products found</p>
+                                                <p className="text-gray-400 text-xs mt-1">
+                                                    {soldSearchQuery ? `No products matching "${soldSearchQuery}"` : "Verified customer purchases will automatically appear here."}
+                                                </p>
+                                            </div>
+                                        );
+                                    }
+
+                                    return filtered.map((item: any, idx: number) => (
+                                        <div
+                                            key={item.id || idx}
+                                            className="bg-white border border-gray-100 hover:border-gray-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all shadow-sm hover:shadow-md"
+                                        >
+                                            <div className="flex items-center gap-3.5">
+                                                <div className="w-14 h-14 rounded-xl bg-gray-50 flex-shrink-0 overflow-hidden border border-gray-100 flex items-center justify-center">
+                                                    {item.image ? (
+                                                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <Package size={22} className="text-gray-300" />
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-black text-gray-900 text-sm">{item.name}</h4>
+                                                    <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
+                                                        <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md font-semibold text-[11px]">
+                                                            {item.category || "General"}
+                                                        </span>
+                                                        {item.sku && (
+                                                            <span className="text-gray-400 text-[11px]">SKU: {item.sku}</span>
+                                                        )}
+                                                        <span className="text-gray-500 font-medium">₦{Number(item.price || 0).toLocaleString()} / unit</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center justify-between sm:justify-end gap-6 border-t sm:border-t-0 pt-3 sm:pt-0 border-gray-50">
+                                                <div className="text-left sm:text-right">
+                                                    <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Volume Sold</p>
+                                                    <p className="text-base font-black text-indigo-600">
+                                                        {item.sales} <span className="text-xs font-semibold text-gray-500">units</span>
+                                                    </p>
+                                                </div>
+
+                                                <div className="text-right">
+                                                    <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Total Sales</p>
+                                                    <p className="text-base font-black text-gray-900">
+                                                        ₦{Number(item.revenue || 0).toLocaleString()}
+                                                    </p>
+                                                </div>
+
+                                                <div className="text-right pl-2 border-l border-gray-100 hidden sm:block">
+                                                    <p className="text-[10px] text-gray-400 font-bold uppercase">Stock Left</p>
+                                                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold mt-0.5 ${
+                                                        (item.currentStock ?? 0) <= 0
+                                                            ? "bg-rose-100 text-rose-700"
+                                                            : (item.currentStock ?? 0) <= 10
+                                                            ? "bg-amber-100 text-amber-700"
+                                                            : "bg-emerald-100 text-emerald-700"
+                                                    }`}>
+                                                        {(item.currentStock ?? 0) <= 0 ? "Out of stock" : `${item.currentStock} in stock`}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ));
+                                })()}
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
+                                <a
+                                    href="/admin/products"
+                                    className="text-xs font-bold text-brand-primary hover:underline flex items-center gap-1"
+                                >
+                                    Open Full Inventory Catalog &rarr;
+                                </a>
+                                <button
+                                    onClick={() => {
+                                        setShowSoldProductsModal(false);
+                                        setSoldSearchQuery("");
+                                    }}
+                                    className="px-5 py-2.5 rounded-xl bg-gray-900 text-white font-bold text-xs hover:bg-black transition-colors cursor-pointer"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Quick Restock Modal */}
+            <AnimatePresence>
+                {restockProduct && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                            transition={{ duration: 0.2 }}
+                            className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100 relative"
+                        >
+                            <button
+                                onClick={() => setRestockProduct(null)}
+                                className="absolute top-5 right-5 w-8 h-8 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 flex items-center justify-center transition-colors cursor-pointer"
+                            >
+                                <X size={18} />
+                            </button>
+
+                            <div className="flex items-center gap-3 mb-5">
+                                <div className="w-10 h-10 rounded-xl bg-brand-primary/10 text-brand-primary flex items-center justify-center">
+                                    <Package size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-black text-gray-900">Restock Product</h3>
+                                    <p className="text-xs text-gray-500 font-medium">Update current available inventory in store</p>
+                                </div>
+                            </div>
+
+                            <div className="p-3.5 bg-gray-50 rounded-2xl flex items-center gap-3 mb-5 border border-gray-100">
+                                <div className="w-12 h-12 rounded-xl bg-white flex-shrink-0 overflow-hidden border border-gray-100 flex items-center justify-center">
+                                    {restockProduct.image ? (
+                                        <img src={restockProduct.image} alt={restockProduct.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <Package size={20} className="text-gray-300" />
+                                    )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <p className="font-bold text-gray-900 text-sm truncate">{restockProduct.name}</p>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                                            (restockProduct.stock ?? 0) <= 0 ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"
+                                        }`}>
+                                            Current: {restockProduct.stock ?? 0} units
+                                        </span>
+                                        <span className="text-xs text-gray-400">₦{Number(restockProduct.price || 0).toLocaleString()}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 mb-6">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
+                                        Add Quantity (+units)
+                                    </label>
+                                    <Input
+                                        type="number"
+                                        min="1"
+                                        value={restockQty}
+                                        onChange={(e) => setRestockQty(e.target.value)}
+                                        className="py-2.5 rounded-xl border-gray-200 text-sm font-bold focus:border-brand-primary"
+                                        placeholder="e.g. 10"
+                                    />
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    {[5, 10, 25, 50, 100].map((preset) => (
+                                        <button
+                                            key={preset}
+                                            type="button"
+                                            onClick={() => setRestockQty(preset.toString())}
+                                            className={`flex-1 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
+                                                restockQty === preset.toString()
+                                                    ? "bg-brand-primary text-white border-brand-primary"
+                                                    : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+                                            }`}
+                                        >
+                                            +{preset}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div className="p-3 rounded-xl bg-blue-50/60 border border-blue-100 flex items-center justify-between text-xs">
+                                    <span className="text-blue-700 font-medium">New Stock Total:</span>
+                                    <span className="font-black text-blue-900 text-sm">
+                                        {(Number(restockProduct.stock) || 0) + (parseInt(restockQty, 10) || 0)} units
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => setRestockProduct(null)}
+                                    disabled={restocking}
+                                    className="flex-1 py-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition-colors cursor-pointer"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleConfirmRestock}
+                                    disabled={restocking || !restockQty || parseInt(restockQty, 10) <= 0}
+                                    className="flex-1 py-3 rounded-xl bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                                >
+                                    {restocking ? (
+                                        <>
+                                            <Loader2 size={14} className="animate-spin" /> Restocking...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Check size={14} /> Confirm Restock
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

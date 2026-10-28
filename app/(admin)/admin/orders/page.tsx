@@ -440,7 +440,10 @@ export default function AdminOrdersPage() {
             >
               <div>
                 <p className="font-bold text-amber-900 text-sm">#{vo.pickupCode} — {vo.pickupName}</p>
-                <p className="text-xs text-amber-700">₦{vo.amount?.toLocaleString()} · {vo.collectionMethod} · {new Date(vo.createdAt).toLocaleTimeString()}</p>
+                <p className="text-xs text-amber-800 font-semibold mt-0.5 line-clamp-1">
+                  🛍️ {vo.items?.map((it: any) => `${it.qty || 1}x ${it.name || "Item"}`).join(", ") || "No items listed"}
+                </p>
+                <p className="text-xs text-amber-700 mt-0.5">₦{vo.amount?.toLocaleString()} · {vo.collectionMethod} · {new Date(vo.createdAt).toLocaleTimeString()}</p>
               </div>
               <button
                 onClick={() => setPaymentPopup(vo)}
@@ -760,7 +763,20 @@ export default function AdminOrdersPage() {
                 )}
                 <div className="flex justify-between"><span className="text-gray-500">Amount</span><span className="font-bold text-brand-primary">₦{paymentPopup.amount?.toLocaleString()}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">Method</span><span className="font-medium capitalize">{paymentPopup.collectionMethod}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">Items</span><span className="font-medium">{paymentPopup.items?.length} item(s)</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Total Items</span><span className="font-bold text-gray-800">{paymentPopup.items?.length || 0} item(s)</span></div>
+
+                {/* Product Breakdown */}
+                <div className="pt-2 border-t border-gray-200">
+                  <span className="text-gray-500 font-bold text-[11px] uppercase tracking-wider block mb-1.5">Products Included:</span>
+                  <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                    {(paymentPopup.items || []).map((it: any, idx: number) => (
+                      <div key={idx} className="flex justify-between items-center text-xs bg-white p-2 rounded-xl border border-gray-100 shadow-2xs">
+                        <span className="font-semibold text-gray-800 line-clamp-1">{it.name || "Product"}</span>
+                        <span className="text-brand-dark font-bold shrink-0 ml-2">x{it.qty || 1} {it.price ? `(₦${(Number(it.price) * (it.qty || 1)).toLocaleString()})` : ""}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <p className="text-xs text-center text-gray-400 mb-4">Verify via your payment platform before accepting. Only accept if payment is confirmed received.</p>

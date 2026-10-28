@@ -53,7 +53,10 @@ export async function GET(req: Request) {
       totalUsers,
       totalWorkers,
       totalProducts,
+      outOfStockProducts,
       lowStockProducts,
+      outOfStockCount,
+      lowStockCount,
       currentOrders,
       previousOrders,
       totalOrders,
@@ -65,7 +68,34 @@ export async function GET(req: Request) {
       User.countDocuments({ role: "customer" }),
       User.countDocuments({ role: { $in: ["worker", "rider"] } }),
       Product.countDocuments(),
-      Product.find({ stock: { $lt: 10 } }).select("name stock _id").limit(5).lean(),
+      Product.find({
+        $or: [
+          { stock: { $lte: 0 } },
+          { stockStatus: { $in: ["Out of Stock", "outofstock"] } },
+        ],
+      })
+        .select("name stock price image category sku _id updatedAt")
+        .sort({ updatedAt: -1 })
+        .limit(30)
+        .lean(),
+      Product.find({
+        stock: { $gt: 0, $lte: 10 },
+        stockStatus: { $nin: ["Out of Stock", "outofstock"] },
+      })
+        .select("name stock price image category sku _id updatedAt")
+        .sort({ stock: 1 })
+        .limit(30)
+        .lean(),
+      Product.countDocuments({
+        $or: [
+          { stock: { $lte: 0 } },
+          { stockStatus: { $in: ["Out of Stock", "outofstock"] } },
+        ],
+      }),
+      Product.countDocuments({
+        stock: { $gt: 0, $lte: 10 },
+        stockStatus: { $nin: ["Out of Stock", "outofstock"] },
+      }),
       Order.find({ createdAt: { $gte: currentStart }, ...paidOrderFilter })
         .select("amount createdAt items status")
         .lean(),
@@ -128,50 +158,64 @@ export async function GET(req: Request) {
     }
 
     // Top Products & Category breakdown
-    const productStats: Record<string, { qty: number; revenue: number; name: string; image: string }> = {};
+    const productStats: Record<string, { qty: number; revenue: number; name: string; image: string; price: number; category: string }> = {};
     const categoryStats: Record<string, { revenue: number; qty: number }> = {};
 
-    (currentOrders as any[]).forEach(order => {
+    // Use current orders for period stats; if empty, fallback to recent paid orders for sold products
+    const ordersToProcess = (currentOrders as any[]).length > 0
+      ? (currentOrders as any[])
+      : await Order.find(paidOrderFilter).select("amount createdAt items status").limit(100).lean();
+
+    (ordersToProcess as any[]).forEach(order => {
       (order.items || []).forEach((item: any) => {
-        const pid = String(item.productId || item._id || "unknown");
+        const pid = String(item.productId || item._id || item.sku || "unknown");
         const name = item.name || item.title || "Product";
         const image = item.image || "";
         const price = Number(item.price) || 0;
         const qty = Number(item.qty) || 1;
+        const cat = item.category || "General";
 
         if (!productStats[pid]) {
-          productStats[pid] = { qty: 0, revenue: 0, name, image };
+          productStats[pid] = { qty: 0, revenue: 0, name, image, price, category: cat };
         }
         productStats[pid].qty += qty;
         productStats[pid].revenue += (price * qty);
 
-        const cat = item.category || "General";
         if (!categoryStats[cat]) categoryStats[cat] = { revenue: 0, qty: 0 };
         categoryStats[cat].revenue += (price * qty);
         categoryStats[cat].qty += qty;
       });
     });
 
-    const topProductIds = Object.keys(productStats)
-      .sort((a, b) => productStats[b].revenue - productStats[a].revenue)
-      .slice(0, 5);
+    const allSoldIds = Object.keys(productStats)
+      .sort((a, b) => productStats[b].revenue - productStats[a].revenue);
+
+    const topProductIds = allSoldIds.slice(0, 5);
     
-    // Batch lookup all top products in one query rather than N sequential finds
-    const validIds = topProductIds.filter(id => mongoose.Types.ObjectId.isValid(id));
+    // Batch lookup all top and sold products in one query rather than N sequential finds
+    const validIds = allSoldIds.filter(id => mongoose.Types.ObjectId.isValid(id));
     const dbTopProducts: any[] = validIds.length > 0
-      ? await Product.find({ _id: { $in: validIds } }).select("name image").lean()
+      ? await Product.find({ _id: { $in: validIds } }).select("name image category price stock sku").lean()
       : [];
     const productMap = new Map<string, any>(dbTopProducts.map(p => [p._id.toString(), p]));
 
-    const topProducts = topProductIds.map(id => {
+    const formatProductItem = (id: string) => {
       const product = productMap.get(id);
       return {
+        id,
         name: product ? product.name : (productStats[id]?.name || `Product #${id}`),
         image: product ? product.image : productStats[id]?.image,
+        category: product?.category || productStats[id]?.category || "General",
+        price: product?.price || productStats[id]?.price || 0,
         sales: productStats[id]?.qty || 0,
         revenue: productStats[id]?.revenue || 0,
+        currentStock: product ? product.stock : 0,
+        sku: product?.sku || "",
       };
-    });
+    };
+
+    const topProducts = topProductIds.map(formatProductItem);
+    const soldProducts = allSoldIds.map(formatProductItem);
 
     // Category Revenue Breakdown
     const categoryColors: Record<string, string> = {
@@ -217,6 +261,9 @@ export async function GET(req: Request) {
         dailyRevenue,
         totalRevenue,
         pendingOrders,
+        outOfStockCount,
+        lowStockCount,
+        inStockCount: Math.max(0, totalProducts - outOfStockCount),
       },
       period: {
         revenue: currentRevenue,
@@ -228,7 +275,29 @@ export async function GET(req: Request) {
       },
       trendData,
       topProducts,
-      lowStockProducts: (lowStockProducts as any[]).map(p => ({ name: p.name, stock: p.stock, id: p._id })),
+      soldProducts,
+      outOfStockProducts: (outOfStockProducts as any[]).map(p => ({
+        id: p._id.toString(),
+        name: p.name,
+        stock: p.stock ?? 0,
+        price: p.price,
+        image: p.image || "",
+        category: p.category || "General",
+        sku: p.sku || "",
+        updatedAt: p.updatedAt,
+      })),
+      lowStockProducts: (lowStockProducts as any[]).map(p => ({
+        id: p._id.toString(),
+        name: p.name,
+        stock: p.stock,
+        price: p.price,
+        image: p.image || "",
+        category: p.category || "General",
+        sku: p.sku || "",
+        updatedAt: p.updatedAt,
+      })),
+      outOfStockCount,
+      lowStockCount,
       categoryDistribution,
     });
   } catch (err: any) {

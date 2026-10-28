@@ -216,7 +216,24 @@ export async function GET(req: Request) {
           );
         }
       } catch (storeErr: any) {
-        console.warn("[Products API] Store API live catalog fetch error, falling back to backup:", storeErr.message);
+        console.warn("[Products API] Store API live catalog unreachable:", storeErr.message);
+        return NextResponse.json(
+          {
+            products: [],
+            total: 0,
+            pages: 0,
+            page: 1,
+            unreachable: true,
+            error: "The products will show in a moment, please be patient. Thank you.",
+            message: "The products will show in a moment, please be patient. Thank you.",
+          },
+          {
+            status: 503,
+            headers: {
+              "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+            },
+          }
+        );
       }
     }
 
@@ -235,12 +252,27 @@ export async function GET(req: Request) {
           );
         }
       } catch (wooErr: any) {
-        console.warn("[Products API] WooCommerce fetch failed, falling back to DB backup:", wooErr.message);
+        console.warn("[Products API] WooCommerce fetch failed:", wooErr.message);
+        return NextResponse.json(
+          {
+            products: [],
+            total: 0,
+            pages: 0,
+            page: 1,
+            unreachable: true,
+            error: "The products will show in a moment, please be patient. Thank you.",
+            message: "The products will show in a moment, please be patient. Thank you.",
+          },
+          { status: 503 }
+        );
       }
     }
 
-    // 2. Database Backup: Fetch from MongoDB (or fallback catalog)
+    // 2. Database Backup: Fetch from MongoDB
     const dbResult = await fetchDbProducts({ page, limit, search: q, category, orderby, order });
+    if ((dbResult as any).unreachable) {
+      return NextResponse.json(dbResult, { status: 503 });
+    }
     return NextResponse.json(dbResult, {
       headers: {
         "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
@@ -249,8 +281,16 @@ export async function GET(req: Request) {
   } catch (err: any) {
     console.error("Error in GET /api/products:", err);
     return NextResponse.json(
-      { error: "Failed to fetch products", products: [], total: 0, pages: 1, page: 1 },
-      { status: 500 }
+      {
+        error: "The products will show in a moment, please be patient. Thank you.",
+        message: "The products will show in a moment, please be patient. Thank you.",
+        products: [],
+        total: 0,
+        pages: 0,
+        page: 1,
+        unreachable: true,
+      },
+      { status: 503 }
     );
   }
 }

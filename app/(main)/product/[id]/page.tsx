@@ -5,7 +5,7 @@ import Link from "next/link";
 import { CartContext } from "@/context/CartContext";
 import { AuthContext } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
-import { Minus, Plus, ShoppingCart, Store, ShieldCheck, ArrowLeft, Share2, Heart, ArrowRight } from "lucide-react";
+import { Minus, Plus, ShoppingCart, Store, ShieldCheck, ArrowLeft, Share2, Heart, ArrowRight, Clock, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 import ProductCard from "@/components/ProductCard";
 import { useFavorites } from "@/context/FavoritesContext";
@@ -169,9 +169,18 @@ export default function ProductDets() {
 
     if (!product) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-brand-light gap-4">
-                <h2 className="text-2xl font-bold text-gray-800">Product Not Found</h2>
-                <Button onClick={() => router.push("/products")}>Back to Products</Button>
+            <div className="min-h-screen flex flex-col items-center justify-center bg-brand-light gap-4 px-6 text-center">
+                <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mb-2 text-amber-600 border border-amber-100 shadow-sm">
+                    <Clock size={32} className="animate-pulse" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800">Notice</h2>
+                <p className="text-gray-600 max-w-md text-base font-medium leading-relaxed">
+                    The products will show in a moment, please be patient. Thank you.
+                </p>
+                <div className="flex gap-3 mt-2">
+                    <Button variant="outline" onClick={() => window.location.reload()}>Refresh</Button>
+                    <Button onClick={() => router.push("/products")}>Back to Products</Button>
+                </div>
             </div>
         );
     }

@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle, Clock, XCircle, Package, Truck, ShoppingBag,
   MapPin, ChevronRight, ChevronDown, PackageOpen,
-  Calendar, User, Hash, History, Loader2, ReceiptText, Phone, Store, PhoneCall
+  Calendar, User, Hash, History, Loader2, ReceiptText, Phone, Store, PhoneCall, Printer
 } from "lucide-react";
 
 function FulfillmentProgressBar({ status, orderType }: { status: string; orderType: string }) {
@@ -664,6 +664,16 @@ export default function Order() {
                             <span className="text-xl text-brand-primary font-display font-extrabold">₦{order.amount.toLocaleString()}</span>
                           </div>
                         </div>
+
+                        {/* Print POS Receipt Action */}
+                        <button
+                          type="button"
+                          onClick={() => window.print()}
+                          className="w-full mt-4 flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-gray-900 hover:bg-black text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md hover:shadow-lg cursor-pointer print:hidden"
+                          title="Print Receipt"
+                        >
+                          <Printer size={15} /> Print POS Receipt
+                        </button>
                       </div>
                     </div>
 

@@ -301,6 +301,10 @@ export async function POST(req: Request) {
     }
 
     // 4. Notify admin/worker about payment verification request via Web Push
+    const itemsList = (order.items || detailed || [])
+      .map((it: any) => `${it.qty || 1}x ${it.name || "Product"}`)
+      .join(", ");
+
     User.find({ role: { $in: ["admin", "worker"] } }).then((staffMembers) => {
       for (const staff of staffMembers) {
         const orderRef = staff.role === "admin"
@@ -309,7 +313,7 @@ export async function POST(req: Request) {
         sendPushToUser(
           staff._id.toString(),
           "💰 Payment verification needed",
-          `Order ${orderRef} needs payment confirmation (${order.pickupName || "Customer"}).`,
+          `Order ${orderRef} (${order.pickupName || "Customer"}): ${itemsList || "Items"} - needs payment confirmation.`,
           staff.role === 'admin' ? '/admin' : '/worker'
         ).catch((err) => console.error("Push error:", err.message));
       }

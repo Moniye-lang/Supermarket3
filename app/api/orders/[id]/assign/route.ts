@@ -83,10 +83,14 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     // If assigned to a worker, notify the worker
     if (order.assignedToWorkerId) {
+      const itemsList = (order.items || [])
+        .map((it: any) => `${it.qty || 1}x ${it.name || "Item"}`)
+        .join(", ");
+      const orderRef = order.pickupCode ? `#${order.pickupCode}` : `#${order._id.toString().slice(-6).toUpperCase()}`;
       const workerPayload = {
         title: 'New Order Assigned',
-        body: `You have been assigned to order #${order._id}.`,
-        url: `${clientUrl}/worker/orders/${order._id}`
+        body: `You have been assigned to order ${orderRef}: ${itemsList || "Products"}.`,
+        url: `${clientUrl}/worker`
       };
       await sendPushToUser(order.assignedToWorkerId.toString(), workerPayload.title, workerPayload.body, workerPayload.url).catch(() => {});
     }

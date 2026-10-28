@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { CartContext } from "@/context/CartContext";
 import { AuthContext } from "@/context/AuthContext";
 import ProductCard from "@/components/ProductCard";
-import { Search, SlidersHorizontal, ChevronDown, ChevronLeft, ChevronRight, Filter } from "lucide-react";
+import { Search, SlidersHorizontal, ChevronDown, ChevronLeft, ChevronRight, Filter, Clock, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { motion } from "framer-motion";
@@ -215,10 +215,18 @@ function ProductsContent() {
                   </div>
                 ))}
               </div>
-            ) : isError ? (
-              <div className="text-center py-20">
-                <p className="text-red-500 text-lg">Failed to load products. Please try again later.</p>
-                <Button onClick={() => window.location.reload()} className="mt-4">Retry</Button>
+            ) : (isError || queryData?.unreachable || queryData?.error) ? (
+              <div className="flex flex-col items-center justify-center py-24 bg-white rounded-3xl border border-gray-100 shadow-sm text-center px-6">
+                <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mb-4 text-amber-600 border border-amber-100 shadow-sm">
+                  <Clock size={32} className="animate-pulse" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Connecting to Catalog</h3>
+                <p className="text-gray-600 max-w-md text-base font-medium leading-relaxed">
+                  The products will show in a moment, please be patient. Thank you.
+                </p>
+                <Button onClick={() => window.location.reload()} className="mt-6 flex items-center gap-2 bg-brand-primary text-white cursor-pointer">
+                  <RefreshCw size={16} /> Check Again
+                </Button>
               </div>
             ) : displayedProducts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm text-center px-4">
