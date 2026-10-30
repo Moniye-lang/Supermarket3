@@ -7,7 +7,6 @@ self.onmessage = (e) => {
         filterCategory,
         searchTerm,
         sortOption,
-        priceRange,
         currentPage,
         itemsPerPage
     } = e.data;
@@ -32,10 +31,6 @@ self.onmessage = (e) => {
         );
     }
 
-    // 3. Filter by Price Range
-    if (priceRange) {
-        filtered = filtered.filter((p) => p.price <= priceRange);
-    }
 
     // 4. Sort
     if (sortOption === "price-low") {

@@ -11,7 +11,7 @@ import Order from "./lib/models/Order";
 import Tracking from "./lib/models/Tracking";
 import { cleanupOldGuestOrders } from "./lib/utils/cleanup";
 
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
+dns.setServers(["1.1.1.1", "8.8.8.8", "8.8.4.4"]);
 dotenv.config({ path: ".env.local", override: true });
 
 const dev = process.env.NODE_ENV !== "production";

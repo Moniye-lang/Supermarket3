@@ -9,22 +9,22 @@ import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 
 const fdata = [
-    {
-        id: 1,
-        img: '/IMG_4525.JPG'
-    },
-    {
-        id: 2,
-        img: '/IMG_4534.JPG'
-    },
-    {
-        id: 3,
-        img: '/IMG_4530.JPG'
-    },
-    {
-        id: 4,
-        img: '/IMG_4527.JPG'
-    }
+  {
+    id: 1,
+    img: '/IMG_4525.JPG'
+  },
+  {
+    id: 2,
+    img: '/IMG_4534.JPG'
+  },
+  {
+    id: 3,
+    img: '/IMG_4530.JPG'
+  },
+  {
+    id: 4,
+    img: '/IMG_4527.JPG'
+  }
 ];
 
 export default function Footer() {
@@ -122,29 +122,29 @@ export default function Footer() {
                 <div className="p-2 bg-white/5 rounded-lg group-hover:bg-brand-primary/20 transition-colors">
                   <Phone size={18} className="text-brand-primary" />
                 </div>
-                <a href="tel:08023434790" className="group-hover:text-white transition-colors hover:underline">
-                  08023434790
+                <a href="tel:07025020071" className="group-hover:text-white transition-colors hover:underline">
+                  07025020071
                 </a>
               </li>
               <li className="flex items-center gap-4 text-gray-400 text-sm group">
                 <div className="p-2 bg-white/5 rounded-lg group-hover:bg-brand-primary/20 transition-colors">
                   <Mail size={18} className="text-brand-primary" />
                 </div>
-                <a href="mailto:amstores@gmail.com" className="group-hover:text-white transition-colors hover:underline">
-                  amstores@gmail.com
+                <a href="mailto:agbenimercantilestore@gmail.com" className="group-hover:text-white transition-colors hover:underline">
+                  agbenimercantilestore@gmail.com
                 </a>
               </li>
             </ul>
           </div>
 
-            {/* Socials / Gallery Preview */}
+          {/* Socials / Gallery Preview */}
           <div className="lg:col-span-3">
             <h4 className="font-display text-lg font-semibold mb-6 text-white">Follow Us</h4>
             <div className="flex gap-3 mb-8">
               {[
-                { icon: <FaTwitter size={18} key="tw" />, label: "Twitter" }, 
-                { icon: <FaFacebookF size={18} key="fb" />, label: "Facebook" }, 
-                { icon: <FaInstagram size={18} key="ig" />, label: "Instagram" }, 
+                { icon: <FaTwitter size={18} key="tw" />, label: "Twitter" },
+                { icon: <FaFacebookF size={18} key="fb" />, label: "Facebook" },
+                { icon: <FaInstagram size={18} key="ig" />, label: "Instagram" },
                 { icon: <FaGithub size={18} key="gh" />, label: "Github" }
               ].map((item, i) => (
                 <a key={i} href="#" aria-label={item.label} className="w-10 h-10 rounded-lg bg-white/5 hover:bg-brand-primary hover:text-white flex items-center justify-center text-gray-300 transition-all hover:-translate-y-1">

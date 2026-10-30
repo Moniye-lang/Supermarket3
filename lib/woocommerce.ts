@@ -29,15 +29,16 @@ export interface WooCategory {
 }
 
 export function isWooConfigured(): boolean {
-  const url = (process.env.STORE_API_URL || process.env.WOOCOMMERCE_URL || "").trim();
-  const token = (process.env.STORE_API_SECRET || process.env.STORE_API_KEY || process.env.WOOCOMMERCE_CONSUMER_KEY || "").trim();
-  return Boolean(url && token);
+  const url = (process.env.WOOCOMMERCE_URL || "").trim();
+  const key = (process.env.WOOCOMMERCE_CONSUMER_KEY || "").trim();
+  const secret = (process.env.WOOCOMMERCE_CONSUMER_SECRET || "").trim();
+  return Boolean(url && key && secret);
 }
 
 export function getWooConfig() {
-  const url = (process.env.STORE_API_URL || process.env.WOOCOMMERCE_URL || "").trim().replace(/\/$/, "");
-  const key = (process.env.STORE_API_KEY || process.env.WOOCOMMERCE_CONSUMER_KEY || "").trim();
-  const secret = (process.env.STORE_API_SECRET || process.env.WOOCOMMERCE_CONSUMER_SECRET || "").trim();
+  const url = (process.env.WOOCOMMERCE_URL || "").trim().replace(/\/$/, "");
+  const key = (process.env.WOOCOMMERCE_CONSUMER_KEY || "").trim();
+  const secret = (process.env.WOOCOMMERCE_CONSUMER_SECRET || "").trim();
   return { url, key, secret };
 }
 

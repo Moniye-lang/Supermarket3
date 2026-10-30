@@ -104,7 +104,7 @@ export default function ContactUs() {
                 <div>
                   <h3 className="font-bold text-brand-dark text-base sm:text-lg mb-1">Direct Call Line</h3>
                   <p className="text-sm text-gray-600">
-                    <a href="tel:08023434790" className="hover:text-brand-primary font-semibold transition-colors">08023434790</a>
+                    <a href="tel:07025020071" className="hover:text-brand-primary font-semibold transition-colors">07025020071</a>
                   </p>
                 </div>
               </div>
@@ -116,7 +116,7 @@ export default function ContactUs() {
                 <div>
                   <h3 className="font-bold text-brand-dark text-base sm:text-lg mb-1">Email Address</h3>
                   <p className="text-sm text-gray-600">
-                    <a href="mailto:amstores@gmail.com" className="hover:text-brand-primary transition-colors">amstores@gmail.com</a>
+                    <a href="mailto:agbenimercantilestore@gmail.com" className="hover:text-brand-primary transition-colors">agbenimercantilestore@gmail.com</a>
                   </p>
                 </div>
               </div>

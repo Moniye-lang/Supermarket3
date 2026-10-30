@@ -21,7 +21,6 @@ function ProductsContent() {
 
   const [searchTerm, setSearchTerm] = useState(initialQ);
   const [filterCategory, setFilterCategory] = useState(initialCat);
-  const [priceRange, setPriceRange] = useState(200000);
   const [showFilters, setShowFilters] = useState(false);
   const [sortOption, setSortOption] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
@@ -81,8 +80,7 @@ function ProductsContent() {
   const rawProducts = queryData?.products || [];
   const totalPages = queryData?.pages || 1;
 
-  // Apply price range client-side filter
-  const displayedProducts = rawProducts.filter((p: any) => p.price <= priceRange);
+  const displayedProducts = rawProducts;
 
   const handleAddToCart = (product: any) => {
     addToCart(product);
@@ -169,18 +167,6 @@ function ProductsContent() {
                 </div>
               </div>
 
-              {/* Price Range */}
-              <div className="mb-8">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-semibold text-gray-900">Price Range</h3>
-                  <span className="text-xs font-bold text-brand-primary bg-brand-primary/10 px-2 py-1 rounded-md">Max: ₦{priceRange.toLocaleString()}</span>
-                </div>
-                <input
-                  type="range" min="1000" max="200000" step="1000" value={priceRange}
-                  onChange={(e) => { setPriceRange(Number(e.target.value)); setCurrentPage(1); }}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-primary"
-                />
-              </div>
 
               {/* Sort */}
               <div>
@@ -234,8 +220,8 @@ function ProductsContent() {
                   <Search size={32} />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">No Products Found</h3>
-                <p className="text-gray-500 max-w-xs mx-auto">We couldn&apos;t find any products matching your filters. Try adjusting your search term or price range.</p>
-                <Button className="mt-6" onClick={() => { setSearchTerm(""); setFilterCategory("All Departments"); setPriceRange(200000); }}>
+                <p className="text-gray-500 max-w-xs mx-auto">We couldn&apos;t find any products matching your filters. Try adjusting your search term or category.</p>
+                <Button className="mt-6" onClick={() => { setSearchTerm(""); setFilterCategory("All Departments"); }}>
                   Clear Filters
                 </Button>
               </div>

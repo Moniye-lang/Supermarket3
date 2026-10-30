@@ -90,7 +90,17 @@ export function getStoreApiConfig(): StoreAppConfig {
   return { baseUrl, apiKey, adminKey, tenantId };
 }
 
+let circuitBreakerOpenUntil = 0;
+
+export function tripStoreApiCircuit(reason: string, durationMs: number = 60000) {
+  circuitBreakerOpenUntil = Date.now() + durationMs;
+  console.warn(`⚡ [StoreAPI Circuit Breaker] Tripped for ${durationMs / 1000}s (${reason}). Falling back directly to database.`);
+}
+
 export function isStoreApiConfigured(): boolean {
+  if (Date.now() < circuitBreakerOpenUntil) {
+    return false; // Circuit open: bypass slow or failing upstream service
+  }
   const { baseUrl, apiKey } = getStoreApiConfig();
   return Boolean(baseUrl && apiKey);
 }
@@ -194,6 +204,10 @@ async function request<T = any>(
           ? parsed.error
           : `Request failed with status ${res.status}`;
 
+      if (res.status === 401 || res.status === 403 || res.status >= 500) {
+        tripStoreApiCircuit(`HTTP ${res.status}: ${errorMsg}`, 120000);
+      }
+
       return {
         success: false,
         data: parsed,
@@ -208,6 +222,7 @@ async function request<T = any>(
       status: res.status,
     };
   } catch (err: any) {
+    tripStoreApiCircuit(`Connection/Timeout: ${err.message}`, 60000);
     return {
       success: false,
       data: null as any,

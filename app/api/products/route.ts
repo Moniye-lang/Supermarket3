@@ -216,24 +216,7 @@ export async function GET(req: Request) {
           );
         }
       } catch (storeErr: any) {
-        console.warn("[Products API] Store API live catalog unreachable:", storeErr.message);
-        return NextResponse.json(
-          {
-            products: [],
-            total: 0,
-            pages: 0,
-            page: 1,
-            unreachable: true,
-            error: "The products will show in a moment, please be patient. Thank you.",
-            message: "The products will show in a moment, please be patient. Thank you.",
-          },
-          {
-            status: 503,
-            headers: {
-              "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
-            },
-          }
-        );
+        console.warn("[Products API] Store API live catalog unreachable, falling back to database:", storeErr.message);
       }
     }
 
