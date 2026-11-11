@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchWooProductById, updateWooProduct, deleteWooProduct, isWooConfigured, WooProduct } from "@/lib/woocommerce";
-import { isStoreApiConfigured, fetchLiveCatalogProductById, clearStoreApiSearchCache } from "@/lib/storeApi";
+import { isStoreApiConfigured, fetchLiveCatalogProductById, clearStoreApiSearchCache, parsePrice } from "@/lib/storeApi";
 import { verifyAdmin } from "@/lib/authMiddleware";
 import dbConnect from "@/lib/mongodb";
 import Product from "@/lib/models/Product";
@@ -11,7 +11,7 @@ export const revalidate = 0;
 
 function normalizeSingleDbProduct(p: any): WooProduct {
   const idStr = p._id ? p._id.toString() : p.id || "1";
-  const priceNum = Number(p.price) || 0;
+  const priceNum = parsePrice(p.price);
   const stockNum = typeof p.stock === "number" ? p.stock : 10;
   const cat = p.category || "General";
 

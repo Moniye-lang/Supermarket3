@@ -256,7 +256,7 @@ body {
 }
 
 /* ==============================================================================
-   TASTESKILL 3-CARD SIMULTANEOUS STREAM FLOW ANIMATION
+   TASTESKILL 3-CARD SIMULTANEOUS STREAM FLOW ANIMATION (GPU Accelerated)
    ============================================================================== */
 .hero-stream-viewport {
     position: relative;
@@ -266,6 +266,8 @@ body {
     perspective: 1200px;
     mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
     -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+    contain: layout paint style;
+    transform: translateZ(0);
 }
 
 .hero-stream-viewport:hover .hero-stream-card {
@@ -279,8 +281,13 @@ body {
     width: 100%;
     max-width: 560px;
     transform-style: preserve-3d;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
     will-change: transform, opacity;
     animation: streamFlow 15s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    contain: layout paint;
+    transform: translateZ(0);
+    box-shadow: none !important;
 }
 
 .hero-stream-card-1 {

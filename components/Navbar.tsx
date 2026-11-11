@@ -107,6 +107,14 @@ function MobileBottomNav({ pathname, totalItems, favoritesCount = 0, user, onLog
                                     )}
                                 </Link>
                                 <Link
+                                    href="/#categories"
+                                    onClick={() => setShowMoreMenu(false)}
+                                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-800"
+                                >
+                                    <Store size={18} className="text-[#AD343E] dark:text-red-400" />
+                                    <span>Categories</span>
+                                </Link>
+                                <Link
                                     href="/about"
                                     onClick={() => setShowMoreMenu(false)}
                                     className={cn(
@@ -319,11 +327,12 @@ export default function Navbar() {
     };
 
     const navLinks = [
-        { name: "Home",     path: "/" },
-        { name: "Shop",     path: "/products" },
-        { name: "About",    path: "/about" },
-        { name: "Order",    path: "/order" },
-        { name: "Contact",  path: "/contact" },
+        { name: "Home",       path: "/" },
+        { name: "Shop",       path: "/products" },
+        { name: "Categories", path: "/#categories" },
+        { name: "About",      path: "/about" },
+        { name: "Order",      path: "/order" },
+        { name: "Contact",    path: "/contact" },
     ];
 
     return (

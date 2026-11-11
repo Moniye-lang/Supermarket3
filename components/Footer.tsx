@@ -11,19 +11,19 @@ import { Input } from "./ui/Input";
 const fdata = [
   {
     id: 1,
-    img: '/IMG_4525.JPG'
+    img: '/optimized/img_4525.jpg'
   },
   {
     id: 2,
-    img: '/IMG_4534.JPG'
+    img: '/optimized/img_4534.jpg'
   },
   {
     id: 3,
-    img: '/IMG_4530.JPG'
+    img: '/optimized/img_4530.jpg'
   },
   {
     id: 4,
-    img: '/IMG_4527.JPG'
+    img: '/optimized/img_4527.jpg'
   }
 ];
 
@@ -95,8 +95,9 @@ export default function Footer() {
             <ul className="space-y-4">
               {[
                 { name: "Home", path: "/" },
-                { name: "About Us", path: "/about" },
+                { name: "Shop by Category", path: "/#categories" },
                 { name: "Shop Products", path: "/products" },
+                { name: "About Us", path: "/about" },
                 { name: "Contact Us", path: "/contact" },
               ].map((link) => (
                 <li key={link.path}>

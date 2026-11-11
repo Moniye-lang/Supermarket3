@@ -152,7 +152,7 @@ function ProductsContent() {
               </div>
 
               {/* Categories */}
-              <div className="mb-8">
+              <div id="categories" className="mb-8 scroll-mt-32">
                 <h3 className="font-semibold text-gray-900 mb-4">Categories</h3>
                 <div className="space-y-2 max-h-60 overflow-y-auto pr-1 scrollbar-thin">
                   {categories.map((cat) => (

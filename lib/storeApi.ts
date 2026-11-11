@@ -232,6 +232,14 @@ async function request<T = any>(
   }
 }
 
+export function parsePrice(val: any): number {
+  if (typeof val === "number") return isNaN(val) ? 0 : val;
+  if (!val) return 0;
+  const cleaned = String(val).replace(/[^0-9.-]+/g, "");
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? 0 : num;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // PRODUCT NORMALIZATION ACCORDING TO STOREAPP SPEC
 // ─────────────────────────────────────────────────────────────────────────────
@@ -242,7 +250,9 @@ export function normalizeStoreProduct(p: any): NormalizedStoreProduct {
   const numericId = typeof rawId === "number" ? rawId : parseInt(String(rawId).replace(/\D/g, "").slice(-6) || "101", 10);
   const idStr = String(numericId);
 
-  const price = typeof p.price === "number" ? p.price : parseFloat(p.price || "0") || 0;
+  const price = parsePrice(p.price);
+  const regularPrice = p.regularPrice !== undefined ? parsePrice(p.regularPrice) : (p.regular_price !== undefined ? parsePrice(p.regular_price) : price);
+  const salePrice = p.salePrice !== undefined ? parsePrice(p.salePrice) : (p.sale_price !== undefined ? parsePrice(p.sale_price) : undefined);
   const stockQty = typeof p.stockQuantity === "number" 
     ? p.stockQuantity 
     : (typeof p.stock === "number" ? p.stock : (p.inStock ? 50 : 0));
@@ -262,8 +272,8 @@ export function normalizeStoreProduct(p: any): NormalizedStoreProduct {
     description,
     shortDescription: description.slice(0, 120),
     price,
-    regularPrice: price,
-    salePrice: undefined,
+    regularPrice: regularPrice || price,
+    salePrice: salePrice,
     oldPrice: undefined,
     onSale: false,
     discount: 0,
@@ -399,8 +409,8 @@ export async function fetchLiveCatalogProducts(params: {
   const orderby = params.orderby;
   const order = params.order;
 
-  // Build unique cache key for current filter combination
-  const cacheKey = `${(searchTerm || "").toLowerCase()}::${(category || "").toLowerCase()}::${orderby || ""}::${order || ""}`;
+  // Build unique cache key for current filter combination (search + category)
+  const cacheKey = `${(searchTerm || "").toLowerCase()}::${(category || "").toLowerCase()}`;
 
   const now = Date.now();
   let cached = catalogResultsCache.get(cacheKey);
@@ -472,8 +482,9 @@ export async function fetchLiveCatalogProducts(params: {
     catalogResultsCache.set(cacheKey, cached);
   }
 
-  // If requested page requires more items and nextToken exists, fetch next batches using StoreApp's actual continuation token
-  while (cached.products.length < endIndex && cached.nextToken) {
+  // If sorting is requested (e.g. orderby === 'price') or if requested page requires more items, fetch next batches
+  const shouldFetchAllForSort = orderby === "price";
+  while ((shouldFetchAllForSort || cached.products.length < endIndex) && cached.nextToken) {
     const nextRes = await getCatalog({
       search: searchTerm,
       category,
@@ -513,25 +524,27 @@ export async function fetchLiveCatalogProducts(params: {
     }
 
     cached.nextToken = nextToken;
+    cached.totalCount = Math.max(cached.totalCount, cached.products.length);
     cached.timestamp = Date.now();
   }
 
   let processed = [...cached.products];
   if (orderby === "price") {
     processed.sort((a, b) => {
-      const pA = Number(a.price) || 0;
-      const pB = Number(b.price) || 0;
+      const pA = parsePrice(a.price);
+      const pB = parsePrice(b.price);
       return order === "desc" ? pB - pA : pA - pB;
     });
   }
 
   const pagedRaw = processed.slice(startIndex, endIndex);
   const products = pagedRaw.map(normalizeStoreProduct).filter(Boolean);
-  const totalPages = Math.ceil(cached.totalCount / limit) || 1;
+  const actualTotal = Math.max(cached.totalCount, cached.products.length);
+  const totalPages = Math.ceil(actualTotal / limit) || 1;
 
   return {
     products,
-    total: cached.totalCount,
+    total: actualTotal,
     pages: totalPages,
     page,
     continuationToken: cached.nextToken,

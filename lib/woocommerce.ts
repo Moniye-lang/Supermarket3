@@ -75,10 +75,18 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]*>?/gm, "").trim();
 }
 
+export function parsePrice(val: any): number {
+  if (typeof val === "number") return isNaN(val) ? 0 : val;
+  if (!val) return 0;
+  const cleaned = String(val).replace(/[^0-9.-]+/g, "");
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? 0 : num;
+}
+
 export function normalizeWooProduct(p: any): WooProduct {
-  const price = parseFloat(p.price || p.regular_price || "0");
-  const regularPrice = p.regular_price ? parseFloat(p.regular_price) : undefined;
-  const salePrice = p.sale_price ? parseFloat(p.sale_price) : undefined;
+  const price = parsePrice(p.price || p.regular_price || "0");
+  const regularPrice = p.regular_price ? parsePrice(p.regular_price) : undefined;
+  const salePrice = p.sale_price ? parsePrice(p.sale_price) : undefined;
   
   let oldPrice: number | undefined = undefined;
   let discount: number | undefined = undefined;

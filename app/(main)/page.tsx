@@ -89,7 +89,7 @@ export default function Home() {
       <Hero />
 
       {/* CATEGORIES SECTION */}
-      <section className="py-20 md:py-28 relative bg-white dark:bg-zinc-950 transition-colors">
+      <section id="categories" className="py-20 md:py-28 relative bg-white dark:bg-zinc-950 transition-colors scroll-mt-24">
         <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:16px_16px] opacity-40"></div>
 
         <div className="container mx-auto px-6 relative z-10">
@@ -188,13 +188,13 @@ export default function Home() {
             <div className="absolute inset-0 bg-white/5 rounded-[3rem] -rotate-6 transform border border-white/10" />
             <div className="absolute inset-3 sm:inset-4 rounded-[2.5rem] overflow-hidden">
               <Image
-                src="/IMG_4542.JPG"
+                src="/optimized/img_4542.jpg"
                 alt="Store Pickup"
                 fill
                 sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 600px"
                 className="object-cover opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-700"
                 loading="lazy"
-                quality={75}
+                quality={80}
               />
             </div>
 
@@ -300,11 +300,12 @@ export default function Home() {
               <div className="relative h-[340px] md:h-[400px]">
                 <div className="absolute inset-0 bg-brand-primary/5 rounded-[2rem] transform translate-x-3 translate-y-3"></div>
                 <Image
-                  src="/IMG_E4522.JPG"
+                  src="/optimized/img_e4522.jpg"
                   alt="Our Store"
                   fill
                   sizes="(max-width: 1024px) 100vw, 50vw"
                   className="relative z-10 object-cover rounded-[2rem] shadow-lg"
+                  loading="lazy"
                 />
                 <a
                   href="tel:08023434790"

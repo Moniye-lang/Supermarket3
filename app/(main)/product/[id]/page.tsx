@@ -189,14 +189,24 @@ export default function ProductDets() {
         <div className="min-h-screen bg-brand-light pt-24 pb-20">
             <div className="container mx-auto px-4 md:px-8 max-w-7xl">
 
-                <Link
-                    href="/products"
-                    onClick={handleBackToShopping}
-                    className="inline-flex items-center gap-2 text-gray-500 hover:text-brand-primary transition-colors mb-8 group font-medium cursor-pointer"
-                >
-                    <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-                    Back to shopping
-                </Link>
+                <div className="flex items-center justify-between flex-wrap gap-4 mb-8">
+                    <Link
+                        href="/products"
+                        onClick={handleBackToShopping}
+                        className="inline-flex items-center gap-2 text-gray-500 hover:text-brand-primary transition-colors group font-medium cursor-pointer"
+                    >
+                        <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+                        Back to shopping
+                    </Link>
+
+                    <Link
+                        href="/#categories"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-primary/10 hover:bg-brand-primary text-brand-primary hover:text-white transition-all text-xs font-bold uppercase tracking-wider shadow-xs"
+                    >
+                        <span>Shop by Category</span>
+                        <ArrowRight size={14} />
+                    </Link>
+                </div>
 
                 <div className="grid lg:grid-cols-2 gap-12 lg:gap-20">
 
@@ -235,9 +245,14 @@ export default function ProductDets() {
                     <div className="space-y-8">
                         <div>
                             <div className="flex items-center justify-between mb-2">
-                                <span className="text-brand-primary font-semibold tracking-wide uppercase text-sm">
-                                    {product.category || "General"}
-                                </span>
+                                <Link
+                                    href={`/products?category=${encodeURIComponent(product.category || "General")}`}
+                                    className="inline-flex items-center gap-1.5 text-brand-primary hover:text-brand-primary-hover font-semibold tracking-wide uppercase text-sm hover:underline transition-colors"
+                                    title={`View all products in ${product.category || "General"}`}
+                                >
+                                    <span>{product.category || "General"}</span>
+                                    <ArrowRight size={14} />
+                                </Link>
                                 <button className="text-gray-400 hover:text-brand-primary transition-colors">
                                     <Share2 size={20} />
                                 </button>
@@ -378,13 +393,22 @@ export default function ProductDets() {
                                 <span className="text-brand-primary text-xs font-bold uppercase tracking-widest block mb-1">Recommended For You</span>
                                 <h2 className="text-3xl font-display font-bold text-brand-dark">You might also like</h2>
                             </div>
-                            <Link
-                                href="/products"
-                                className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-primary hover:text-brand-primary/80 transition-colors group"
-                            >
-                                Browse All Products
-                                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                            </Link>
+                            <div className="flex items-center gap-4 flex-wrap">
+                                <Link
+                                    href="/#categories"
+                                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-600 hover:text-brand-primary transition-colors group"
+                                >
+                                    Shop by Category
+                                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                                </Link>
+                                <Link
+                                    href="/products"
+                                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-primary hover:text-brand-primary/80 transition-colors group"
+                                >
+                                    Browse All Products
+                                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                                </Link>
+                            </div>
                         </div>
 
                         {loadingRelated && relatedProducts.length === 0 ? (

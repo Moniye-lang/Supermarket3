@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchWooProducts, createWooProduct, isWooConfigured, WooProduct } from "@/lib/woocommerce";
-import { isStoreApiConfigured, fetchLiveCatalogProducts, clearStoreApiSearchCache } from "@/lib/storeApi";
+import { isStoreApiConfigured, fetchLiveCatalogProducts, clearStoreApiSearchCache, parsePrice } from "@/lib/storeApi";
 import { verifyAdmin } from "@/lib/authMiddleware";
 import dbConnect from "@/lib/mongodb";
 import Product from "@/lib/models/Product";
@@ -11,7 +11,7 @@ export const revalidate = 0;
 
 function normalizeDbProduct(p: any): WooProduct {
   const idStr = p._id ? p._id.toString() : p.id || Math.random().toString();
-  const priceNum = Number(p.price) || 0;
+  const priceNum = parsePrice(p.price);
   const stockNum = typeof p.stock === "number" ? p.stock : 10;
   const cat = p.category || "General";
 
@@ -89,11 +89,30 @@ async function fetchDbProducts(params: {
     // Run count and paginated query in parallel
     const [total, rawProducts] = await Promise.all([
       Product.countDocuments(filter),
-      Product.find(filter)
-        .sort(sortOptions)
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .lean(),
+      orderby === "price"
+        ? Product.aggregate([
+            { $match: filter },
+            {
+              $addFields: {
+                numericPrice: {
+                  $convert: {
+                    input: "$price",
+                    to: "double",
+                    onError: 0,
+                    onNull: 0,
+                  },
+                },
+              },
+            },
+            { $sort: { numericPrice: order === "desc" ? -1 : 1 } },
+            { $skip: (page - 1) * limit },
+            { $limit: limit },
+          ])
+        : Product.find(filter)
+            .sort(sortOptions)
+            .skip((page - 1) * limit)
+            .limit(limit)
+            .lean(),
     ]);
 
     const products = rawProducts.map(normalizeDbProduct);
@@ -120,7 +139,11 @@ async function fetchDbProducts(params: {
       );
     }
     if (orderby === "price") {
-      items.sort((a, b) => (order === "desc" ? b.price - a.price : a.price - b.price));
+      items.sort((a, b) => {
+        const pA = parsePrice(a.price);
+        const pB = parsePrice(b.price);
+        return order === "desc" ? pB - pA : pA - pB;
+      });
     }
 
     const total = items.length;

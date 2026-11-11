@@ -15,7 +15,8 @@ const CARDS_DATA = [
     subtitle: "Hand-picked daily, chilled and delivered within 30 minutes to preserve peak flavor and vital nutrients.",
     price: "₦4,500 / pack",
     cta: "Shop Fresh Produce",
-    image: "/AMstore1.jpg",
+    image: "/optimized/amstore1.jpg",
+    link: "/products?category=Farm%20Fresh%20Produce",
   },
   {
     id: 2,
@@ -24,7 +25,8 @@ const CARDS_DATA = [
     subtitle: "Warm crusty baguettes, imported cheeses, and premium household favorites freshly stocked.",
     price: "₦2,800 / unit",
     cta: "Browse Bakery & Dairy",
-    image: "/IMG_4525.JPG",
+    image: "/optimized/img_4525.jpg",
+    link: "/products?category=Bakery%20%26%20Snacks",
   },
   {
     id: 3,
@@ -33,18 +35,19 @@ const CARDS_DATA = [
     subtitle: "Quality-grade poultry, seasoned cuts, and fresh supermarket groceries packed with extreme care.",
     price: "₦6,500 / pack",
     cta: "Order Butcher Cuts",
-    image: "/IMG_4523.JPG",
+    image: "/optimized/img_4523.jpg",
+    link: "/products?category=Frozen%20%26%20Protein",
   },
 ];
 
 export default function Hero() {
   return (
     <section className="relative w-full min-h-[92vh] flex items-center bg-brand-light dark:bg-zinc-950 overflow-hidden pt-28 pb-16">
-      {/* Dynamic Background Gradients */}
-      <div className="absolute top-[-10%] right-[-5%] w-[700px] h-[700px] bg-brand-primary/10 rounded-full blur-[130px] pointer-events-none animate-pulse" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-orange-400/10 rounded-full blur-[110px] pointer-events-none" />
+      {/* Dynamic Background Ambient Glows (GPU Accelerated, No Repaint Bottlenecks) */}
+      <div className="absolute top-[-10%] right-[-5%] w-[650px] h-[650px] bg-[radial-gradient(circle,rgba(173,52,62,0.12)_0%,transparent_70%)] pointer-events-none transform-gpu will-change-transform" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[550px] h-[550px] bg-[radial-gradient(circle,rgba(251,146,60,0.12)_0%,transparent_70%)] pointer-events-none transform-gpu will-change-transform" />
 
-      <div className="container mx-auto px-6 sm:px-8 lg:px-12 grid lg:grid-cols-12 gap-8 lg:gap-10 items-center relative z-10 h-full">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl grid lg:grid-cols-12 gap-8 lg:gap-8 items-center relative z-10 h-full">
         {/* ------------------------------------------------------------------ */}
         {/* LEFT COLUMN: Headline, Subtitle, CTAs & Value Metrics               */}
         {/* ------------------------------------------------------------------ */}
@@ -52,7 +55,7 @@ export default function Hero() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="lg:col-span-6 space-y-7 max-w-xl mx-auto lg:mx-0 lg:pl-6 xl:pl-10"
+          className="lg:col-span-6 space-y-7 max-w-xl mx-auto lg:mx-0 lg:pl-0 xl:pl-0 lg:-ml-2 xl:-ml-4"
         >
           {/* Status badge pill */}
           <motion.div
@@ -65,13 +68,13 @@ export default function Hero() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-primary opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-primary"></span>
             </span>
-            <span className="text-sm sm:text-base font-extrabold text-gray-900 dark:text-gray-100 tracking-wide uppercase">
+            <span className="text-sm sm:text-base font-black text-gray-950 dark:text-white tracking-wide uppercase">
               Delivering Freshness Daily · Akobo, Ibadan
             </span>
           </motion.div>
 
           {/* Main Headline */}
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-display font-extrabold text-brand-dark dark:text-white leading-[1.06] tracking-tight">
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-display font-black text-brand-dark dark:text-white leading-[1.06] tracking-tight">
             Your Groceries, <br />
             <span className="relative inline-block mt-2">
               <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-brand-primary via-red-600 to-orange-500">
@@ -82,7 +85,7 @@ export default function Hero() {
           </h1>
 
           {/* Subtitle */}
-          <p className="text-lg sm:text-xl lg:text-[21px] text-gray-600 dark:text-gray-300 leading-relaxed font-normal">
+          <p className="text-lg sm:text-xl lg:text-[21px] text-gray-800 dark:text-gray-100 leading-relaxed font-semibold">
             Skip the lines. We bring hand-picked supermarket essentials and farm-fresh produce directly to your doorstep in minutes. Quality you can taste, convenience you deserve.
           </p>
 
@@ -114,25 +117,25 @@ export default function Hero() {
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
                 <Zap className="text-orange-500 w-5 h-5" />
-                <span className="font-bold text-gray-900 dark:text-white text-base sm:text-lg">30 Min</span>
+                <span className="font-extrabold text-gray-950 dark:text-white text-base sm:text-lg">30 Min</span>
               </div>
-              <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Fast Delivery</span>
+              <span className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300">Fast Delivery</span>
             </div>
             <div className="w-px h-10 bg-gray-200 dark:bg-zinc-800"></div>
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="text-green-500 w-5 h-5" />
-                <span className="font-bold text-gray-900 dark:text-white text-base sm:text-lg">100%</span>
+                <span className="font-extrabold text-gray-950 dark:text-white text-base sm:text-lg">100%</span>
               </div>
-              <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Quality Assured</span>
+              <span className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300">Quality Assured</span>
             </div>
             <div className="w-px h-10 bg-gray-200 dark:bg-zinc-800"></div>
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
                 <Star className="text-yellow-500 w-5 h-5 fill-yellow-500" />
-                <span className="font-bold text-gray-900 dark:text-white text-base sm:text-lg">4.9/5</span>
+                <span className="font-extrabold text-gray-950 dark:text-white text-base sm:text-lg">4.9/5</span>
               </div>
-              <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Customer Rating</span>
+              <span className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300">Customer Rating</span>
             </div>
           </div>
         </motion.div>
@@ -151,7 +154,7 @@ export default function Hero() {
             {CARDS_DATA.map((card, idx) => (
               <div
                 key={card.id}
-                className={`hero-stream-card hero-stream-card-${idx + 1} group flex overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 p-5 sm:p-6 shadow-2xl border border-gray-100 dark:border-zinc-800 transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] cursor-pointer`}
+                className={`hero-stream-card hero-stream-card-${idx + 1} group flex overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 p-5 sm:p-6 border border-gray-200/90 dark:border-zinc-800 transition-all duration-300 hover:scale-[1.02] cursor-pointer`}
               >
                 {/* Content Side */}
                 <div className="flex flex-1 flex-col justify-between pr-4 sm:pr-5 z-10 space-y-3">
@@ -173,7 +176,7 @@ export default function Hero() {
                   {/* CTA Button */}
                   <div className="mt-1">
                     <Link
-                      href="/products"
+                      href={card.link || "/products"}
                       className="inline-flex items-center gap-2 rounded-full bg-brand-primary hover:bg-brand-primary-hover px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-bold text-white transition-all duration-200 shadow-md hover:shadow-lg active:scale-95"
                     >
                       <span>{card.cta}</span>
@@ -190,7 +193,7 @@ export default function Hero() {
                 </div>
 
                 {/* Image Side */}
-                <div className="w-[45%] sm:w-[48%] overflow-hidden rounded-2xl relative min-h-[190px] sm:min-h-[220px] bg-gray-100 dark:bg-zinc-800 flex-shrink-0 shadow-inner group">
+                <div className="w-[45%] sm:w-[48%] overflow-hidden rounded-2xl relative min-h-[190px] sm:min-h-[220px] bg-gray-100 dark:bg-zinc-800 flex-shrink-0 group">
                   <Image
                     src={card.image}
                     alt={card.title}

@@ -37,7 +37,7 @@ export default function About() {
   const stats = [
     { num: 8, suffix: "+", label: "Years of Excellence", icon: Award },
     { num: 10, suffix: "K+", label: "Happy Customers", icon: Users },
-    { num: 1, suffix: "K+", label: "Premium Products", icon: ShoppingBag },
+    { num: 5, suffix: "K+", label: "Premium Products", icon: ShoppingBag },
     { num: 3, suffix: "", label: "Specialized Hubs", icon: Store },
   ];
 
@@ -53,7 +53,7 @@ export default function About() {
       title: "The Bakery",
       subtitle: "Freshly Baked Daily",
       description: "Our bakery is where the aroma of freshly baked bread fills the air. From soft pastries to crispy rolls, we use only quality ingredients to ensure every bite is perfection.",
-      image: "/IMG_4524.JPG",
+      image: "/bakers'.jpeg",
       reverse: true,
     },
     {
@@ -280,9 +280,8 @@ export default function About() {
                     <button
                       key={idx}
                       onClick={() => setActiveReview(idx)}
-                      className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
-                        activeReview === idx ? "w-8 bg-brand-primary" : "w-2.5 bg-gray-300 hover:bg-gray-400"
-                      }`}
+                      className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${activeReview === idx ? "w-8 bg-brand-primary" : "w-2.5 bg-gray-300 hover:bg-gray-400"
+                        }`}
                       aria-label={`Go to slide ${idx + 1}`}
                     />
                   ))}
