@@ -11,6 +11,7 @@ import {
   Store,
   Sparkles
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useFavorites, DEFAULT_CURATED_FAVORITES } from "@/context/FavoritesContext";
 import { CartContext } from "@/context/CartContext";
 import { Button } from "@/components/ui/Button";
@@ -18,6 +19,31 @@ import { Button } from "@/components/ui/Button";
 export default function FavoritesPage() {
   const { favorites, favoritesCount, removeFromFavorites, clearFavorites, addToFavorites } = useFavorites();
   const { addToCart, openCart } = useContext(CartContext);
+
+  // Fetch actual live products from store catalog
+  const { data: popularProductsData } = useQuery({
+    queryKey: ["popular-store-favorites-catalog"],
+    queryFn: async () => {
+      const res = await fetch("/api/products?limit=6");
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (data.products || []).filter((p: any) => p && p.name && p.price);
+    },
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const popularProducts = (popularProductsData && popularProductsData.length > 0)
+    ? popularProductsData.slice(0, 3).map((p: any) => ({
+        _id: String(p._id || p.id),
+        id: String(p._id || p.id),
+        name: p.name,
+        price: typeof p.price === "number" ? p.price : Number(String(p.price).replace(/[^0-9.]/g, "")) || 0,
+        image: p.image || p.images?.[0] || "/placeholder-food.png",
+        category: p.category || p.categories?.[0]?.name || "Groceries",
+        subtitle: p.shortDescription || p.description?.slice(0, 80) || "",
+        stockStatus: p.stockStatus === "outofstock" ? "Out of Stock" : "In Stock",
+      }))
+    : DEFAULT_CURATED_FAVORITES;
 
   const handleAddAllToCart = () => {
     favorites.forEach((item) => {
@@ -220,45 +246,53 @@ export default function FavoritesPage() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {DEFAULT_CURATED_FAVORITES.map((curated) => (
-                  <div
-                    key={curated._id}
-                    className="p-4 rounded-2xl bg-gray-50 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-700/50 flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="relative aspect-video w-full rounded-xl overflow-hidden mb-3 bg-gray-200">
-                        <img
-                          src={curated.image}
-                          alt={curated.name}
-                          className="w-full h-full object-cover"
-                        />
+                {popularProducts.map((curated: any) => {
+                  const curatedId = curated._id || curated.id;
+                  return (
+                    <div
+                      key={curatedId}
+                      className="p-4 rounded-2xl bg-gray-50 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-700/50 flex flex-col justify-between"
+                    >
+                      <div>
+                        <Link href={`/product/${curatedId}`} className="block group">
+                          <div className="relative aspect-video w-full rounded-xl overflow-hidden mb-3 bg-gray-200">
+                            <img
+                              src={curated.image || "/placeholder-food.png"}
+                              alt={curated.name}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = "/placeholder-food.png";
+                              }}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                          </div>
+                          <h4 className="text-xs font-bold text-gray-900 dark:text-white line-clamp-1 group-hover:text-[#AD343E] transition-colors">
+                            {curated.name}
+                          </h4>
+                        </Link>
+                        <p className="text-xs text-[#AD343E] font-bold mt-1">
+                          ₦{(curated.price || 0).toLocaleString()}
+                        </p>
                       </div>
-                      <h4 className="text-xs font-bold text-gray-900 dark:text-white line-clamp-1">
-                        {curated.name}
-                      </h4>
-                      <p className="text-xs text-[#AD343E] font-bold mt-1">
-                        ₦{curated.price.toLocaleString()}
-                      </p>
+                      <div className="mt-3 flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => addToFavorites(curated)}
+                          className="flex-1 text-[11px] rounded-lg py-1.5 h-auto font-medium"
+                        >
+                          <Heart size={12} className="mr-1 text-red-500 fill-red-500" /> Save
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleAddSingleToCart(curated)}
+                          className="flex-1 text-[11px] rounded-lg py-1.5 h-auto bg-[#AD343E] hover:bg-[#8e2b33] text-white font-medium"
+                        >
+                          <ShoppingCart size={12} className="mr-1" /> Add
+                        </Button>
+                      </div>
                     </div>
-                    <div className="mt-3 flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => addToFavorites(curated)}
-                        className="flex-1 text-[11px] rounded-lg py-1.5 h-auto font-medium"
-                      >
-                        <Heart size={12} className="mr-1 text-red-500 fill-red-500" /> Save
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => handleAddSingleToCart(curated)}
-                        className="flex-1 text-[11px] rounded-lg py-1.5 h-auto bg-[#AD343E] hover:bg-[#8e2b33] text-white font-medium"
-                      >
-                        <ShoppingCart size={12} className="mr-1" /> Add
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>

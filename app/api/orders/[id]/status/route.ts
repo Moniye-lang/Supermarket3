@@ -71,12 +71,21 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       .populate('reassignmentHistory.assignedWorkerId', 'name role')
       .populate('reassignmentHistory.assignedBy', 'name role');
 
-    // Trigger Pusher real-time events
-    await pusher.trigger(`order-${order._id}`, 'orderUpdated', updatedOrder);
-    await pusher.trigger(`order-${order._id}`, 'order:status', {
-      orderId: order._id.toString(),
-      status: order.status,
-    });
+    // Trigger Pusher real-time events for customer and workers
+    try {
+      await pusher.trigger(`order-${order._id}`, 'orderUpdated', updatedOrder);
+      await pusher.trigger(`order-${order._id}`, 'order:status', {
+        orderId: order._id.toString(),
+        status: order.status,
+      });
+      await pusher.trigger('admin-orders', 'orderUpdated', updatedOrder);
+      await pusher.trigger('admin-orders', 'order:status', {
+        orderId: order._id.toString(),
+        status: order.status,
+      });
+    } catch (pushErr: any) {
+      console.error("[Pusher] status broadcast error:", pushErr?.message || pushErr);
+    }
 
     return NextResponse.json({ success: true, order: updatedOrder });
   } catch (err: any) {

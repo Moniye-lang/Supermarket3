@@ -25,22 +25,29 @@ export async function GET(req: Request) {
         ? new mongoose.Types.ObjectId(authUser.id)
         : authUser.id;
 
-      const historyQuery: any = {
-        fulfilled: true,
+      const completionCondition = {
         $or: [
+          { fulfilled: true },
+          { status: { $in: ["delivered", "picked_up", "completed"] } }
+        ]
+      };
+
+      let historyQuery: any = {
+        ...completionCondition
+      };
+
+      if (authUser.role === "rider") {
+        historyQuery.collectionMethod = "delivery";
+        historyQuery.$or = [
           { fulfilledBy: authUser.id },
           { fulfilledBy: userObjId },
           { assignedToWorkerId: authUser.id },
           { assignedToWorkerId: userObjId },
           { assignedTo: authUser.id },
           { assignedTo: userObjId }
-        ]
-      };
-
-      if (authUser.role === "worker") {
-        historyQuery.$or.push({ collectionMethod: "pickup" }, { collectionMethod: { $ne: "delivery" } });
-      } else if (authUser.role === "rider") {
-        historyQuery.collectionMethod = "delivery";
+        ];
+      } else if (authUser.role === "worker") {
+        historyQuery.collectionMethod = { $ne: "delivery" };
       }
 
       orders = await Order.find(historyQuery)
