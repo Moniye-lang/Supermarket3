@@ -447,7 +447,7 @@ export default function Worker() {
 
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 p-4 sticky top-0 z-40">
-        <div className="container mx-auto max-w-4xl flex items-center justify-between">
+        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
             <div className="relative h-9 w-32 sm:w-36 flex items-center">
               <Image
@@ -506,7 +506,7 @@ export default function Worker() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 container mx-auto max-w-2xl px-4 py-8 relative z-10 flex flex-col">
+      <main className="flex-1 container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 relative z-10 flex flex-col">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 font-display">
@@ -582,31 +582,33 @@ export default function Worker() {
             <h2 className="text-sm font-bold text-amber-700 uppercase tracking-wider flex items-center gap-2">
               <BellRing size={14} /> Awaiting Payment Verification
             </h2>
-            {verifyingOrders.map(vo => (
-              <motion.div
-                key={vo._id}
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between gap-4"
-              >
-                <div>
-                  <p className="font-bold text-amber-900 text-sm">Order #{vo._id ? vo._id.toString().slice(-6).toUpperCase() : "ORDER"} — {vo.pickupName}</p>
-                  <p className="text-xs text-amber-800 font-semibold mt-0.5 line-clamp-1">
-                    🛍️ {vo.items?.map((it: any) => `${it.qty || 1}x ${it.name || "Item"}`).join(", ") || "No items listed"}
-                  </p>
-                  <p className="text-xs text-amber-700 mt-0.5">
-                    ₦{vo.amount?.toLocaleString()} · {vo.collectionMethod} ·{" "}
-                    {new Date(vo.createdAt).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setPaymentPopup(vo)}
-                  className="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors shrink-0"
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {verifyingOrders.map(vo => (
+                <motion.div
+                  key={vo._id}
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col justify-between gap-3"
                 >
-                  Verify
-                </button>
-              </motion.div>
-            ))}
+                  <div>
+                    <p className="font-bold text-amber-900 text-sm">Order #{vo._id ? vo._id.toString().slice(-6).toUpperCase() : "ORDER"} — {vo.pickupName}</p>
+                    <p className="text-xs text-amber-800 font-semibold mt-0.5 line-clamp-1">
+                      🛍️ {vo.items?.map((it: any) => `${it.qty || 1}x ${it.name || "Item"}`).join(", ") || "No items listed"}
+                    </p>
+                    <p className="text-xs text-amber-700 mt-0.5">
+                      ₦{vo.amount?.toLocaleString()} · {vo.collectionMethod} ·{" "}
+                      {new Date(vo.createdAt).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setPaymentPopup(vo)}
+                    className="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-colors w-full"
+                  >
+                    Verify Payment
+                  </button>
+                </motion.div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -631,175 +633,163 @@ export default function Worker() {
             <Button variant="ghost" className="mt-6 border border-gray-200" onClick={() => fetchOrders(false)}>Refresh List</Button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
             {myOrders.map((order, idx) => (
               <motion.div
                 key={order._id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1 }}
-                className="bg-white rounded-3xl shadow-md border border-gray-100 overflow-hidden"
+                transition={{ delay: idx * 0.05 }}
+                className="bg-white rounded-3xl shadow-md border border-gray-100 overflow-hidden flex flex-col justify-between h-full"
               >
-                <div className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Order #{order._id ? order._id.toString().slice(-6).toUpperCase() : "ORDER"}</span>
-                        {order.collectionMethod === "delivery" ? (
-                          <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded font-bold flex items-center gap-1"><Truck size={12}/> Delivery</span>
-                        ) : (
-                          <span className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded font-bold flex items-center gap-1"><MapPin size={12}/> Pickup</span>
-                        )}
-                        {/* KDS Urgency Timer */}
-                        {(() => {
-                          const mins = Math.floor((Date.now() - new Date(order.createdAt).getTime()) / 60000);
-                          if (mins > 30) return <span className="bg-rose-100 text-rose-800 text-xs px-2 py-0.5 rounded-full font-black flex items-center gap-1">🔴 {mins}m overdue</span>;
-                          if (mins > 15) return <span className="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full font-bold flex items-center gap-1">🟡 {mins}m ago</span>;
-                          return <span className="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-full font-bold flex items-center gap-1">🟢 {mins}m ago</span>;
-                        })()}
-                        {/* Status badge */}
-                        {order.status === "packing" && (
-                          <span className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded font-bold flex items-center gap-1">
-                            <Package size={12} /> Packing
-                          </span>
+                <div className="p-6 flex flex-col flex-1 justify-between">
+                  <div>
+                    <div className="flex justify-between items-start mb-4 gap-2">
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                          <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Order #{order._id ? order._id.toString().slice(-6).toUpperCase() : "ORDER"}</span>
+                          {order.collectionMethod === "delivery" ? (
+                            <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded font-bold flex items-center gap-1"><Truck size={12}/> Delivery</span>
+                          ) : (
+                            <span className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded font-bold flex items-center gap-1"><MapPin size={12}/> Pickup</span>
+                          )}
+                          {/* KDS Urgency Timer */}
+                          {(() => {
+                            const mins = Math.floor((Date.now() - new Date(order.createdAt).getTime()) / 60000);
+                            if (mins > 30) return <span className="bg-rose-100 text-rose-800 text-xs px-2 py-0.5 rounded-full font-black flex items-center gap-1">🔴 {mins}m overdue</span>;
+                            if (mins > 15) return <span className="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full font-bold flex items-center gap-1">🟡 {mins}m ago</span>;
+                            return <span className="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-full font-bold flex items-center gap-1">🟢 {mins}m ago</span>;
+                          })()}
+                          {/* Status badge */}
+                          {order.status === "packing" && (
+                            <span className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded font-bold flex items-center gap-1">
+                              <Package size={12} /> Packing
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900">{order.pickupName}</h3>
+                        <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                          🗓 {new Date(order.createdAt).toLocaleString("en-NG", { weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                        {order.goodsStatus && (
+                          <p className="text-xs text-brand-primary mt-1 font-medium">📦 Last update: {order.goodsStatus}</p>
                         )}
                       </div>
-                      <h3 className="text-xl font-bold text-gray-900">{order.pickupName}</h3>
-                      <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
-                        🗓 {new Date(order.createdAt).toLocaleString("en-NG", { weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                      </p>
-                      {order.goodsStatus && (
-                        <p className="text-xs text-brand-primary mt-1 font-medium">📦 Last update: {order.goodsStatus}</p>
-                      )}
+                      <div className="text-right shrink-0">
+                        <p className="text-xl font-bold text-brand-primary">₦{order.amount.toLocaleString()}</p>
+                        <p className="text-xs text-gray-500">{order.items.length} items</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xl font-bold text-brand-primary">₦{order.amount.toLocaleString()}</p>
-                      <p className="text-xs text-gray-500">{order.items.length} items</p>
-                    </div>
+
+                    {/* Location Details */}
+                    {order.collectionMethod === "delivery" && (
+                      <div className="bg-gray-50 rounded-2xl p-3.5 mb-4 flex items-start gap-2.5">
+                        <Navigation className="text-brand-primary mt-0.5 shrink-0" size={18} />
+                        <div>
+                          <p className="font-semibold text-gray-900 text-xs">Delivery Address</p>
+                          <p className="text-gray-600 text-xs leading-relaxed">{order.deliveryAddress}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Packing Checklist & Progress */}
+                    {(() => {
+                      const packedCount = order.items.filter((_: any, idx: number) => checkedItems[`${order._id}_${idx}`]).length;
+                      const isAllPacked = packedCount === order.items.length;
+                      const percent = Math.round((packedCount / (order.items.length || 1)) * 100);
+                      return (
+                        <div className="bg-gray-50 rounded-2xl p-3.5 mb-4 border border-gray-100">
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                              <Package size={14} className="text-brand-primary" /> Item Checklist
+                            </h4>
+                            <span className={`text-[11px] font-extrabold px-2 py-0.5 rounded-full ${isAllPacked ? "bg-emerald-100 text-emerald-800" : "bg-gray-200 text-gray-700"}`}>
+                              {packedCount} / {order.items.length} ({percent}%)
+                            </span>
+                          </div>
+
+                          {/* Progress Bar */}
+                          <div className="w-full bg-gray-200 h-1.5 rounded-full mb-2.5 overflow-hidden">
+                            <div
+                              className="bg-emerald-500 h-full transition-all duration-300"
+                              style={{ width: `${percent}%` }}
+                            />
+                          </div>
+
+                          <ul className="divide-y divide-gray-200 max-h-52 overflow-y-auto pr-1">
+                            {order.items.map((it: any, idx: number) => {
+                              const itemKey = `${order._id}_${idx}`;
+                              const isChecked = !!checkedItems[itemKey];
+                              return (
+                                <li key={it._id || idx} className="py-2 flex justify-between items-center text-xs">
+                                  <label className="flex items-center gap-2 cursor-pointer select-none min-w-0 pr-2">
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={(e) => {
+                                        setCheckedItems(prev => ({ ...prev, [itemKey]: e.target.checked }));
+                                      }}
+                                      className="w-3.5 h-3.5 rounded text-brand-primary focus:ring-brand-primary cursor-pointer shrink-0"
+                                    />
+                                    <span className={`truncate ${isChecked ? "line-through text-gray-400 font-medium" : "text-gray-800 font-medium"}`}>
+                                      {it.name || it.productId?.name || "Unnamed"} × <span className="font-bold text-brand-dark">{it.qty}</span>
+                                    </span>
+                                  </label>
+                                  <span className="font-medium text-gray-700 text-xs shrink-0">₦{((it.price || it.productId?.price) * it.qty).toLocaleString()}</span>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      );
+                    })()}
                   </div>
 
-                  {/* Location Details */}
-                  {order.collectionMethod === "delivery" && (
-                    <div className="bg-gray-50 rounded-2xl p-4 mb-4 flex items-start gap-3">
-                      <Navigation className="text-brand-primary mt-0.5 shrink-0" size={20} />
-                      <div>
-                        <p className="font-semibold text-gray-900">Delivery Address</p>
-                        <p className="text-gray-600 text-sm leading-relaxed">{order.deliveryAddress}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Packing Checklist & Progress */}
-                  {(() => {
-                    const packedCount = order.items.filter((_: any, idx: number) => checkedItems[`${order._id}_${idx}`]).length;
-                    const isAllPacked = packedCount === order.items.length;
-                    const percent = Math.round((packedCount / (order.items.length || 1)) * 100);
-                    return (
-                      <div className="bg-gray-50 rounded-2xl p-4 mb-4 border border-gray-100">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                            <Package size={16} className="text-brand-primary" /> Item Packing Checklist
-                          </h4>
-                          <span className={`text-xs font-extrabold px-2 py-0.5 rounded-full ${isAllPacked ? "bg-emerald-100 text-emerald-800" : "bg-gray-200 text-gray-700"}`}>
-                            {packedCount} / {order.items.length} packed ({percent}%)
-                          </span>
-                        </div>
-
-                        {/* Progress Bar */}
-                        <div className="w-full bg-gray-200 h-1.5 rounded-full mb-3 overflow-hidden">
-                          <div
-                            className="bg-emerald-500 h-full transition-all duration-300"
-                            style={{ width: `${percent}%` }}
-                          />
-                        </div>
-
-                        <ul className="divide-y divide-gray-200">
-                          {order.items.map((it: any, idx: number) => {
-                            const itemKey = `${order._id}_${idx}`;
-                            const isChecked = !!checkedItems[itemKey];
-                            return (
-                              <li key={it._id || idx} className="py-2.5 flex justify-between items-center text-sm">
-                                <label className="flex items-center gap-3 cursor-pointer select-none">
-                                  <input
-                                    type="checkbox"
-                                    checked={isChecked}
-                                    onChange={(e) => {
-                                      setCheckedItems(prev => ({ ...prev, [itemKey]: e.target.checked }));
-                                    }}
-                                    className="w-4 h-4 rounded text-brand-primary focus:ring-brand-primary cursor-pointer"
-                                  />
-                                  <span className={isChecked ? "line-through text-gray-400 font-medium" : "text-gray-800 font-medium"}>
-                                    {it.name || it.productId?.name || "Unnamed"} × <span className="font-bold text-brand-dark">{it.qty}</span>
-                                  </span>
-                                </label>
-                                <span className="font-medium text-gray-700 text-xs">₦{((it.price || it.productId?.price) * it.qty).toLocaleString()}</span>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </div>
-                    );
-                  })()}
-
                   {/* Action Buttons */}
-                  <div className="flex flex-wrap items-center gap-3 mt-4">
-                    {(order.customerPhone || order.customerId?.phone) && (
-                      <>
-                        <a href={`tel:${order.customerPhone || order.customerId?.phone}`} className="w-12 h-12 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl flex items-center justify-center transition-colors">
-                          <Phone size={20} />
-                        </a>
-                        <a href={`https://wa.me/${(order.customerPhone || order.customerId?.phone || "").replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="w-12 h-12 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#25D366] rounded-xl flex items-center justify-center transition-colors">
-                          <MessageCircle size={20} />
-                        </a>
-                      </>
-                    )}
+                  <div className="flex flex-wrap items-center gap-2 mt-auto pt-4 border-t border-gray-100">
+                    <div className="flex items-center gap-1.5">
+                      {(order.customerPhone || order.customerId?.phone) && (
+                        <>
+                          <a href={`tel:${order.customerPhone || order.customerId?.phone}`} className="w-10 h-10 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl flex items-center justify-center transition-colors shrink-0" title="Call Customer">
+                            <Phone size={18} />
+                          </a>
+                          <a href={`https://wa.me/${(order.customerPhone || order.customerId?.phone || "").replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="w-10 h-10 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#25D366] rounded-xl flex items-center justify-center transition-colors shrink-0" title="WhatsApp Customer">
+                            <MessageCircle size={18} />
+                          </a>
+                        </>
+                      )}
 
-                    {/* Send Goods Status */}
-                    <button
-                      onClick={() => { setGoodsStatusModal(order); setGoodsStatusText(order.goodsStatus || ""); }}
-                      className="w-12 h-12 bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary rounded-xl flex items-center justify-center transition-colors"
-                      title="Send goods status update"
-                    >
-                      <Send size={18} />
-                    </button>
+                      {/* Send Goods Status */}
+                      <button
+                        onClick={() => { setGoodsStatusModal(order); setGoodsStatusText(order.goodsStatus || ""); }}
+                        className="w-10 h-10 bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary rounded-xl flex items-center justify-center transition-colors shrink-0"
+                        title="Send goods status update"
+                      >
+                        <Send size={16} />
+                      </button>
+                    </div>
 
-                    <Button onClick={() => setSelectedOrder(order)} className="flex-1 py-6 text-lg shadow-brand-primary/20 shadow-lg">
-                      Verify & Complete
-                    </Button>
+                    <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                      <Button onClick={() => setSelectedOrder(order)} className="flex-1 py-3 text-xs font-bold shadow-brand-primary/20 shadow-md">
+                        Verify & Complete
+                      </Button>
 
-                    {order.status === "packing" && order.collectionMethod === "delivery" && (
-                      <Button
-                        onClick={() => updateOrderStatus(order._id, "delivery_here")}
-                        className="flex-1 py-6 ml-2 bg-green-600 text-white rounded hover:bg-green-700"
-                      >
-                        Delivery Here
-                      </Button>
-                    )}
-                    {order.status === "packing" && order.collectionMethod === "pickup" && (
-                      <Button
-                        onClick={() => updateOrderStatus(order._id, "ready_for_pickup")}
-                        className="flex-1 py-6 ml-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-                      >
-                        Pickup Ready
-                      </Button>
-                    )}
-                    {/* Fallback for legacy status */}
-                    {order.status !== "packing" && order.collectionMethod === "delivery" && (
-                      <Button
-                        onClick={() => updateOrderStatus(order._id, "delivery_here")}
-                        className="flex-1 py-6 ml-2 bg-green-600 text-white rounded hover:bg-green-700"
-                      >
-                        Delivery Here
-                      </Button>
-                    )}
-                    {order.status !== "packing" && order.collectionMethod === "pickup" && (
-                      <Button
-                        onClick={() => updateOrderStatus(order._id, "ready_for_pickup")}
-                        className="flex-1 py-6 ml-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-                      >
-                        Pickup Ready
-                      </Button>
-                    )}
+                      {order.collectionMethod === "delivery" ? (
+                        <Button
+                          onClick={() => updateOrderStatus(order._id, "delivery_here")}
+                          className="py-3 px-3 text-xs font-bold bg-green-600 text-white rounded-xl hover:bg-green-700 shrink-0"
+                        >
+                          Delivery Here
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => updateOrderStatus(order._id, "ready_for_pickup")}
+                          className="py-3 px-3 text-xs font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 shrink-0"
+                        >
+                          Pickup Ready
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -835,13 +825,13 @@ export default function Worker() {
                 {completedOrders.length === 0 ? (
                   <p className="text-center text-sm text-gray-400 py-6">No completed tasks recorded yet.</p>
                 ) : (
-                  <div className="space-y-3 mt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4 items-start">
                     {completedOrders.map((order) => {
                       const isExpanded = !!expandedHistoryIds[order._id];
                       return (
                         <div
                           key={order._id}
-                          className="bg-white/80 border border-gray-150 rounded-2xl p-4 text-sm shadow-sm transition-all hover:border-gray-300"
+                          className="bg-white/80 border border-gray-150 rounded-2xl p-4 text-sm shadow-sm transition-all hover:border-gray-300 flex flex-col justify-between"
                         >
                           <div
                             onClick={() => setExpandedHistoryIds(prev => ({ ...prev, [order._id]: !prev[order._id] }))}
