@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useCallback } from "react";
 import { AuthContext } from "@/context/AuthContext";
 import { Bell, Share, PlusSquare, X, ArrowUpCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,15 +8,34 @@ import { registerServiceWorker, subscribeUser } from "@/lib/utils/pushManager";
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY || "";
 
 export default function PushNotificationPrompt() {
-  const { token, user } = useContext(AuthContext);
+  const { token } = useContext(AuthContext);
   const [showPrompt, setShowPrompt] = useState(false);
   const [showIosGuide, setShowIosGuide] = useState(false);
   const [isIos, setIsIos] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Permanently dismiss prompt across sessions
+  const dismissPrompt = useCallback(() => {
+    setShowPrompt(false);
+    try {
+      localStorage.setItem("push_prompt_dismissed", "true");
+      sessionStorage.setItem("push_prompt_dismissed", "true");
+    } catch {
+      // Gracefully handle storage errors (e.g. private browsing mode)
+    }
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
+
+    // Check if dismissed previously in localStorage or sessionStorage
+    try {
+      const dismissed =
+        localStorage.getItem("push_prompt_dismissed") ||
+        sessionStorage.getItem("push_prompt_dismissed");
+      if (dismissed) return;
+    } catch {}
 
     // Detect iOS devices (iPhone, iPad, iPod, or iPadOS Safari in desktop mode)
     const userAgent = window.navigator.userAgent || "";
@@ -33,10 +52,6 @@ export default function PushNotificationPrompt() {
       window.matchMedia("(display-mode: standalone)").matches;
     setIsStandalone(standalone);
 
-    // Check if dismissed previously
-    const dismissed = localStorage.getItem("push_prompt_dismissed");
-    if (dismissed) return;
-
     // Check notification support and permission
     if ("Notification" in window) {
       if (Notification.permission === "default") {
@@ -44,15 +59,16 @@ export default function PushNotificationPrompt() {
       }
     } else if (ios && !standalone) {
       // On iOS Safari browser, window.Notification is not available until added to Home Screen.
-      // We show the prompt so the user can be guided to Add to Home Screen!
       setShowPrompt(true);
     }
   }, []);
 
   const handleEnableNotifications = async () => {
+    // Immediately dismiss prompt from user view
+    dismissPrompt();
+
     if (isIos && !isStandalone) {
       // iOS Web Push requires Add to Home Screen first
-      setShowPrompt(false);
       setShowIosGuide(true);
       return;
     }
@@ -70,77 +86,75 @@ export default function PushNotificationPrompt() {
               pubKey = data.publicKey;
             }
           } catch (e: any) {
-            console.warn("[Push] Failed to fetch VAPID key dynamically, falling back to env:", e.message);
+            console.warn("[Push] Failed to fetch VAPID key dynamically:", e.message);
           }
 
           const activeKey = pubKey || VAPID_PUBLIC_KEY;
-          if (!activeKey) {
-            throw new Error("VAPID public key is missing");
+          if (activeKey) {
+            const registration = await registerServiceWorker();
+            await subscribeUser(registration, activeKey, token || null);
           }
-
-          const registration = await registerServiceWorker();
-          await subscribeUser(registration, activeKey, token || null);
-          setShowPrompt(false);
-        } else {
-          console.warn("[Push] Permission denied or dismissed");
-          setShowPrompt(false);
         }
-      } else {
-        // Fallback for browsers with no Push API
-        setShowPrompt(false);
       }
     } catch (err) {
-      console.error("[Push] Error during subscription flow:", err);
+      console.warn("[Push] Subscription failed or dismissed:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDismiss = () => {
-    setShowPrompt(false);
-    localStorage.setItem("push_prompt_dismissed", "true");
+  const handleCloseIosGuide = () => {
+    setShowIosGuide(false);
+    dismissPrompt();
   };
 
   return (
     <>
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {showPrompt && (
           <motion.div
+            key="push-notification-prompt"
             initial={{ opacity: 0, y: 50, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.95 }}
-            className="fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))] left-4 right-4 md:bottom-6 md:left-auto md:right-6 md:w-96 bg-white dark:bg-zinc-900 rounded-3xl shadow-[0_16px_48px_rgba(0,0,0,0.18)] border border-gray-100 dark:border-zinc-800 p-5 z-[70] flex flex-col gap-4"
+            transition={{ duration: 0.2 }}
+            className="fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))] left-4 right-4 md:bottom-6 md:left-auto md:right-6 md:w-96 bg-white dark:bg-zinc-900 rounded-3xl shadow-[0_16px_48px_rgba(0,0,0,0.18)] border border-gray-100 dark:border-zinc-800 p-5 z-[70] flex flex-col gap-4 pointer-events-auto"
           >
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-2xl bg-brand-primary/10 dark:bg-brand-primary/20 flex items-center justify-center text-brand-primary shrink-0">
                 <Bell size={24} className="animate-bounce" />
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-gray-900 dark:text-gray-100 text-base">Enable Order Notifications</h3>
+                <h3 className="font-bold text-gray-900 dark:text-gray-100 text-base">
+                  Enable Order Notifications
+                </h3>
                 <p className="text-gray-500 dark:text-gray-400 text-xs mt-1 leading-relaxed">
-                  Track your food and store pickups in real-time. We&apos;ll alert you when your rider is packing or arrives!
+                  Track your food and store pickups in real-time. We&apos;ll alert you when your order is packed or ready!
                 </p>
               </div>
-              <button 
-                onClick={handleDismiss} 
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 bg-gray-50 dark:bg-zinc-800 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded-full p-1.5 transition-colors"
+              <button
+                type="button"
+                onClick={dismissPrompt}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 bg-gray-50 dark:bg-zinc-800 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded-full p-1.5 transition-colors cursor-pointer"
                 aria-label="Close notification prompt"
               >
                 <X size={16} />
               </button>
             </div>
-            
+
             <div className="flex gap-2 justify-end items-center pt-1 border-t border-gray-50 dark:border-zinc-800/60">
               <button
-                onClick={handleDismiss}
-                className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                type="button"
+                onClick={dismissPrompt}
+                className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors cursor-pointer"
               >
                 Later
               </button>
               <button
+                type="button"
                 onClick={handleEnableNotifications}
                 disabled={loading}
-                className="px-5 py-2.5 text-xs font-bold bg-brand-primary text-white rounded-xl shadow-lg shadow-brand-primary/25 hover:bg-brand-primary/95 transition-all flex items-center justify-center gap-1.5"
+                className="px-5 py-2.5 text-xs font-bold bg-brand-primary text-white rounded-xl shadow-lg shadow-brand-primary/25 hover:bg-brand-primary/95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 {loading ? (
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -154,25 +168,31 @@ export default function PushNotificationPrompt() {
       </AnimatePresence>
 
       {/* iOS Add to Home Screen Guide Overlay */}
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {showIosGuide && (
-          <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setShowIosGuide(false)}
+          <motion.div
+            key="ios-guide-modal-container"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[80] flex items-center justify-center p-4 pointer-events-auto"
+          >
+            {/* Backdrop click to dismiss */}
+            <div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
+              onClick={handleCloseIosGuide}
             />
             <motion.div
+              key="ios-guide-modal-card"
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl p-6 w-full max-w-sm relative z-10 border border-gray-100 dark:border-zinc-800 flex flex-col items-center text-center"
             >
               <button
-                onClick={() => setShowIosGuide(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 bg-gray-100 dark:bg-zinc-800 rounded-full p-2"
+                type="button"
+                onClick={handleCloseIosGuide}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 bg-gray-100 dark:bg-zinc-800 rounded-full p-2 cursor-pointer"
                 aria-label="Close guide"
               >
                 <X size={16} />
@@ -182,34 +202,55 @@ export default function PushNotificationPrompt() {
                 <ArrowUpCircle size={32} className="animate-pulse" />
               </div>
 
-              <h3 className="font-extrabold text-gray-900 dark:text-gray-100 text-lg">Enable Notifications on iOS</h3>
+              <h3 className="font-extrabold text-gray-900 dark:text-gray-100 text-lg">
+                Enable Notifications on iOS
+              </h3>
               <p className="text-gray-500 dark:text-gray-400 text-sm mt-2 leading-relaxed">
                 Apple requires this app to be added to your Home Screen before you can enable push notifications.
               </p>
 
               <div className="w-full bg-gray-50 dark:bg-zinc-800/60 rounded-2xl p-4 my-5 border border-gray-100 dark:border-zinc-700/50 text-left space-y-3.5 text-xs text-gray-700 dark:text-gray-300">
                 <div className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-lg bg-white dark:bg-zinc-700 flex items-center justify-center border border-gray-200 dark:border-zinc-600 font-bold shrink-0 text-brand-primary">1</div>
-                  <p>Tap the <span className="font-bold inline-flex items-center gap-0.5 text-brand-primary">Share <Share size={12} className="inline" /></span> icon at the bottom of Safari.</p>
+                  <div className="w-6 h-6 rounded-lg bg-white dark:bg-zinc-700 flex items-center justify-center border border-gray-200 dark:border-zinc-600 font-bold shrink-0 text-brand-primary">
+                    1
+                  </div>
+                  <p>
+                    Tap the{" "}
+                    <span className="font-bold inline-flex items-center gap-0.5 text-brand-primary">
+                      Share <Share size={12} className="inline" />
+                    </span>{" "}
+                    icon at the bottom of Safari.
+                  </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-lg bg-white dark:bg-zinc-700 flex items-center justify-center border border-gray-200 dark:border-zinc-600 font-bold shrink-0 text-brand-primary">2</div>
-                  <p>Scroll down and select <span className="font-bold inline-flex items-center gap-0.5 text-brand-primary">Add to Home Screen <PlusSquare size={12} className="inline" /></span>.</p>
+                  <div className="w-6 h-6 rounded-lg bg-white dark:bg-zinc-700 flex items-center justify-center border border-gray-200 dark:border-zinc-600 font-bold shrink-0 text-brand-primary">
+                    2
+                  </div>
+                  <p>
+                    Scroll down and select{" "}
+                    <span className="font-bold inline-flex items-center gap-0.5 text-brand-primary">
+                      Add to Home Screen <PlusSquare size={12} className="inline" />
+                    </span>
+                    .
+                  </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-lg bg-white dark:bg-zinc-700 flex items-center justify-center border border-gray-200 dark:border-zinc-600 font-bold shrink-0 text-brand-primary">3</div>
+                  <div className="w-6 h-6 rounded-lg bg-white dark:bg-zinc-700 flex items-center justify-center border border-gray-200 dark:border-zinc-600 font-bold shrink-0 text-brand-primary">
+                    3
+                  </div>
                   <p>Open the app from your home screen and enable notifications!</p>
                 </div>
               </div>
 
               <button
-                onClick={() => setShowIosGuide(false)}
-                className="w-full py-3 bg-brand-primary hover:bg-brand-primary/95 text-white font-bold rounded-xl transition-all shadow-lg shadow-brand-primary/20 text-sm"
+                type="button"
+                onClick={handleCloseIosGuide}
+                className="w-full py-3 bg-brand-primary hover:bg-brand-primary/95 text-white font-bold rounded-xl transition-all shadow-lg shadow-brand-primary/20 text-sm cursor-pointer"
               >
                 Got it
               </button>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </>
